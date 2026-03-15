@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive AI Lab · 5 Algorithms in Action</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ----- GLOBAL STYLE (mirroring existing pages) ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg:     #07090f;
+            --bg1:    #0d1119;
+            --bg2:    #111720;
+            --bg3:    #171f2e;
+            --bg4:    #1d2638;
+            --line:   rgba(255,255,255,0.055);
+            --line2:  rgba(255,255,255,0.10);
+            --gold:   #ffc94d;
+            --text:   #dce8f5;
+            --text2:  #5a7090;
+            --text3:  #2e3f58;
+
+            --block:  #29c4ef;   /* bfs / block world */
+            --nqueen: #34d399;    /* min-conflict / n-queens */
+            --route:  #a78bfa;    /* ucs / route finding */
+            --tictac: #f472b6;    /* monte carlo / tic-tac-toe */
+            --vacuum: #f59e0b;    /* reflex / vacuum world */
+            --coming: #5a7090;
+
+            --mono:   'IBM Plex Mono', monospace;
+            --sans:   'DM Sans', sans-serif;
+            --r:      14px;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            overflow-x: hidden;
+        }
+
+        /* subtle dot grid (same as other pages) */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.028) 1px, transparent 1px);
+            background-size: 28px 28px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* scanline overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 18px 20px 50px;
+        }
+
+        /* ----- HEADER (same vibe) ----- */
+        .hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 24px;
+            margin-bottom: 28px;
+            background: var(--bg1);
+            border: 1px solid var(--line2);
+            border-radius: 18px;
+            position: relative;
+            overflow: hidden;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .hdr::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--block) 15%, var(--nqueen) 35%, var(--route) 55%, var(--tictac) 75%, var(--vacuum) 92%, transparent 100%);
+            opacity: 0.75;
+        }
+
+        .hdr-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #29c4ef, #f472b6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            flex-shrink: 0;
+            box-shadow: 0 0 28px rgba(41,196,239,0.3);
+        }
+
+        .hdr-title {
+            font-family: var(--mono);
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, #fff, #d4e0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hdr-sub {
+            font-size: 0.7rem;
+            color: var(--text2);
+            margin-top: 4px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .badge-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            background: var(--bg3);
+            border: 1px solid var(--line2);
+            border-radius: 30px;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text2);
+            transition: 0.2s;
+        }
+
+        .badge:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        /* ----- GRID OF CARDS ----- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+            margin: 30px 0 20px;
+        }
+
+        @media (max-width: 1000px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 620px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* card style (inspired by algo panels) */
+        .card {
+            background: var(--bg1);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            border-color: var(--card-accent, var(--gold));
+            box-shadow: 0 18px 28px -12px var(--card-accent-glow, rgba(255,201,77,0.2));
+        }
+
+        .card-header {
+            padding: 18px 18px 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: var(--card-accent-dim, rgba(41,196,239,0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.9rem;
+            flex-shrink: 0;
+            transition: 0.2s;
+            border: 1px solid var(--card-accent, var(--gold));
+            color: var(--card-accent, var(--gold));
+        }
+
+        .card-titles h3 {
+            font-family: var(--mono);
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--card-accent, var(--text));
+        }
+
+        .card-titles p {
+            font-size: 0.7rem;
+            color: var(--text2);
+            letter-spacing: 0.03em;
+            line-height: 1.4;
+        }
+
+        .card-desc {
+            padding: 16px 18px 10px;
+            font-size: 0.82rem;
+            color: var(--text);
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .card-desc small {
+            color: var(--text3);
+            font-size: 0.7rem;
+            display: block;
+            margin-top: 6px;
+            font-family: var(--mono);
+        }
+
+        .card-footer {
+            padding: 14px 18px 20px;
+            border-top: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .algo-tags {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .algo-tag {
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: var(--bg3);
+            border: 1px solid var(--line2);
+            color: var(--text2);
+        }
+
+        .launch-btn {
+            background: transparent;
+            border: 1px solid var(--card-accent, var(--gold));
+            color: var(--card-accent, var(--gold));
+            padding: 7px 18px;
+            border-radius: 40px;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: 0.18s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.06em;
+        }
+
+        .launch-btn:hover {
+            background: var(--card-accent, var(--gold));
+            color: #06090f;
+            border-color: transparent;
+            box-shadow: 0 0 16px var(--card-accent-glow, rgba(255,201,77,0.6));
+        }
+
+        /* coming soon special */
+        .card.comingsoon {
+            --card-accent: var(--coming);
+            --card-accent-glow: rgba(90,112,144,0.3);
+            opacity: 0.9;
+        }
+
+        .card.comingsoon .card-icon {
+            background: rgba(90,112,144,0.1);
+        }
+
+        .card.comingsoon .launch-btn {
+            pointer-events: none;
+            opacity: 0.5;
+            border-color: var(--text3);
+            color: var(--text3);
+        }
+
+        /* per‑card accent colors */
+        .card[data-problem="block"]   { --card-accent: #29c4ef; --card-accent-glow: rgba(41,196,239,0.4); }
+        .card[data-problem="nqueen"]  { --card-accent: #34d399; --card-accent-glow: rgba(52,211,153,0.4); }
+        .card[data-problem="route"]   { --card-accent: #a78bfa; --card-accent-glow: rgba(167,139,250,0.4); }
+        .card[data-problem="tictac"]  { --card-accent: #f472b6; --card-accent-glow: rgba(244,114,182,0.4); }
+        .card[data-problem="vacuum"]  { --card-accent: #f59e0b; --card-accent-glow: rgba(245,158,11,0.4); }
+
+        /* ----- extra info bar (like sync bar) ----- */
+        .info-bar {
+            background: var(--bg1);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            padding: 12px 20px;
+            margin: 30px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .info-bar span {
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .info-bar .highlight {
+            color: var(--gold);
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--line);
+            margin: 30px 0 15px;
+        }
+
+        .footer-note {
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            color: var(--text3);
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .footer-note a {
+            color: var(--gold);
+            text-decoration: none;
+            border-bottom: 1px dotted;
+        }
+
+        /* live demo pulse for coming soon (subtle) */
+        .pulse-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--coming);
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- HEADER with logo and badges -->
+    <div class="hdr">
+        <div class="hdr-left">
+            <div class="logo-box">🧠</div>
+            <div>
+                <div class="hdr-title">INTERACTIVE AI LAB</div>
+                <div class="hdr-sub">Five algorithm comparison engines · side‑by‑side · informed & uninformed search</div>
+            </div>
+        </div>
+        <div class="badge-group">
+            <span class="badge">5 demos</span>
+            <span class="badge">+1 coming</span>
+        </div>
+    </div>
+
+    <!-- subtle description (like diverge panel) but minimal) -->
+    <div style="background: var(--bg1); border:1px solid var(--line); border-radius:14px; padding:14px 22px; margin-bottom:22px;">
+        <p style="font-family:var(--mono); font-size:0.75rem; color:var(--text2); letter-spacing:0.02em;">
+            ⚡ each lab runs 4–7 algorithms simultaneously — compare BFS, DFS, A*, Min‑Conflicts, MCTS, Reflex agents & more.
+            <span style="color:var(--gold); margin-left:12px;">click any card →</span>
+        </p>
+    </div>
+
+    <!-- CARD GRID -->
+    <div class="dashboard-grid">
+
+        <!-- 1. BLOCK WORLD -->
+        <div class="card" data-problem="block">
+            <div class="card-header">
+                <div class="card-icon">🧱</div>
+                <div class="card-titles">
+                    <h3>BLOCK WORLD</h3>
+                    <p>BFS · DFS · Greedy · A*</p>
+                </div>
+            </div>
+            <div class="card-desc">
+                Rearrange stacks of blocks. Witness how BFS stays optimal, DFS wanders, Greedy jumps, and A* balances cost+heuristic.
+                <small>5 levels · divergence panel · 4‑panel sync</small>
+            </div>
+            <div class="card-footer">
+                <div class="algo-tags">
+                    <span class="algo-tag">BFS</span>
+                    <span class="algo-tag">DFS</span>
+                    <span class="algo-tag">GBFS</span>
+                    <span class="algo-tag">A*</span>
+                </div>
+                <a href="BlockWorld.html" class="launch-btn">▶ EXPLORE</a>
+            </div>
+        </div>
+
+        <!-- 2. N‑QUEENS -->
+        <div class="card" data-problem="nqueen">
+            <div class="card-header">
+                <div class="card-icon">♛</div>
+                <div class="card-titles">
+                    <h3>N‑QUEENS</h3>
+                    <p>Backtrack · BFS · DFS · Min‑Conflicts · GA · SA · HC</p>
+                </div>
+            </div>
+            <div class="card-desc">
+                Place N queens safely. Compare systematic backtracking against local search (min‑conflicts, genetic, annealing).
+                <small>6 levels · 100‑queens scale · conflict heatmaps</small>
+            </div>
+            <div class="card-footer">
+                <div class="algo-tags">
+                    <span class="algo-tag">BT</span>
+                    <span class="algo-tag">MC</span>
+                    <span class="algo-tag">GA</span>
+                </div>
+                <a href="NQueens.html" class="launch-btn">▶ EXPLORE</a>
+            </div>
+        </div>
+
+        <!-- 3. ROUTE FINDING -->
+        <div class="card" data-problem="route">
+            <div class="card-header">
+                <div class="card-icon">🗺️</div>
+                <div class="card-titles">
+                    <h3>ROUTE FINDING</h3>
+                    <p>BFS · DFS · UCS · A* · Greedy · Bidirectional</p>
+                </div>
+            </div>
+            <div class="card-desc">
+                Weighted/unweighted graphs. See UCS (Dijkstra) guarantee optimal cost, A* focus with heuristic, and bidirectional speedup.
+                <small>5 maps · Romania‑style · node exploration logs</small>
+            </div>
+            <div class="card-footer">
+                <div class="algo-tags">
+                    <span class="algo-tag">UCS</span>
+                    <span class="algo-tag">A*</span>
+                    <span class="algo-tag">Bi‑BFS</span>
+                </div>
+                <a href="RouteFinding.html" class="launch-btn">▶ EXPLORE</a>
+            </div>
+        </div>
+
+        <!-- 4. TIC‑TAC‑TOE -->
+        <div class="card" data-problem="tictac">
+            <div class="card-header">
+                <div class="card-icon">⨉</div>
+                <div class="card-titles">
+                    <h3>TIC‑TAC‑TOE</h3>
+                    <p>Minimax · Alpha‑Beta · MCTS · Rule‑Based</p>
+                </div>
+            </div>
+            <div class="card-desc">
+                Game tree showdown. Minimax explores everything, alpha‑beta prunes 73% nodes, MCTS uses random playouts, rule‑based reacts instantly.
+                <small>3x3 to 5x5 · node comparison</small>
+            </div>
+            <div class="card-footer">
+                <div class="algo-tags">
+                    <span class="algo-tag">MM</span>
+                    <span class="algo-tag">α‑β</span>
+                    <span class="algo-tag">MCTS</span>
+                </div>
+                <a href="TicTacToe.html" class="launch-btn">▶ EXPLORE</a>
+            </div>
+        </div>
+
+        <!-- 5. VACUUM WORLD -->
+        <div class="card" data-problem="vacuum">
+            <div class="card-header">
+                <div class="card-icon">🌀</div>
+                <div class="card-titles">
+                    <h3>VACUUM WORLD</h3>
+                    <p>Reflex · Model · Goal · Utility + BFS · DFS · A*</p>
+                </div>
+            </div>
+            <div class="card-desc">
+                Clean rooms with different agent architectures. Watch reflex loop forever, model‑based avoid revisits, goal‑based plan, and utility optimise.
+                <small>grids up to 3x3 · step‑by‑step</small>
+            </div>
+            <div class="card-footer">
+                <div class="algo-tags">
+                    <span class="algo-tag">Reflex</span>
+                    <span class="algo-tag">Goal</span>
+                    <span class="algo-tag">A*</span>
+                </div>
+                <a href="VacuumWorld.html" class="launch-btn">▶ EXPLORE</a>
+            </div>
+        </div>
+
+        <!-- 6. COMING SOON -->
+        <div class="card comingsoon" data-problem="coming">
+            <div class="card-header">
+                <div class="card-icon">🔮</div>
+                <div class="card-titles">
+                    <h3>MORE COMING</h3>
+                    <p>8‑puzzle · Knapsack · Constraint sat</p>
+                </div>
+            </div>
+            <div class="card-desc">
+                New interactive labs are being prepared. Expect CSP, optimisation, and adversarial search with the same side‑by‑side philosophy.
+                <small><span class="pulse-dot"></span> in active development</small>
+            </div>
+            <div class="card-footer">
+                <div class="algo-tags">
+                    <span class="algo-tag">soon</span>
+                </div>
+                <span class="launch-btn" style="cursor:default;">▶ COMING</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- like a "sync bar" but for stats -->
+    <div class="info-bar">
+        <span>⚙️ total algorithms <span class="highlight">28</span> · all runnable</span>
+        <span>🧩 5 core AI problems</span>
+        <span style="margin-left:auto;">📁 6th space reserved</span>
+    </div>
+
+    <!-- comparison table mini (just a hint) -->
+    <hr>
+    <div style="font-family:var(--mono); color:var(--text2); font-size:0.6rem; display:flex; justify-content:center; gap:40px; flex-wrap:wrap;">
+        <span>BFS: optimal unweighted</span>
+        <span>A*: f=g+h optimal</span>
+        <span>Min‑Conflicts: 100‑queens</span>
+        <span>Alpha‑Beta: 73% pruned</span>
+    </div>
+    <hr>
+
+    <div class="footer-note">
+        <span>🧪 each page is a standalone interactive visualiser — designed for teaching & curiosity.</span><br>
+        <span style="color:var(--text3);">© 2025 · <a href="#">interactive‑ai‑lab.github</a> · all five share the same aesthetic engine</span>
+    </div>
+
+    <!-- small script to add hover glow consistency (already in CSS) -->
+    <script>
+        // optional: keep the pulse on coming soon
+        // (all styling handled)
+        console.log('Interactive AI Lab dashboard ready');
+    </script>
+
+</div>
+<!-- .app -->
+</body>
+</html>

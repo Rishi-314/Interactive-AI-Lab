@@ -4,7 +4,7 @@
 
 Each lab is a standalone, self‑contained HTML page. No build, no dependencies. Built to demonstrate the behaviour of classic AI search algorithms on canonical problems. The design language is consistent: dark theme, dot grid, coloured accents per algorithm, synchronised step‑by‑step playback, and diverging explanation panels.
 
-![Dashboard Preview](Screenshot 2026-03-15 125534.png) 
+![Dashboard Preview](dashboard.png) <!-- You can add a screenshot later -->
 
 ---
 

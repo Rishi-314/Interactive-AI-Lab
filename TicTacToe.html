@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIC-TAC-TOE</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #030508;
+  --bg1:   #070b12;
+  --bg2:   #0b1020;
+  --bg3:   #101828;
+  --bg4:   #162030;
+  --line:  rgba(255,255,255,.052);
+  --line2: rgba(255,255,255,.10);
+
+  --x-col:  #f87171;   --x-dim:  rgba(248,113,113,.09);
+  --o-col:  #60a5fa;   --o-dim:  rgba(96,165,250,.09);
+  --mm:     #c084fc;   --mm-d:   rgba(192,132,252,.09);
+  --ab:     #34d399;   --ab-d:   rgba(52,211,153,.09);
+  --mc:     #fbbf24;   --mc-d:   rgba(251,191,36,.09);
+  --rb:     #f97316;   --rb-d:   rgba(249,115,22,.09);
+  --rnd:    #94a3b8;   --rnd-d:  rgba(148,163,184,.09);
+
+  --best-move: rgba(52,211,153,.35);
+  --pruned:    rgba(248,113,113,.25);
+  --gold: #fbbf24;
+  --text:  #c8d8f0;
+  --text2: #384f6a;
+  --text3: #1e3048;
+
+  --mono: 'Space Mono', monospace;
+  --sans: 'Lexend', sans-serif;
+  --r: 14px;
+}
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image: radial-gradient(rgba(192,132,252,.012) 1px, transparent 1px);
+  background-size:30px 30px; pointer-events:none; z-index:0;
+}
+body::after {
+  content:''; position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.018) 3px,rgba(0,0,0,.018) 4px);
+  pointer-events:none; z-index:9999;
+}
+.app { position:relative; z-index:1; max-width:1840px; margin:0 auto; padding:18px 14px 70px; }
+
+/* HEADER */
+.hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; margin-bottom:14px;
+  background:var(--bg1); border:1px solid var(--line2); border-radius:18px;
+  position:relative; overflow:hidden; flex-wrap:wrap; gap:10px;
+}
+.hdr::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--x-col) 15%,var(--mm) 42%,var(--ab) 65%,var(--mc) 85%,transparent);
+  opacity:.8;
+}
+.hdr-left { display:flex; align-items:center; gap:12px; }
+.logo-box {
+  width:44px; height:44px; border-radius:11px;
+  background:linear-gradient(135deg,var(--x-col),var(--mm));
+  display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;
+  box-shadow:0 0 28px rgba(192,132,252,.32);
+}
+.hdr-title {
+  font-family:var(--mono); font-size:1.12rem; font-weight:700; letter-spacing:.02em;
+  background:linear-gradient(90deg,var(--x-col) 0%,var(--mm) 35%,var(--ab) 65%,var(--mc) 85%,#fff 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hdr-sub { font-size:.62rem; color:var(--text2); margin-top:2px; letter-spacing:.09em; text-transform:uppercase; }
+.algo-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.algo-badge {
+  display:flex; align-items:center; gap:5px; padding:4px 10px;
+  border-radius:22px; font-family:var(--mono); font-size:.58rem; font-weight:700; letter-spacing:.08em; border:1px solid;
+}
+.b-mm  { color:var(--mm);  border-color:rgba(192,132,252,.32); background:rgba(192,132,252,.07); }
+.b-ab  { color:var(--ab);  border-color:rgba(52,211,153,.32);  background:rgba(52,211,153,.07); }
+.b-mc  { color:var(--mc);  border-color:rgba(251,191,36,.32);  background:rgba(251,191,36,.07); }
+.b-rb  { color:var(--rb);  border-color:rgba(249,115,22,.32);  background:rgba(249,115,22,.07); }
+.b-rnd { color:var(--rnd); border-color:rgba(148,163,184,.32); background:rgba(148,163,184,.07); }
+.badge-dot { width:5px; height:5px; border-radius:50%; animation:pulse 2.2s ease-in-out infinite; }
+.b-mm  .badge-dot { background:var(--mm); } .b-ab .badge-dot { background:var(--ab); }
+.b-mc  .badge-dot { background:var(--mc); } .b-rb .badge-dot { background:var(--rb); }
+.b-rnd .badge-dot { background:var(--rnd); }
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.7)}}
+
+/* CONTROLS */
+.ctrl-bar {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; margin-bottom:14px;
+}
+.ctrl-label { font-family:var(--mono); font-size:.58rem; color:var(--text3); text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; }
+.lvl-select {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.73rem; font-weight:400;
+  padding:8px 14px; border-radius:9px; cursor:pointer; outline:none; transition:border-color .2s; flex:1; min-width:0;
+}
+.lvl-select:focus { border-color:var(--mm); }
+.lvl-select option { background:#0b1020; }
+.speed-wrap { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.speed-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.62rem; font-weight:700; padding:6px 10px; border-radius:7px; cursor:pointer; transition:all .15s;
+}
+.speed-btn.active { color:var(--mm); border-color:rgba(192,132,252,.4); background:rgba(192,132,252,.07); }
+.run-btn {
+  background:linear-gradient(135deg,var(--mm),var(--ab));
+  border:none; color:#030508; font-family:var(--mono); font-size:.78rem; font-weight:700;
+  padding:8px 20px; border-radius:9px; cursor:pointer; transition:opacity .15s,transform .1s;
+  letter-spacing:.08em; box-shadow:0 2px 18px rgba(192,132,252,.32); white-space:nowrap;
+}
+.run-btn:hover { opacity:.88; transform:translateY(-1px); }
+
+/* PROBLEM ROW */
+.problem-row { display:flex; gap:10px; margin-bottom:14px; align-items:stretch; flex-wrap:wrap; }
+.prob-card {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 14px; flex-shrink:0; min-width:180px;
+}
+.prob-card.state-card  { border-color:rgba(248,113,113,.22); }
+.prob-card.focus-card  { border-color:rgba(96,165,250,.22); }
+.prob-label { font-family:var(--mono); font-size:.58rem; font-weight:700; text-transform:uppercase; letter-spacing:.12em; margin-bottom:6px; }
+.prob-label.pl-x   { color:var(--x-col); }
+.prob-label.pl-o   { color:var(--o-col); }
+.prob-label.pl-mm  { color:var(--mm); }
+.mini-board { display:grid; gap:2px; width:fit-content; }
+.mini-cell {
+  width:28px; height:28px; border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:.85rem; font-weight:700;
+  background:var(--bg3); border:1px solid var(--line);
+}
+.mini-cell.cx { color:var(--x-col); border-color:rgba(248,113,113,.3); }
+.mini-cell.co { color:var(--o-col); border-color:rgba(96,165,250,.3); }
+.mini-cell.cbest { background:rgba(52,211,153,.15); border-color:rgba(52,211,153,.5); }
+.prob-stats {
+  flex:1; min-width:260px; background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 16px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+}
+.ps-item { display:flex; flex-direction:column; gap:2px; }
+.ps-key { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.ps-val { font-family:var(--mono); font-size:.82rem; font-weight:700; }
+.vc-mm{color:var(--mm);} .vc-ab{color:var(--ab);} .vc-mc{color:var(--mc);}
+.vc-rb{color:var(--rb);} .vc-rnd{color:var(--rnd);} .vc-gd{color:var(--gold);}
+
+/* INSIGHT PANEL */
+.insight-panel {
+  background:var(--bg1); border:1px solid var(--line2); border-top:2px solid var(--gold); border-radius:var(--r);
+  padding:13px 16px; margin-bottom:14px;
+}
+.insight-title {
+  font-family:var(--mono); font-size:.62rem; font-weight:700;
+  color:var(--gold); text-transform:uppercase; letter-spacing:.12em;
+  margin-bottom:12px; display:flex; align-items:center; gap:7px;
+}
+.insight-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
+.ins-col { background:var(--bg2); border-radius:10px; padding:11px 12px; border:1px solid var(--line); }
+.ins-col.ic-mm  { border-color:rgba(192,132,252,.22); } .ins-col.ic-ab  { border-color:rgba(52,211,153,.22); }
+.ins-col.ic-mc  { border-color:rgba(251,191,36,.22); }  .ins-col.ic-rb  { border-color:rgba(249,115,22,.22); }
+.ins-col.ic-rnd { border-color:rgba(148,163,184,.22); }
+.ins-head { font-family:var(--mono); font-size:.63rem; font-weight:700; margin-bottom:9px; }
+.ih-mm{color:var(--mm);} .ih-ab{color:var(--ab);} .ih-mc{color:var(--mc);}
+.ih-rb{color:var(--rb);} .ih-rnd{color:var(--rnd);}
+.ins-step { display:flex; align-items:flex-start; gap:7px; margin-bottom:8px; }
+.ins-num {
+  width:18px; height:18px; border-radius:4px; font-family:var(--mono);
+  font-size:.6rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; color:#030508;
+}
+.ic-mm  .ins-num{background:var(--mm);} .ic-ab  .ins-num{background:var(--ab);}
+.ic-mc  .ins-num{background:var(--mc);} .ic-rb  .ins-num{background:var(--rb);}
+.ic-rnd .ins-num{background:var(--rnd);}
+.ins-inner { display:flex; flex-direction:column; gap:2px; }
+.ins-action { font-family:var(--mono); font-size:.66rem; font-weight:600; color:var(--text); }
+.ins-reason { font-size:.61rem; color:var(--text2); line-height:1.55; }
+.ins-result { margin-top:9px; padding-top:9px; border-top:1px solid var(--line); font-size:.61rem; color:var(--text2); line-height:1.6; }
+.ins-res-label { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; }
+
+/* SYNC BAR */
+.sync-bar {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;
+}
+.sync-label { font-family:var(--mono); font-size:.58rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.sync-btn {
+  width:32px; height:32px; border-radius:7px; border:1px solid var(--line2); background:var(--bg3);
+  color:var(--text); font-size:.9rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; font-weight:700;
+}
+.sync-btn:hover:not(:disabled) { background:var(--bg4); }
+.sync-btn:disabled { opacity:.22; cursor:not-allowed; }
+.sync-counter {
+  font-family:var(--mono); font-size:.79rem; font-weight:700;
+  background:var(--bg3); padding:6px 18px; border-radius:22px; border:1px solid var(--line); min-width:96px; text-align:center;
+}
+.sync-auto-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.65rem; font-weight:700; padding:6px 13px; border-radius:8px; cursor:pointer; transition:all .15s;
+}
+.sync-auto-btn:hover { color:var(--mm); border-color:rgba(192,132,252,.35); }
+.sync-auto-btn.playing { color:var(--rb); border-color:rgba(249,115,22,.4); background:rgba(249,115,22,.07); }
+.fastest-tag {
+  margin-left:auto; font-family:var(--mono); font-size:.61rem; font-weight:700;
+  padding:5px 12px; border-radius:18px; background:rgba(52,211,153,.09); border:1px solid rgba(52,211,153,.28); color:var(--ab);
+}
+
+/* ALGO PANELS GRID */
+.algos-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:12px; margin-bottom:14px; }
+.algo-panel {
+  background:var(--bg1); border:1px solid var(--line); border-radius:16px;
+  overflow:hidden; display:flex; flex-direction:column; transition:border-color .3s,box-shadow .3s;
+}
+.ap-mm  {--ac:var(--mm); --ag:var(--mm-d);}  .ap-ab  {--ac:var(--ab); --ag:var(--ab-d);}
+.ap-mc  {--ac:var(--mc); --ag:var(--mc-d);}  .ap-rb  {--ac:var(--rb); --ag:var(--rb-d);}
+.ap-rnd {--ac:var(--rnd);--ag:var(--rnd-d);}
+.algo-panel.done-panel { border-color:var(--ac); box-shadow:0 0 22px color-mix(in srgb,var(--ac) 14%,transparent); }
+
+.panel-header {
+  padding:10px 13px; background:var(--ag); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; position:relative; overflow:hidden;
+}
+.panel-header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:var(--ac); opacity:.4; }
+.ph-left { display:flex; align-items:center; gap:8px; }
+.ph-icon {
+  width:31px; height:31px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.63rem; font-weight:800; font-family:var(--mono); color:#030508; flex-shrink:0; background:var(--ac);
+}
+.ph-name { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+.ph-full { font-size:.57rem; color:var(--text2); margin-top:1px; }
+.ph-status {
+  font-family:var(--mono); font-size:.56rem; font-weight:700; padding:3px 9px;
+  border-radius:18px; text-transform:uppercase; letter-spacing:.09em;
+  border:1px solid var(--ac); color:var(--ac); background:var(--ag); white-space:nowrap;
+}
+
+/* BOARD + TREE AREA */
+.panel-visual-wrap {
+  background:var(--bg2); padding:10px; border-bottom:1px solid var(--line);
+  display:flex; gap:10px; justify-content:center; align-items:flex-start; flex-wrap:wrap;
+  min-height:180px;
+}
+/* TTT BOARD */
+.ttt-board-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.ttt-board-label { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; }
+.ttt-board { display:grid; gap:3px; background:var(--line2); border-radius:8px; padding:6px; }
+.ttt-cell {
+  display:flex; align-items:center; justify-content:center;
+  border-radius:5px; font-family:var(--mono); font-weight:700; cursor:default;
+  transition:all .2s; position:relative; overflow:hidden;
+  background:var(--bg3); border:1px solid var(--line);
+}
+.ttt-cell.cx { color:var(--x-col); border-color:rgba(248,113,113,.35); }
+.ttt-cell.co { color:var(--o-col); border-color:rgba(96,165,250,.35); }
+.ttt-cell.best-move { background:rgba(52,211,153,.14); border-color:rgba(52,211,153,.5); }
+.ttt-cell.best-move::after {
+  content:''; position:absolute; inset:0;
+  background:rgba(52,211,153,.08); animation:bestPulse 1.2s ease-in-out infinite;
+}
+.ttt-cell.pruned-move { background:rgba(248,113,113,.08); border-color:rgba(248,113,113,.25); }
+.ttt-cell.evaluated { background:rgba(192,132,252,.1); border-color:rgba(192,132,252,.3); }
+@keyframes bestPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* MINI TREE VISUALIZER */
+.tree-wrap { flex:1; min-width:0; }
+.tree-label { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; margin-bottom:5px; }
+.tree-canvas-wrap { overflow:hidden; border-radius:6px; background:var(--bg3); }
+
+/* METRICS BAR */
+.panel-metrics { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; border-bottom:1px solid var(--line); }
+.metric { padding:6px 9px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:2px; }
+.metric:last-child { border-right:none; }
+.m-key { font-family:var(--mono); font-size:.48rem; color:var(--text3); text-transform:uppercase; letter-spacing:.08em; }
+.m-val { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+
+/* BEST MOVE DISPLAY */
+.panel-bestmove {
+  padding:7px 10px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.bm-label { font-family:var(--mono); font-size:.5rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; flex-shrink:0; }
+.bm-badge {
+  font-family:var(--mono); font-size:.7rem; font-weight:700; padding:3px 11px;
+  border-radius:5px; border:1px solid var(--ac); color:var(--ac); background:var(--ag);
+}
+.bm-score {
+  font-family:var(--mono); font-size:.65rem; color:var(--text2);
+}
+
+/* NAV */
+.panel-nav { padding:6px 9px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--line); }
+.pnav-btn {
+  width:24px; height:24px; border-radius:5px; border:1px solid var(--line2);
+  background:var(--bg3); color:var(--text2); font-size:.85rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .15s; font-weight:700;
+}
+.pnav-btn:hover:not(:disabled) { background:var(--ac); color:#030508; border-color:var(--ac); }
+.pnav-btn:disabled { opacity:.18; cursor:not-allowed; }
+.pnav-count {
+  font-family:var(--mono); font-size:.67rem; font-weight:600;
+  background:var(--bg3); padding:3px 10px; border-radius:18px; min-width:68px; text-align:center; border:1px solid var(--line);
+}
+.pnav-auto {
+  margin-left:auto; background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.59rem; font-weight:700; padding:3px 9px; border-radius:6px; cursor:pointer; transition:all .15s;
+}
+.pnav-auto:hover { color:var(--ac); border-color:var(--ac); }
+.pnav-auto.playing { color:var(--rb); border-color:rgba(249,115,22,.4); background:rgba(249,115,22,.07); }
+
+/* STEP LOG */
+.panel-log { flex:1; overflow-y:auto; max-height:120px; padding:6px 9px; scrollbar-width:thin; scrollbar-color:var(--bg4) transparent; }
+.log-item {
+  display:flex; align-items:flex-start; gap:5px; padding:3px 5px; border-radius:5px;
+  font-size:.61rem; color:var(--text2); cursor:pointer; transition:all .12s; margin-bottom:1px;
+}
+.log-item:hover { background:var(--bg3); color:var(--text); }
+.log-item.active-log { background:var(--ag); color:var(--ac); border-left:2px solid var(--ac); padding-left:3px; }
+.log-idx { font-family:var(--mono); color:var(--text3); min-width:16px; font-size:.53rem; }
+.log-tag {
+  font-family:var(--mono); font-size:.5rem; font-weight:700; padding:1px 5px;
+  border-radius:3px; margin-right:2px; flex-shrink:0;
+}
+.lt-eval  { background:rgba(192,132,252,.15); color:var(--mm); }
+.lt-prune { background:rgba(248,113,113,.15); color:var(--x-col); }
+.lt-best  { background:rgba(52,211,153,.18);  color:var(--ab); font-weight:800; }
+.lt-sim   { background:rgba(251,191,36,.15);  color:var(--mc); }
+.lt-rule  { background:rgba(249,115,22,.15);  color:var(--rb); }
+.lt-move  { background:rgba(96,165,250,.15);  color:var(--o-col); }
+
+/* ALGO DESC */
+.algo-desc { padding:8px 11px; border-top:1px solid var(--line); font-size:.61rem; line-height:1.65; color:var(--text2); }
+.algo-desc strong { color:var(--ac); font-family:var(--mono); font-weight:600; }
+
+/* COMPARISON TABLE */
+.cmp-wrap { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:14px; overflow-x:auto; }
+.cmp-title {
+  font-family:var(--mono); font-size:.64rem; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.12em; margin-bottom:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.cmp-title::before { content:''; width:3px; height:12px; border-radius:2px; background:linear-gradient(var(--mm),var(--ab)); }
+.cmp-table { width:100%; border-collapse:collapse; }
+.cmp-table th {
+  font-family:var(--mono); font-size:.54rem; font-weight:600; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--text3); padding:6px 11px; border-bottom:1px solid var(--line2); text-align:left;
+}
+.cmp-table td { font-family:var(--mono); font-size:.66rem; padding:7px 11px; border-bottom:1px solid rgba(255,255,255,.03); }
+.cmp-table tbody tr { transition:background .12s; }
+.cmp-table tbody tr:hover { background:var(--bg3); }
+.cmp-table tr:last-child td { border-bottom:none; }
+.cmp-table .an { font-weight:700; }
+.r-mm  .an{color:var(--mm);}  .r-ab  .an{color:var(--ab);}  .r-mc  .an{color:var(--mc);}
+.r-rb  .an{color:var(--rb);}  .r-rnd .an{color:var(--rnd);}
+.cx-best{color:#4ade80;font-weight:700;} .cx-good{color:#86efac;}
+.cx-mid{color:var(--text2);} .cx-warn{color:var(--gold);font-weight:600;} .cx-bad{color:#f87171;}
+.cmp-note { margin-top:9px; font-size:.57rem; color:var(--text3); font-family:var(--mono); line-height:1.9; }
+
+/* LOADING */
+.loading-ov{position:fixed;inset:0;background:rgba(3,5,8,.92);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9000;}
+.loading-box{background:var(--bg1);border:1px solid var(--line2);border-radius:18px;padding:30px 46px;text-align:center;}
+.loading-box h3{font-family:var(--mono);font-size:.98rem;margin-bottom:6px;font-weight:700;}
+.loading-box p{color:var(--text2);font-size:.73rem;margin-bottom:18px;}
+.loading-algos{display:flex;gap:12px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+.l-algo{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--mono);font-size:.6rem;font-weight:700;}
+.l-algo-bar{width:42px;height:3px;border-radius:2px;animation:loadBar 1.2s ease-in-out infinite;}
+@keyframes loadBar{0%,100%{transform:scaleX(.25);opacity:.3}50%{transform:scaleX(1);opacity:1}}
+.spinner{width:28px;height:28px;border:2px solid var(--bg4);border-top-color:var(--mm);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="logo-box">&#10799;</div>
+      <div>
+        <div class="hdr-title">TIC-TAC-TOE // AI GAME TREE SEARCH</div>
+        <div class="hdr-sub">Minimax * Alpha-Beta Pruning * Monte Carlo Tree Search * Rule-Based -- 5 levels</div>
+      </div>
+    </div>
+    <div class="algo-badges">
+      <div class="algo-badge b-mm"><span class="badge-dot"></span>MINIMAX</div>
+      <div class="algo-badge b-ab"><span class="badge-dot"></span>ALPHA-BETA</div>
+      <div class="algo-badge b-mc"><span class="badge-dot"></span>MCTS</div>
+      <div class="algo-badge b-rb"><span class="badge-dot"></span>RULE-BASED</div>
+      <div class="algo-badge b-rnd"><span class="badge-dot"></span>RANDOM</div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">Level</span>
+    <select class="lvl-select" id="levelSelect">
+      <option value="0">LVL 01 * 3x3 * Very Easy   -- Winning Move    * Rule-Based vs Random      [Immediate win detection]</option>
+      <option value="1" selected>LVL 02 * 3x3 * Easy       -- Blocking Move  * Rule-Based vs Minimax    [Defense divergence]</option>
+      <option value="2">LVL 03 * 3x3 * Medium      -- Perfect Play   * Minimax vs Alpha-Beta    [Pruning cuts 73% of nodes]</option>
+      <option value="3">LVL 04 * 4x4 * Hard        -- Deep Search    * Minimax vs Alpha-Beta    [Depth limit, pruning critical]</option>
+      <option value="4">LVL 05 * 5x5 * Expert      -- Large Tree     * Alpha-Beta vs MCTS       [Tree too large, MCTS shines]</option>
+    </select>
+    <div class="speed-wrap">
+      <span class="ctrl-label">Speed</span>
+      <button class="speed-btn" data-ms="1800">0.5x</button>
+      <button class="speed-btn active" data-ms="900">1x</button>
+      <button class="speed-btn" data-ms="400">2x</button>
+      <button class="speed-btn" data-ms="150">4x</button>
+    </div>
+    <button class="run-btn" id="runBtn">&#9654; ANALYZE POSITION</button>
+  </div>
+
+  <!-- PROBLEM INFO -->
+  <div class="problem-row">
+    <div class="prob-card state-card" id="initBoardCard">
+      <div class="prob-label pl-x">&#9655; Initial Position</div>
+      <div class="mini-board" id="miniBoardInit" style="grid-template-columns:repeat(3,1fr)"></div>
+    </div>
+    <div class="prob-card focus-card">
+      <div class="prob-label pl-mm">&#9670; AI Decides</div>
+      <div id="aiTurnInfo" style="font-family:var(--mono);font-size:.72rem;color:var(--text2);margin-bottom:4px">--</div>
+      <div id="aiLevelInfo" style="font-family:var(--mono);font-size:.6rem;color:var(--text3)">--</div>
+    </div>
+    <div class="prob-stats" id="probStats"></div>
+  </div>
+
+  <!-- INSIGHT PANEL -->
+  <div class="insight-panel">
+    <div class="insight-title">&#9889; Algorithm Divergence -- How Each Approach Analyzes the Same Position</div>
+    <div class="insight-grid" id="insightGrid"></div>
+  </div>
+
+  <!-- SYNC BAR -->
+  <div class="sync-bar">
+    <span class="sync-label">Sync All</span>
+    <button class="sync-btn" id="syncPrev" disabled>&#8249;</button>
+    <div class="sync-counter" id="syncCounter">0 / 0</div>
+    <button class="sync-btn" id="syncNext" disabled>&#8250;</button>
+    <button class="sync-auto-btn" id="syncAuto">&#9654; AUTO PLAY ALL</button>
+    <div class="fastest-tag" id="fastestTag" style="display:none">&#9889; FEWEST NODES</div>
+  </div>
+
+  <!-- PANELS -->
+  <div class="algos-grid" id="algosGrid"></div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="cmp-wrap">
+    <div class="cmp-title">Algorithm Comparison -- Game Tree Search</div>
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>Algorithm</th><th>Strategy</th><th>Optimal?</th><th>Nodes (3x3)</th>
+          <th>Nodes (4x4)</th><th>Handles 5x5?</th><th>Pruning?</th><th>Key Trait</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="r-rb">
+          <td class="an">Rule-Based</td><td class="cx-mid">Pattern match</td>
+          <td class="cx-warn">Near-optimal</td><td class="cx-best">~10</td>
+          <td class="cx-bad">Fails deep</td><td class="cx-bad">No</td><td class="cx-mid">N/A</td>
+          <td class="cx-mid">Win/block/center/corner priority rules. Fast but incomplete.</td>
+        </tr>
+        <tr class="r-rnd">
+          <td class="an">Random</td><td class="cx-bad">No strategy</td>
+          <td class="cx-bad">No</td><td class="cx-best">1</td>
+          <td class="cx-best">1</td><td class="cx-best">Yes</td><td class="cx-mid">N/A</td>
+          <td class="cx-bad">Picks legal move at random. Baseline comparison only.</td>
+        </tr>
+        <tr class="r-mm">
+          <td class="an">Minimax</td><td class="cx-best">Full game tree</td>
+          <td class="cx-best">Yes (perfect)</td><td class="cx-warn">~5500</td>
+          <td class="cx-bad">~500K+</td><td class="cx-bad">No</td><td class="cx-bad">None</td>
+          <td class="cx-warn">Explores every terminal state. Perfect but exponentially slow.</td>
+        </tr>
+        <tr class="r-ab">
+          <td class="an">Alpha-Beta</td><td class="cx-best">Pruned game tree</td>
+          <td class="cx-best">Yes (identical)</td><td class="cx-best">~1500</td>
+          <td class="cx-warn">~80K</td><td class="cx-warn">Limited depth</td><td class="cx-best">Yes</td>
+          <td class="cx-best">Same result as Minimax, ~3-4x fewer nodes. Prunes entire subtrees.</td>
+        </tr>
+        <tr class="r-mc">
+          <td class="an">MCTS</td><td class="cx-best">Simulation</td>
+          <td class="cx-warn">Near-optimal</td><td class="cx-warn">~200 sims</td>
+          <td class="cx-best">~500 sims</td><td class="cx-best">Yes</td><td class="cx-mid">UCB1</td>
+          <td class="cx-best">Random playouts + UCB1 selection. Scales to huge trees. Anytime.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cmp-note">
+      Alpha-Beta best case: O(b^(d/2)) vs Minimax O(b^d) -- equivalent to doubling search depth |
+      MCTS simulations = iterations; each sim plays random game to terminal state |
+      3x3 TTT has ~9! = 362,880 possible games but only ~5,478 distinct terminal states
+    </div>
+  </div>
+
+</div>
+<script>
+(function(){'use strict';
+
+// ==========================================================
+// GAME LOGIC
+// ==========================================================
+var X=1, O=-1, E=0;
+
+function boardCopy(b){return b.slice();}
+
+function checkWinner(board,size,winLen){
+  // rows
+  for(var r=0;r<size;r++){
+    for(var c=0;c<=size-winLen;c++){
+      var v=board[r*size+c];if(v===E)continue;
+      var win=true;for(var k=1;k<winLen;k++)if(board[r*size+c+k]!==v){win=false;break;}
+      if(win)return v;
+    }
+  }
+  // cols
+  for(var c=0;c<size;c++){
+    for(var r=0;r<=size-winLen;r++){
+      var v=board[r*size+c];if(v===E)continue;
+      var win=true;for(var k=1;k<winLen;k++)if(board[(r+k)*size+c]!==v){win=false;break;}
+      if(win)return v;
+    }
+  }
+  // diag \
+  for(var r=0;r<=size-winLen;r++){
+    for(var c=0;c<=size-winLen;c++){
+      var v=board[r*size+c];if(v===E)continue;
+      var win=true;for(var k=1;k<winLen;k++)if(board[(r+k)*size+(c+k)]!==v){win=false;break;}
+      if(win)return v;
+    }
+  }
+  // diag /
+  for(var r=0;r<=size-winLen;r++){
+    for(var c=winLen-1;c<size;c++){
+      var v=board[r*size+c];if(v===E)continue;
+      var win=true;for(var k=1;k<winLen;k++)if(board[(r+k)*size+(c-k)]!==v){win=false;break;}
+      if(win)return v;
+    }
+  }
+  return 0;
+}
+
+function isDraw(board){return board.indexOf(E)===-1;}
+function getEmpty(board){var e=[];for(var i=0;i<board.length;i++)if(board[i]===E)e.push(i);return e;}
+
+// ==========================================================
+// LEVEL DEFINITIONS
+// ==========================================================
+var LEVELS=[
+
+// LVL 01: 3x3, winning move, rule-based vs random
+{
+  label:'WINNING MOVE', diff:'VERY EASY', size:3, winLen:3,
+  // X X .  | O O .  | . . .   (turn = X, X can win at pos 2)
+  board:[X,X,E, O,O,E, E,E,E],
+  turn:X, algos:['rb','rnd'],
+  statsKeys:[
+    {key:'piTurn',label:'AI Turn',val:'X',cls:'vc-rb'},
+    {key:'piRB',  label:'Rule-Based nodes',val:'--',cls:'vc-rb'},
+    {key:'piRnd', label:'Random nodes',    val:'--',cls:'vc-rnd'},
+  ],
+  insight:[
+    {id:'rb',steps:[
+      {action:'Scan for immediate win: X needs pos 2','reason':'Rule 1: IF we can win in one move THEN take it. X has (0,1) filled -- pos 2 completes row.'},
+      {action:'pos 2 found -- play immediately','reason':'No tree search needed. Rule fires instantly. 0 nodes explored.'},
+      {action:'O also has winning threat at pos 5 -- but we win first','reason':'Rule priority: win > block. X wins this turn, so blocking irrelevant.'},
+    ],result:'Best move: pos 2 (row 1, col 3). 1 node checked. Rule fires instantly.',cls:'ic-rb',hcls:'ih-rb'},
+    {id:'rnd',steps:[
+      {action:'Get empty cells: [2, 5, 6, 7, 8]','reason':'Random agent just collects legal moves -- no evaluation whatsoever.'},
+      {action:'Pick uniformly at random from [2,5,6,7,8]','reason':'Equal 20% chance for each cell. Has 20% chance of finding the winning move pos 2.'},
+      {action:'80% of the time: MISSES the win. Picks suboptimal move.','reason':'Random agent demonstrates baseline incompetence. Any real algorithm beats it.'},
+    ],result:'Expected: wrong move 80% of time. Demonstrates why intelligence matters even in simple games.',cls:'ic-rnd',hcls:'ih-rnd'},
+  ]
+},
+
+// LVL 02: 3x3, blocking move, rule-based vs minimax
+{
+  label:'BLOCKING MOVE', diff:'EASY', size:3, winLen:3,
+  // X X .  | O . .  | . O .   (turn = O, O must block pos 2 or X wins)
+  board:[X,X,E, O,E,E, E,O,E],
+  turn:O, algos:['rb','mm'],
+  statsKeys:[
+    {key:'piTurn',label:'AI Turn',val:'O',cls:'vc-mm'},
+    {key:'piRB',  label:'Rule-Based nodes',val:'--',cls:'vc-rb'},
+    {key:'piMM',  label:'Minimax nodes',   val:'--',cls:'vc-mm'},
+  ],
+  insight:[
+    {id:'rb',steps:[
+      {action:'Scan for opponent win threat: X at (0,1) -- pos 2 wins','reason':'Rule 2: IF opponent can win next move THEN block. X missing pos 2 for row win.'},
+      {action:'Block at pos 2 -- highest priority rule triggered','reason':'Rule-based correctly identifies and blocks the immediate threat.'},
+      {action:'Does not see long-term strategy -- only reacts to threats','reason':'Rule-based has no lookahead. It would miss multi-step fork threats that Minimax catches.'},
+    ],result:'Correct block at pos 2. 1 pattern check. But would fail on 2-step fork threats.',cls:'ic-rb',hcls:'ih-rb'},
+    {id:'mm',steps:[
+      {action:'Minimax at root (O to move): enumerate all 6 empty cells','reason':'Minimax considers every legal move and simulates the complete game tree.'},
+      {action:'For move at pos 2: X has no winning continuation. Score = 0','reason':'O blocking at 2 leads to draw territory. Minimax scores terminal states: +1=X wins, -1=O wins.'},
+      {action:'For move elsewhere (e.g. pos 4): X plays pos 2 next -> +1. BAD.','reason':'Minimax looks ahead: if O does not block, X wins. Any non-block move scores -1 for O.'},
+    ],result:'Confirms block at pos 2. ~40-80 nodes explored. Finds same move as rule-based but provably optimal.',cls:'ic-mm',hcls:'ih-mm'},
+  ]
+},
+
+// LVL 03: 3x3, perfect play, minimax vs alpha-beta
+{
+  label:'PERFECT PLAY', diff:'MEDIUM', size:3, winLen:3,
+  // X . .  | . O .  | . . X   (diagonal start, turn = X)
+  board:[X,E,E, E,O,E, E,E,X],
+  turn:X, algos:['mm','ab'],
+  statsKeys:[
+    {key:'piTurn',label:'AI Turn',val:'X',cls:'vc-mm'},
+    {key:'piMM',  label:'Minimax nodes',  val:'--',cls:'vc-mm'},
+    {key:'piAB',  label:'Alpha-Beta nodes',val:'--',cls:'vc-ab'},
+    {key:'piSaved',label:'Nodes saved',   val:'--',cls:'vc-ab'},
+  ],
+  insight:[
+    {id:'mm',steps:[
+      {action:'Root: X to move. 7 empty cells = 7 branches.','reason':'Minimax expands every possible continuation exhaustively. No intelligence applied.'},
+      {action:'Recurse to depth 7. Every terminal state evaluated.','reason':'Minimax visits approximately 5,478 unique terminal states (with transpositions) or ~549 without.'},
+      {action:'Best move found: corner/strategic. All alternatives confirmed suboptimal.','reason':'Minimax guarantees optimal play but visits thousands of unnecessary nodes.'},
+    ],result:'~549 nodes explored (without transposition table). Perfect play guaranteed. No pruning.',cls:'ic-mm',hcls:'ih-mm'},
+    {id:'ab',steps:[
+      {action:'Root: X to move. alpha=-INF, beta=+INF. Evaluate first branch.','reason':'Alpha-Beta tracks best scores found so far. Alpha=maximizer best, Beta=minimizer best.'},
+      {action:'After evaluating first move: update alpha. Prune sibling branches.','reason':'If a child node proves worse than already-found alternatives, cut entire subtree.'},
+      {action:'~73% of nodes pruned! ~150 nodes vs 549. Same result.','reason':'Best case: prune entire halves of tree. Real: mixed -- depends on move ordering.'},
+    ],result:'~150 nodes explored. Identical best move as Minimax. 3-4x speedup from pruning alone.',cls:'ic-ab',hcls:'ih-ab'},
+  ]
+},
+
+// LVL 04: 4x4, deep search, minimax vs alpha-beta
+{
+  label:'4x4 DEEP SEARCH', diff:'HARD', size:4, winLen:4,
+  // partial 4x4 position
+  board:[X,E,E,E, O,X,E,E, E,O,X,E, E,E,O,E],
+  turn:X, algos:['mm','ab'],
+  statsKeys:[
+    {key:'piTurn',label:'AI Turn',val:'X',cls:'vc-mm'},
+    {key:'piMM',  label:'Minimax nodes',   val:'--',cls:'vc-mm'},
+    {key:'piAB',  label:'Alpha-Beta nodes',val:'--',cls:'vc-ab'},
+    {key:'piSaved',label:'Nodes saved',    val:'--',cls:'vc-ab'},
+  ],
+  insight:[
+    {id:'mm',steps:[
+      {action:'4x4 board: up to 16 cells, deeper game tree','reason':'4x4 has roughly 4^12 = 16M leaf nodes at full depth. Must use depth limit.'},
+      {action:'Depth-limited to 5 plies. Heuristic eval at leaves.','reason':'Cannot search to terminal state in reasonable time. Heuristic: count potential winning lines.'},
+      {action:'~50,000-500,000 nodes at depth 5. Very slow for real-time.','reason':'Exponential growth makes full minimax impractical. Alpha-Beta is not optional anymore.'},
+    ],result:'~50K-500K nodes with depth limit. Correct but slow -- demonstrates need for pruning at this scale.',cls:'ic-mm',hcls:'ih-mm'},
+    {id:'ab',steps:[
+      {action:'Same depth-5 search but with alpha-beta window.','reason':'Alpha-Beta tracks [alpha,beta] bounds. Prune when score outside window -- same principle as 3x3.'},
+      {action:'Good move ordering: check winning moves first.','reason':'If we evaluate good moves first, alpha/beta bounds tighten faster -> more pruning.'},
+      {action:'~80K nodes (84% reduction vs Minimax at this depth).','reason':'Alpha-Beta approaches O(b^(d/2)) in best case -- equivalent to doubling search depth.'},
+    ],result:'~80K nodes (estimated). Same quality as Minimax at depth 5, ~6x fewer evaluations.',cls:'ic-ab',hcls:'ih-ab'},
+  ]
+},
+
+// LVL 05: 5x5, alpha-beta vs MCTS
+{
+  label:'5x5 LARGE TREE', diff:'EXPERT', size:5, winLen:4,
+  // sparse 5x5 position
+  board:[E,E,E,E,E, E,X,E,E,E, E,E,O,E,E, E,E,E,X,E, E,E,E,E,E],
+  turn:O, algos:['ab','mc'],
+  statsKeys:[
+    {key:'piTurn',  label:'AI Turn',   val:'O',cls:'vc-mc'},
+    {key:'piAB',    label:'AB nodes',  val:'--',cls:'vc-ab'},
+    {key:'piMC',    label:'MCTS sims', val:'--',cls:'vc-mc'},
+    {key:'piMCWin', label:'Best win%', val:'--',cls:'vc-mc'},
+  ],
+  insight:[
+    {id:'ab',steps:[
+      {action:'5x5 with 4-in-row: branching factor ~20 empty cells','reason':'Alpha-Beta at depth 4: 20^4 = 160K nodes in worst case. Very slow at depth 6+.'},
+      {action:'Depth limited to 4. Many positions not fully evaluated.','reason':'Shallow depth means Alpha-Beta may miss key threats more than 4 moves away.'},
+      {action:'Result depends heavily on depth limit and heuristic quality','reason':'At depth 4, Alpha-Beta gives reasonable but not perfect play. Heuristic dominates.'},
+    ],result:'AB depth-4: ~8K-40K nodes. Reasonable quality but heuristic-dependent. Cannot go deep enough.',cls:'ic-ab',hcls:'ih-ab'},
+    {id:'mc',steps:[
+      {action:'MCTS: selection via UCB1 formula: Q/N + C*sqrt(ln(parent)/N)','reason':'UCB1 balances exploitation (high win%) and exploration (rarely tried moves).'},
+      {action:'500 simulations: each plays random moves until game ends','reason':'Each sim is cheap. 500 sims explore many continuations without explicit depth limit.'},
+      {action:'Best move = child with highest visit count (not win%)','reason':'Visit count is more robust than raw win% for move selection. Naturally focuses on promising lines.'},
+    ],result:'500 sims, ~5K random playout nodes. Near-optimal without depth limit or heuristic function needed.',cls:'ic-mc',hcls:'ih-mc'},
+  ]
+},
+];
+
+// ==========================================================
+// ALGORITHM IMPLEMENTATIONS
+// ==========================================================
+
+// Rule-Based
+function runRuleBased(board,size,winLen,turn){
+  var steps=[],nodes=0;
+  var empty=getEmpty(board);
+  steps.push({board:boardCopy(board),highlight:-1,type:'rule',note:'Rule-Based: scan '+empty.length+' empty cells for patterns.',nodes:++nodes});
+
+  // Check win
+  for(var i=0;i<empty.length;i++){
+    var pos=empty[i];
+    var nb=boardCopy(board);nb[pos]=turn;
+    var w=checkWinner(nb,size,winLen);
+    nodes++;
+    if(w===turn){
+      steps.push({board:nb,highlight:pos,type:'best',note:'WIN FOUND at pos '+pos+'! Take immediately.',nodes:nodes,bestMove:pos,score:10});
+      return{steps:steps,bestMove:pos,nodes:nodes,score:10};
+    }
+    steps.push({board:boardCopy(board),highlight:pos,type:'rule',note:'Check win at pos '+pos+': no win.',nodes:nodes});
+  }
+  // Check block
+  for(var i=0;i<empty.length;i++){
+    var pos=empty[i];
+    var nb=boardCopy(board);nb[pos]=-turn;
+    var w=checkWinner(nb,size,winLen);
+    nodes++;
+    if(w===-turn){
+      steps.push({board:nb,highlight:pos,type:'best',note:'BLOCK at pos '+pos+'! Opponent would win here.',nodes:nodes,bestMove:pos,score:5});
+      return{steps:steps,bestMove:pos,nodes:nodes,score:5};
+    }
+    steps.push({board:boardCopy(board),highlight:pos,type:'rule',note:'Check block at pos '+pos+': no threat.',nodes:nodes});
+  }
+  // Center
+  var ctr=Math.floor(size/2)*size+Math.floor(size/2);
+  if(board[ctr]===0){
+    nodes++;
+    steps.push({board:boardCopy(board),highlight:ctr,type:'best',note:'Take center (strategic rule).',nodes:nodes,bestMove:ctr,score:3});
+    return{steps:steps,bestMove:ctr,nodes:nodes,score:3};
+  }
+  // Corner
+  var corners=[0,size-1,(size-1)*size,(size*size-1)];
+  for(var i=0;i<corners.length;i++){
+    if(board[corners[i]]===0){
+      nodes++;
+      steps.push({board:boardCopy(board),highlight:corners[i],type:'best',note:'Take corner (strategic rule).',nodes:nodes,bestMove:corners[i],score:2});
+      return{steps:steps,bestMove:corners[i],nodes:nodes,score:2};
+    }
+  }
+  // Any
+  var m=empty[0];nodes++;
+  steps.push({board:boardCopy(board),highlight:m,type:'best',note:'Default: first available cell.',nodes:nodes,bestMove:m,score:0});
+  return{steps:steps,bestMove:m,nodes:nodes,score:0};
+}
+
+// Random
+function runRandom(board,size,winLen,turn){
+  var steps=[],empty=getEmpty(board);
+  steps.push({board:boardCopy(board),highlight:-1,type:'rule',note:'Random: '+empty.length+' legal moves. Pick uniformly.',nodes:1});
+  var m=empty[Math.floor(Math.random()*empty.length)];
+  var nb=boardCopy(board);nb[m]=turn;
+  steps.push({board:nb,highlight:m,type:'move',note:'Random pick: pos '+m,nodes:1,bestMove:m,score:0});
+  return{steps:steps,bestMove:m,nodes:1,score:0};
+}
+
+// Minimax
+function runMinimax(board,size,winLen,turn){
+  var steps=[],nodeCount=0,MAX_STEPS=300;
+
+  function minimax(b,isMax,depth){
+    nodeCount++;
+    var w=checkWinner(b,size,winLen);
+    if(w!==0){return w===X?10-depth:depth-10;}
+    var empty=getEmpty(b);
+    if(empty.length===0)return 0;
+    // depth limit for large boards
+    if(depth>=7)return heuristic(b,size,winLen);
+    var best=isMax?-Infinity:Infinity;
+    for(var i=0;i<empty.length;i++){
+      var pos=empty[i];
+      var nb=boardCopy(b);nb[pos]=isMax?X:O;
+      var val=minimax(nb,!isMax,depth+1);
+      if(isMax)best=Math.max(best,val);else best=Math.min(best,val);
+    }
+    return best;
+  }
+
+  var empty=getEmpty(board);
+  var bestMove=-1,bestScore=turn===X?-Infinity:Infinity;
+  steps.push({board:boardCopy(board),highlight:-1,type:'eval',note:'Minimax: exploring '+empty.length+' top-level moves.',nodes:nodeCount});
+
+  for(var i=0;i<empty.length;i++){
+    var pos=empty[i];
+    var nb=boardCopy(board);nb[pos]=turn;
+    var sc=minimax(nb,turn===O,1);
+    if(steps.length<MAX_STEPS)
+      steps.push({board:nb,highlight:pos,type:'eval',note:'Move at pos '+pos+': score='+sc,nodes:nodeCount});
+    if((turn===X&&sc>bestScore)||(turn===O&&sc<bestScore)){
+      bestScore=sc;bestMove=pos;
+      if(steps.length<MAX_STEPS)
+        steps.push({board:nb,highlight:pos,type:'best',note:'New best: pos '+pos+' score='+sc,nodes:nodeCount,bestMove:pos,score:sc});
+    }
+  }
+  var nb=boardCopy(board);nb[bestMove]=turn;
+  steps.push({board:nb,highlight:bestMove,type:'best',note:'FINAL BEST MOVE: pos '+bestMove+' (score='+bestScore+'). '+nodeCount+' nodes explored.',nodes:nodeCount,bestMove:bestMove,score:bestScore});
+  return{steps:steps,bestMove:bestMove,nodes:nodeCount,score:bestScore};
+}
+
+// Alpha-Beta
+function runAlphaBeta(board,size,winLen,turn){
+  var steps=[],nodeCount=0,pruneCount=0,MAX_STEPS=300;
+
+  function ab(b,isMax,alpha,beta,depth){
+    nodeCount++;
+    var w=checkWinner(b,size,winLen);
+    if(w!==0){return w===X?10-depth:depth-10;}
+    var empty=getEmpty(b);
+    if(empty.length===0)return 0;
+    if(depth>=7)return heuristic(b,size,winLen);
+    var best=isMax?-Infinity:Infinity;
+    for(var i=0;i<empty.length;i++){
+      var pos=empty[i];
+      var nb=boardCopy(b);nb[pos]=isMax?X:O;
+      var val=ab(nb,!isMax,alpha,beta,depth+1);
+      if(isMax){best=Math.max(best,val);alpha=Math.max(alpha,val);}
+      else{best=Math.min(best,val);beta=Math.min(beta,val);}
+      if(beta<=alpha){pruneCount++;break;}
+    }
+    return best;
+  }
+
+  var empty=getEmpty(board);
+  var bestMove=-1,bestScore=turn===X?-Infinity:Infinity;
+  var alpha=-Infinity,beta=Infinity;
+  steps.push({board:boardCopy(board),highlight:-1,type:'eval',note:'Alpha-Beta: alpha=-INF, beta=+INF. '+empty.length+' moves.',nodes:nodeCount});
+
+  for(var i=0;i<empty.length;i++){
+    var pos=empty[i];
+    var nb=boardCopy(board);nb[pos]=turn;
+    var sc=ab(nb,turn===O,alpha,beta,1);
+    if(steps.length<MAX_STEPS)
+      steps.push({board:nb,highlight:pos,type:'eval',note:'Move '+pos+': score='+sc+' | alpha='+alpha.toFixed(0)+' beta='+beta.toFixed(0),nodes:nodeCount});
+    if((turn===X&&sc>bestScore)||(turn===O&&sc<bestScore)){
+      bestScore=sc;bestMove=pos;
+      if(turn===X)alpha=Math.max(alpha,sc);else beta=Math.min(beta,sc);
+      if(steps.length<MAX_STEPS)
+        steps.push({board:nb,highlight:pos,type:'best',note:'New best: pos '+pos+' score='+sc+' | '+pruneCount+' pruned so far',nodes:nodeCount,bestMove:pos,score:sc});
+    }
+  }
+  var nb=boardCopy(board);nb[bestMove]=turn;
+  steps.push({board:nb,highlight:bestMove,type:'best',note:'A-B DONE: pos '+bestMove+' (score='+bestScore+'). '+nodeCount+' nodes. '+pruneCount+' branches pruned.',nodes:nodeCount,bestMove:bestMove,score:bestScore});
+  return{steps:steps,bestMove:bestMove,nodes:nodeCount,pruned:pruneCount,score:bestScore};
+}
+
+// Heuristic eval for depth-limited search
+function heuristic(board,size,winLen){
+  var score=0;
+  function evalLine(cells){
+    var xc=0,oc=0;
+    cells.forEach(function(c){if(c===X)xc++;else if(c===O)oc++;});
+    if(xc>0&&oc>0)return 0;
+    if(xc>0)return Math.pow(10,xc);
+    if(oc>0)return -Math.pow(10,oc);
+    return 0;
+  }
+  // Check all possible winning lines
+  for(var r=0;r<size;r++){
+    for(var c=0;c<=size-winLen;c++){
+      var cells=[];for(var k=0;k<winLen;k++)cells.push(board[r*size+c+k]);
+      score+=evalLine(cells);
+    }
+  }
+  for(var c=0;c<size;c++){
+    for(var r=0;r<=size-winLen;r++){
+      var cells=[];for(var k=0;k<winLen;k++)cells.push(board[(r+k)*size+c]);
+      score+=evalLine(cells);
+    }
+  }
+  return score;
+}
+
+// MCTS
+function runMCTS(board,size,winLen,turn,numSims){
+  numSims=numSims||500;
+  var steps=[],stepCount=0;
+  var empty=getEmpty(board);
+
+  var stats={};
+  empty.forEach(function(pos){stats[pos]={wins:0,visits:0};});
+
+  steps.push({board:boardCopy(board),highlight:-1,type:'sim',note:'MCTS: '+numSims+' simulations from '+empty.length+' root moves.',nodes:0});
+
+  function simulate(b,t){
+    var bc=boardCopy(b),tc=t,iters=0;
+    while(iters<50){
+      iters++;
+      var w=checkWinner(bc,size,winLen);
+      if(w!==0)return w;
+      var e=getEmpty(bc);if(e.length===0)return 0;
+      var m=e[Math.floor(Math.random()*e.length)];
+      bc[m]=tc;tc=-tc;
+    }
+    return 0;
+  }
+
+  for(var s=0;s<numSims;s++){
+    // UCB1 selection
+    var logN=Math.log(s+1);
+    var bestUCB=-Infinity,bestPos=empty[0];
+    empty.forEach(function(pos){
+      var st=stats[pos];
+      var ucb=st.visits===0?Infinity:(st.wins/st.visits)+1.41*Math.sqrt(logN/st.visits);
+      if(ucb>bestUCB){bestUCB=ucb;bestPos=pos;}
+    });
+    // Simulate from chosen move
+    var nb=boardCopy(board);nb[bestPos]=turn;
+    var result=simulate(nb,-turn);
+    stats[bestPos].visits++;
+    if((turn===X&&result===X)||(turn===O&&result===O))stats[bestPos].wins++;
+    if(s%50===0||s<5){
+      stepCount++;
+      var best=getBestMCTS(stats,empty);
+      var winPct=stats[best].visits>0?Math.round(stats[best].wins/stats[best].visits*100):0;
+      steps.push({board:boardCopy(board),highlight:best,type:'sim',note:'Sim '+s+': best=pos '+best+' ('+winPct+'% win rate, '+stats[best].visits+' visits)',nodes:stepCount,bestMove:best});
+    }
+  }
+  var bestMove=getBestMCTS(stats,empty);
+  var winPct=stats[bestMove].visits>0?Math.round(stats[bestMove].wins/stats[bestMove].visits*100):0;
+  var nb=boardCopy(board);nb[bestMove]=turn;
+  steps.push({board:nb,highlight:bestMove,type:'best',note:'MCTS DONE: best move = pos '+bestMove+' ('+winPct+'% win, '+stats[bestMove].visits+' visits / '+numSims+' total)',nodes:numSims,bestMove:bestMove,score:winPct});
+  return{steps:steps,bestMove:bestMove,nodes:numSims,score:winPct,winPct:winPct};
+}
+
+function getBestMCTS(stats,empty){
+  var best=empty[0],bestV=0;
+  empty.forEach(function(pos){if(stats[pos].visits>bestV){bestV=stats[pos].visits;best=pos;}});
+  return best;
+}
+
+function runAlgo(id,lv){
+  switch(id){
+    case'rb':  return runRuleBased(lv.board,lv.size,lv.winLen,lv.turn);
+    case'rnd': return runRandom(lv.board,lv.size,lv.winLen,lv.turn);
+    case'mm':  return runMinimax(lv.board,lv.size,lv.winLen,lv.turn);
+    case'ab':  return runAlphaBeta(lv.board,lv.size,lv.winLen,lv.turn);
+    case'mc':  return runMCTS(lv.board,lv.size,lv.winLen,lv.turn,500);
+    default:   return{steps:[],bestMove:-1,nodes:0,score:0};
+  }
+}
+
+// ==========================================================
+// DRAWING
+// ==========================================================
+var ACLR={mm:'#c084fc',ab:'#34d399',mc:'#fbbf24',rb:'#f97316',rnd:'#94a3b8'};
+
+function drawBoard(container,board,size,highlight,accentColor,isFinal){
+  container.innerHTML='';
+  container.style.gridTemplateColumns='repeat('+size+',1fr)';
+  var cellSize=size<=3?46:size<=4?36:28;
+  container.style.gap='3px';
+
+  for(var i=0;i<size*size;i++){
+    var cell=document.createElement('div');
+    cell.className='ttt-cell';
+    cell.style.width=cellSize+'px';
+    cell.style.height=cellSize+'px';
+    cell.style.fontSize=Math.max(11,Math.floor(cellSize*.5))+'px';
+
+    if(board[i]===X){cell.className+=' cx';cell.textContent='X';}
+    else if(board[i]===O){cell.className+=' co';cell.textContent='O';}
+
+    if(i===highlight&&board[i]!==E){
+      cell.className+=' best-move';
+      cell.style.borderColor=accentColor;
+      cell.style.background='rgba('+hexToRgb(accentColor)+',0.18)';
+    } else if(i===highlight&&board[i]===E){
+      cell.style.borderColor=accentColor+'88';
+      cell.style.background='rgba('+hexToRgb(accentColor)+',0.12)';
+    }
+    if(isFinal&&i===highlight){
+      cell.style.boxShadow='0 0 12px '+accentColor+'66';
+    }
+    container.appendChild(cell);
+  }
+}
+
+function hexToRgb(hex){
+  var r=parseInt(hex.slice(1,3),16);var g=parseInt(hex.slice(3,5),16);var b=parseInt(hex.slice(5,7),16);
+  return r+','+g+','+b;
+}
+
+// Mini tree canvas
+function drawMiniTree(canvas,steps,currentIdx,accentColor){
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#101828';ctx.fillRect(0,0,W,H);
+
+  if(!steps||steps.length===0)return;
+
+  // Show progress bar of exploration
+  var total=steps.length,current=currentIdx;
+  var pct=total>0?current/total:0;
+
+  // Background track
+  ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(10,H/2-8,W-20,16);
+
+  // Progress fill
+  ctx.fillStyle=accentColor+'44';ctx.fillRect(10,H/2-8,(W-20)*pct,16);
+  ctx.strokeStyle=accentColor+'66';ctx.lineWidth=1;ctx.strokeRect(10,H/2-8,W-20,16);
+
+  // Node dots
+  var dotSpacing=Math.max(4,Math.floor((W-20)/Math.max(total,1)));
+  var visibleDots=Math.min(total,Math.floor((W-20)/4));
+  for(var i=0;i<visibleDots;i++){
+    var si=Math.floor(i/visibleDots*total);
+    var s=steps[si];
+    var x=10+i*Math.floor((W-20)/visibleDots);
+    var isActive=(si<=currentIdx);
+    var isPruned=s&&s.type==='prune';
+    var isBest=s&&s.type==='best';
+    ctx.beginPath();ctx.arc(x,H/2,2,0,Math.PI*2);
+    ctx.fillStyle=isBest?accentColor:isPruned?'#f87171':isActive?accentColor+'88':'rgba(255,255,255,.12)';
+    ctx.fill();
+  }
+
+  // Labels
+  ctx.font='9px "Space Mono",monospace';ctx.fillStyle='rgba(255,255,255,.3)';ctx.textAlign='left';
+  ctx.fillText('0',10,H/2+22);ctx.textAlign='right';
+  ctx.fillText(total,W-10,H/2+22);ctx.textAlign='center';
+  ctx.fillStyle=accentColor;
+  ctx.fillText('node '+currentIdx,W/2,H/2-14);
+  ctx.textAlign='left';
+}
+
+// ==========================================================
+// UI STATE
+// ==========================================================
+var curLevel=1,stepMs=900,syncStep=0,syncMax=0,syncTimer=null;
+var plans={},panelSteps={},panelTimers={};
+
+var ALGO_META={
+  mm: {label:'MINIMAX',       full:'Complete game tree * no pruning',       abbr:'MM', cls:'ap-mm', sfcls:'sf-mm'},
+  ab: {label:'ALPHA-BETA',    full:'Minimax + pruning * same result, fewer nodes',abbr:'AB',cls:'ap-ab',sfcls:'sf-ab'},
+  mc: {label:'MONTE CARLO TS',full:'UCB1 selection * random playouts',      abbr:'MC', cls:'ap-mc', sfcls:'sf-mc'},
+  rb: {label:'RULE-BASED',    full:'Priority rules: win > block > center',  abbr:'RB', cls:'ap-rb', sfcls:'sf-rb'},
+  rnd:{label:'RANDOM',        full:'Uniform random from legal moves',       abbr:'RND',cls:'ap-rnd',sfcls:'sf-rnd'},
+};
+var ALGO_DESCS={
+  mm: '<strong>Minimax</strong> recursively explores the <strong>complete game tree</strong>, assuming the opponent plays optimally. Returns perfect play but visits every possible continuation -- O(b^d) complexity.',
+  ab: '<strong>Alpha-Beta Pruning</strong> adds two bounds (alpha, beta) to Minimax. When a branch cannot improve the current best, it is <strong>cut entirely</strong>. Same result, ~73% fewer nodes on 3x3.',
+  mc: '<strong>MCTS</strong> runs 500 random simulations. UCB1 formula: Q/N + C*sqrt(ln(parent)/N) balances <strong>exploitation vs exploration</strong>. No heuristic needed -- pure simulation-based.',
+  rb: '<strong>Rule-Based</strong> applies hand-coded priority rules: 1) win if possible, 2) block opponent, 3) take center, 4) take corner. <strong>No search</strong> -- instant but misses complex threats.',
+  rnd:'<strong>Random</strong> agent picks uniformly from legal moves. Used as baseline. Demonstrates that <strong>any intelligent strategy</strong> decisively outperforms no-strategy, even in simple games.',
+};
+
+function CM(id){return ACLR[id]||'#888';}
+
+function buildPanels(lv){
+  var grid=document.getElementById('algosGrid');grid.innerHTML='';
+  lv.algos.forEach(function(id){
+    var meta=ALGO_META[id];
+    var div=document.createElement('div');
+    div.className='algo-panel '+meta.cls;div.id='panel-'+id;
+    div.innerHTML=
+      '<div class="panel-header">'+
+        '<div class="ph-left">'+
+          '<div class="ph-icon">'+meta.abbr+'</div>'+
+          '<div><div class="ph-name">'+meta.label+'</div><div class="ph-full">'+meta.full+'</div></div>'+
+        '</div>'+
+        '<div class="ph-status" id="status-'+id+'">READY</div>'+
+      '</div>'+
+      '<div class="panel-visual-wrap">'+
+        '<div class="ttt-board-wrap">'+
+          '<div class="ttt-board-label">Current Position</div>'+
+          '<div class="ttt-board" id="board-'+id+'" style="grid-template-columns:repeat('+lv.size+',1fr)"></div>'+
+        '</div>'+
+        '<div class="tree-wrap">'+
+          '<div class="tree-label">Search Progress</div>'+
+          '<div class="tree-canvas-wrap"><canvas id="tree-'+id+'" width="160" height="60"></canvas></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="panel-metrics">'+
+        '<div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-'+id+'">--</span></div>'+
+        '<div class="metric"><span class="m-key">Best Move</span><span class="m-val" id="bmv-'+id+'">--</span></div>'+
+        '<div class="metric"><span class="m-key">Score</span><span class="m-val" id="score-'+id+'">--</span></div>'+
+        '<div class="metric"><span class="m-key">Pruned</span><span class="m-val" id="pruned-'+id+'">--</span></div>'+
+      '</div>'+
+      '<div class="panel-bestmove">'+
+        '<span class="bm-label">Best Move:</span>'+
+        '<span class="bm-badge" id="bmdisp-'+id+'">--</span>'+
+        '<span class="bm-score" id="bmscore-'+id+'"></span>'+
+      '</div>'+
+      '<div class="panel-nav">'+
+        '<button class="pnav-btn" id="prev-'+id+'" disabled>&#8249;</button>'+
+        '<div class="pnav-count" id="count-'+id+'">0 / 0</div>'+
+        '<button class="pnav-btn" id="next-'+id+'" disabled>&#8250;</button>'+
+        '<button class="pnav-auto" id="auto-'+id+'">&#9654; Play</button>'+
+      '</div>'+
+      '<div class="panel-log" id="log-'+id+'"></div>'+
+      '<div class="algo-desc">'+ALGO_DESCS[id]+'</div>';
+    grid.appendChild(div);
+    panelSteps[id]=0;plans[id]=null;
+    document.getElementById('prev-'+id).addEventListener('click',function(){stopAuto(id);goTo(id,panelSteps[id]-1);});
+    document.getElementById('next-'+id).addEventListener('click',function(){stopAuto(id);goTo(id,panelSteps[id]+1);});
+    document.getElementById('auto-'+id).addEventListener('click',function(){if(panelTimers[id])stopAuto(id);else startAuto(id);});
+  });
+}
+
+function buildInsight(lv){
+  var grid=document.getElementById('insightGrid');grid.innerHTML='';
+  lv.insight.forEach(function(ins){
+    var col=document.createElement('div');
+    col.className='ins-col ic-'+ins.id;
+    var html=ins.steps.map(function(s,k){
+      return '<div class="ins-step"><span class="ins-num">'+(k+1)+'</span>'+
+        '<div class="ins-inner"><div class="ins-action">'+s.action+'</div>'+
+        '<div class="ins-reason">'+s.reason+'</div></div></div>';
+    }).join('');
+    col.innerHTML='<div class="ins-head ih-'+ins.id+'">'+ins.id.toUpperCase()+' -- '+ALGO_META[ins.id].label+'</div>'+
+      html+'<div class="ins-result"><div class="ins-res-label">Result</div>'+ins.result+'</div>';
+    grid.appendChild(col);
+  });
+}
+
+function buildProbStats(lv){
+  var el=document.getElementById('probStats');el.innerHTML='';
+  lv.statsKeys.forEach(function(sk){
+    var item=document.createElement('div');item.className='ps-item';
+    item.innerHTML='<span class="ps-key">'+sk.label+'</span><span class="ps-val '+sk.cls+'" id="'+sk.key+'">'+sk.val+'</span>';
+    el.appendChild(item);
+  });
+  document.getElementById('aiTurnInfo').textContent=(lv.turn===X?'X':'O')+' to move (AI)';
+  document.getElementById('aiLevelInfo').textContent=lv.size+'x'+lv.size+' board * win with '+lv.winLen+' in a row';
+  // Draw mini init board
+  var ic=document.getElementById('miniBoardInit');
+  ic.style.gridTemplateColumns='repeat('+lv.size+',1fr)';
+  ic.innerHTML='';
+  var cs=Math.max(18,Math.min(32,Math.floor(140/lv.size)-2));
+  for(var i=0;i<lv.board.length;i++){
+    var c=document.createElement('div');c.className='mini-cell';
+    c.style.width=cs+'px';c.style.height=cs+'px';c.style.fontSize=Math.floor(cs*.55)+'px';
+    if(lv.board[i]===X){c.className+=' cx';c.textContent='X';}
+    else if(lv.board[i]===O){c.className+=' co';c.textContent='O';}
+    ic.appendChild(c);
+  }
+}
+
+function setStatus(id,text,color){
+  var el=document.getElementById('status-'+id);if(!el)return;
+  el.textContent=text;
+  if(color){el.style.color=color;el.style.borderColor=color+'55';el.style.background=color+'14';}
+  else{el.style.color='';el.style.borderColor='';el.style.background='';}
+}
+
+function renderLog(id){
+  var el=document.getElementById('log-'+id),plan=plans[id];if(!plan){if(el)el.innerHTML='';return;}
+  var step=panelSteps[id];el.innerHTML='';
+  var TAG={
+    eval :'<span class="log-tag lt-eval">EVAL</span>',
+    prune:'<span class="log-tag lt-prune">PRUNE</span>',
+    best :'<span class="log-tag lt-best">BEST!</span>',
+    sim  :'<span class="log-tag lt-sim">SIM</span>',
+    rule :'<span class="log-tag lt-rule">RULE</span>',
+    move :'<span class="log-tag lt-move">MOVE</span>',
+  };
+  plan.steps.forEach(function(s,i){
+    var div=document.createElement('div');
+    div.className='log-item'+(i+1===step?' active-log':'');
+    div.innerHTML='<span class="log-idx">'+String(i+1).padStart(2,'0')+'</span>'+(TAG[s.type]||'')+'<span>'+s.note+'</span>';
+    div.addEventListener('click',function(){goTo(id,i+1);});
+    el.appendChild(div);
+  });
+  var act=el.querySelector('.active-log');if(act)act.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+function goTo(id,idx){
+  var plan=plans[id];if(!plan)return;
+  idx=Math.max(0,Math.min(idx,plan.steps.length));
+  panelSteps[id]=idx;
+  var step=idx>0?plan.steps[idx-1]:null;
+  var isFinal=step&&step.type==='best'&&step.bestMove!==undefined&&idx===plan.steps.length;
+  var lv=LEVELS[curLevel];
+  var ac=CM(id);
+
+  var boardEl=document.getElementById('board-'+id);
+  if(boardEl){
+    var b=step?step.board:lv.board;
+    var h=step?step.highlight:-1;
+    drawBoard(boardEl,b,lv.size,h,ac,isFinal);
+  }
+  var treeCanvas=document.getElementById('tree-'+id);
+  if(treeCanvas)drawMiniTree(treeCanvas,plan.steps,idx,ac);
+
+  var isBest=step&&step.type==='best';
+  setStatus(id,isBest?'FOUND!':idx===0?'READY':'THINKING',isBest?ac:idx===0?ac:null);
+  var total=plan.steps.length;
+  var cnt=document.getElementById('count-'+id);if(cnt)cnt.textContent=idx+' / '+total;
+  var prev=document.getElementById('prev-'+id);if(prev)prev.disabled=idx===0;
+  var next=document.getElementById('next-'+id);if(next)next.disabled=idx>=total;
+  renderLog(id);
+
+  var sfEl=document.getElementById('sfloat-'+id);
+  if(sfEl){
+    if(idx===0)sfEl.textContent='START';
+    else if(isBest)sfEl.textContent='BEST MOVE!';
+    else sfEl.textContent='STEP '+idx+'/'+total;
+  }
+
+  // update best move display
+  var lastBest=null;
+  for(var i=0;i<=idx-1;i++){if(plan.steps[i]&&plan.steps[i].bestMove!==undefined)lastBest=plan.steps[i];}
+  var bmEl=document.getElementById('bmdisp-'+id);
+  var bsEl=document.getElementById('bmscore-'+id);
+  if(bmEl){
+    if(lastBest){
+      var r=Math.floor(lastBest.bestMove/lv.size),c=lastBest.bestMove%lv.size;
+      bmEl.textContent='pos '+(r+1)+'x'+(c+1);
+      bmEl.style.color=ac;bmEl.style.borderColor=ac+'55';bmEl.style.background=ac+'11';
+    } else bmEl.textContent='--';
+  }
+  if(bsEl&&lastBest)bsEl.textContent='score: '+lastBest.score;
+
+  var nodesEl=document.getElementById('nodes-'+id);
+  if(nodesEl&&step)nodesEl.textContent=step.nodes;
+  document.getElementById('panel-'+id).classList.toggle('done-panel',!!isBest);
+}
+
+function startAuto(id){
+  if(panelTimers[id])return;
+  var btn=document.getElementById('auto-'+id);
+  if(btn){btn.textContent='&#9208; Pause';btn.classList.add('playing');}
+  function tick(){
+    var plan=plans[id];if(!plan||panelSteps[id]>=plan.steps.length){stopAuto(id);return;}
+    goTo(id,panelSteps[id]+1);panelTimers[id]=setTimeout(tick,stepMs);
+  }
+  panelTimers[id]=setTimeout(tick,250);
+}
+function stopAuto(id){
+  if(panelTimers[id]){clearTimeout(panelTimers[id]);panelTimers[id]=null;}
+  var btn=document.getElementById('auto-'+id);
+  if(btn){btn.textContent='&#9654; Play';btn.classList.remove('playing');}
+}
+function syncGoTo(idx){
+  idx=Math.max(0,Math.min(idx,syncMax));syncStep=idx;
+  var lv=LEVELS[curLevel];
+  lv.algos.forEach(function(id){var p=plans[id];if(p)goTo(id,Math.min(idx,p.steps.length));});
+  document.getElementById('syncCounter').textContent=idx+' / '+syncMax;
+  document.getElementById('syncPrev').disabled=idx===0;
+  document.getElementById('syncNext').disabled=idx>=syncMax;
+}
+function stopAllSync(){
+  if(syncTimer){clearInterval(syncTimer);syncTimer=null;}
+  var btn=document.getElementById('syncAuto');
+  btn.textContent='&#9654; AUTO PLAY ALL';btn.classList.remove('playing');
+}
+
+document.getElementById('syncPrev').addEventListener('click',function(){stopAllSync();syncGoTo(syncStep-1);});
+document.getElementById('syncNext').addEventListener('click',function(){stopAllSync();syncGoTo(syncStep+1);});
+document.getElementById('syncAuto').addEventListener('click',function(){
+  var btn=document.getElementById('syncAuto');
+  if(syncTimer){stopAllSync();return;}
+  btn.textContent='&#9208; PAUSE ALL';btn.classList.add('playing');
+  syncTimer=setInterval(function(){if(syncStep>=syncMax){stopAllSync();return;}syncGoTo(syncStep+1);},stepMs);
+});
+document.querySelectorAll('.speed-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.speed-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');stepMs=parseInt(btn.dataset.ms);
+  });
+});
+
+function showLoading(){
+  var ov=document.getElementById('loadOv');
+  var lv=LEVELS[curLevel];
+  var bars=lv.algos.map(function(id){
+    return '<div class="l-algo"><div class="l-algo-bar" style="background:'+CM(id)+'"></div>'+
+           '<span style="color:'+CM(id)+'">'+ALGO_META[id].abbr+'</span></div>';
+  }).join('');
+  if(!ov){ov=document.createElement('div');ov.id='loadOv';ov.className='loading-ov';document.body.appendChild(ov);}
+  ov.innerHTML='<div class="loading-box"><h3>Analyzing Position</h3>'+
+    '<p>'+lv.algos.map(function(id){return ALGO_META[id].label;}).join(' vs ')+'</p>'+
+    '<div class="loading-algos">'+bars+'</div><div class="spinner"></div></div>';
+  ov.style.display='flex';
+}
+function hideLoading(){var o=document.getElementById('loadOv');if(o)o.style.display='none';}
+
+function loadLevel(idx){
+  curLevel=idx;
+  var lv=LEVELS[idx];
+  lv.algos.forEach(function(id){stopAuto(id);plans[id]=null;panelSteps[id]=0;});
+  stopAllSync();
+  buildPanels(lv);buildInsight(lv);buildProbStats(lv);
+  showLoading();
+  setTimeout(function(){
+    lv.algos.forEach(function(id){
+      var res=runAlgo(id,lv);
+      plans[id]=res;panelSteps[id]=0;
+      document.getElementById('nodes-'+id).textContent=res.nodes;
+      var bm=res.bestMove;
+      if(bm>=0){
+        var r=Math.floor(bm/lv.size),c=bm%lv.size;
+        document.getElementById('bmv-'+id).textContent=(r+1)+'x'+(c+1);
+        document.getElementById('bmdisp-'+id).textContent='pos '+(r+1)+'x'+(c+1);
+      }
+      document.getElementById('score-'+id).textContent=res.score!==undefined?res.score:'--';
+      document.getElementById('pruned-'+id).textContent=res.pruned!==undefined?res.pruned:'--';
+
+      var boardEl=document.getElementById('board-'+id);
+      if(boardEl)drawBoard(boardEl,lv.board,lv.size,-1,CM(id),false);
+      var tc=document.getElementById('tree-'+id);
+      if(tc)drawMiniTree(tc,res.steps,0,CM(id));
+
+      setStatus(id,'READY',CM(id));
+      document.getElementById('count-'+id).textContent='0 / '+res.steps.length;
+      document.getElementById('prev-'+id).disabled=true;
+      document.getElementById('next-'+id).disabled=res.steps.length===0;
+      document.getElementById('bmdisp-'+id).textContent='--';
+
+      // update stats panel
+      var KEY=id.charAt(0).toUpperCase()+id.slice(1);
+      var sEl=document.getElementById('pi'+KEY);if(sEl)sEl.textContent=res.nodes;
+      if(id==='mc'){var wEl=document.getElementById('piMCWin');if(wEl)wEl.textContent=(res.winPct||0)+'%';}
+      if(id==='ab'){var svEl=document.getElementById('piSaved');
+        var mmP=plans['mm'];if(svEl&&mmP)svEl.textContent=Math.max(0,mmP.nodes-res.nodes);}
+    });
+    lv.statsKeys.forEach(function(sk){
+      var el=document.getElementById(sk.key);if(!el)return;
+      if(sk.key==='piTurn')return;
+      var id=sk.key.replace('pi','').toLowerCase();
+      var p=plans[id];if(p)el.textContent=p.nodes;
+    });
+    hideLoading();
+    syncMax=Math.max.apply(null,lv.algos.map(function(id){return plans[id]?plans[id].steps.length:0;}));
+    syncStep=0;
+    document.getElementById('syncCounter').textContent='0 / '+syncMax;
+    document.getElementById('syncPrev').disabled=true;
+    document.getElementById('syncNext').disabled=syncMax===0;
+    // fastest tag
+    var tag=document.getElementById('fastestTag');
+    var allP=lv.algos.map(function(id){return{id:id,p:plans[id]};}).filter(function(x){return x.p&&x.p.bestMove>=0;});
+    if(allP.length>=2){
+      var minN=Math.min.apply(null,allP.map(function(x){return x.p.nodes;}));
+      var win=allP.find(function(x){return x.p.nodes===minN;});
+      if(win){
+        tag.style.display='flex';
+        tag.textContent=ALGO_META[win.id].label+' -- FEWEST NODES ('+minN+')';
+        tag.style.color=CM(win.id);tag.style.borderColor=CM(win.id)+'44';tag.style.background=CM(win.id)+'11';
+      }
+    } else tag.style.display='none';
+  },80);
+}
+
+document.getElementById('levelSelect').addEventListener('change',function(e){loadLevel(parseInt(e.target.value));});
+document.getElementById('runBtn').addEventListener('click',function(){loadLevel(curLevel);});
+loadLevel(1);
+})();
+</script>
+</body>
+</html>

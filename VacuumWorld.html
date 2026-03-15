@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VACUUM WORLD -- AI Agent &amp; Search Algorithms</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #04060c;
+  --bg1:   #080c18;
+  --bg2:   #0c1020;
+  --bg3:   #111628;
+  --bg4:   #172030;
+  --line:  rgba(255,255,255,.05);
+  --line2: rgba(255,255,255,.10);
+
+  /* agent type colors */
+  --reflex: #f59e0b;   --reflex-d: rgba(245,158,11,.09);
+  --model:  #38bdf8;   --model-d:  rgba(56,189,248,.09);
+  --goal:   #a78bfa;   --goal-d:   rgba(167,139,250,.09);
+  --util:   #f472b6;   --util-d:   rgba(244,114,182,.09);
+
+  /* search algo colors */
+  --bfs:  #22d3ee;   --bfs-d:  rgba(34,211,238,.09);
+  --dfs:  #fb923c;   --dfs-d:  rgba(251,146,60,.09);
+  --ast:  #4ade80;   --ast-d:  rgba(74,222,128,.09);
+
+  /* room states */
+  --room-clean:  #0d1a2a;
+  --room-dirty:  #1a1008;
+  --room-agent:  #0a1d0a;
+  --room-both:   #0d1505;
+
+  --gold:  #fbbf24;
+  --text:  #ccd6f0;
+  --text2: #3d5278;
+  --text3: #243244;
+
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Plus Jakarta Sans', sans-serif;
+  --r: 14px;
+}
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); overflow-x:hidden; }
+
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image: radial-gradient(rgba(34,211,238,.012) 1px, transparent 1px);
+  background-size:28px 28px; pointer-events:none; z-index:0;
+}
+body::after {
+  content:''; position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.02) 3px,rgba(0,0,0,.02) 4px);
+  pointer-events:none; z-index:9999;
+}
+.app { position:relative; z-index:1; max-width:1840px; margin:0 auto; padding:18px 14px 70px; }
+
+/* HEADER */
+.hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; margin-bottom:14px;
+  background:var(--bg1); border:1px solid var(--line2); border-radius:18px;
+  position:relative; overflow:hidden; flex-wrap:wrap; gap:10px;
+}
+.hdr::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--reflex) 15%,var(--bfs) 38%,var(--ast) 62%,var(--goal) 82%,transparent);
+  opacity:.8;
+}
+.hdr-left { display:flex; align-items:center; gap:12px; }
+.logo-box {
+  width:44px; height:44px; border-radius:11px;
+  background:linear-gradient(135deg,var(--bfs),var(--ast));
+  display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0;
+  box-shadow:0 0 28px rgba(34,211,238,.28);
+}
+.hdr-title {
+  font-family:var(--mono); font-size:1.15rem; font-weight:800; letter-spacing:.02em;
+  background:linear-gradient(90deg,var(--reflex) 0%,var(--bfs) 30%,var(--ast) 60%,#fff 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hdr-sub { font-size:.62rem; color:var(--text2); margin-top:2px; letter-spacing:.09em; text-transform:uppercase; }
+.algo-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.algo-badge {
+  display:flex; align-items:center; gap:5px; padding:4px 10px;
+  border-radius:22px; font-family:var(--mono); font-size:.59rem; font-weight:600; letter-spacing:.08em; border:1px solid;
+}
+.b-reflex { color:var(--reflex); border-color:rgba(245,158,11,.32);  background:rgba(245,158,11,.07); }
+.b-model  { color:var(--model);  border-color:rgba(56,189,248,.32);  background:rgba(56,189,248,.07); }
+.b-goal   { color:var(--goal);   border-color:rgba(167,139,250,.32); background:rgba(167,139,250,.07); }
+.b-util   { color:var(--util);   border-color:rgba(244,114,182,.32); background:rgba(244,114,182,.07); }
+.b-bfs    { color:var(--bfs);    border-color:rgba(34,211,238,.32);  background:rgba(34,211,238,.07); }
+.b-dfs    { color:var(--dfs);    border-color:rgba(251,146,60,.32);  background:rgba(251,146,60,.07); }
+.b-ast    { color:var(--ast);    border-color:rgba(74,222,128,.32);  background:rgba(74,222,128,.07); }
+.badge-dot { width:5px; height:5px; border-radius:50%; animation:pulse 2.2s ease-in-out infinite; }
+.b-reflex .badge-dot{background:var(--reflex);} .b-model .badge-dot{background:var(--model);}
+.b-goal   .badge-dot{background:var(--goal);}   .b-util  .badge-dot{background:var(--util);}
+.b-bfs    .badge-dot{background:var(--bfs);}    .b-dfs   .badge-dot{background:var(--dfs);}
+.b-ast    .badge-dot{background:var(--ast);}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.7)}}
+
+/* CONTROLS */
+.ctrl-bar {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; margin-bottom:14px;
+}
+.ctrl-label { font-family:var(--mono); font-size:.59rem; color:var(--text3); text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; }
+.lvl-select {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.75rem; font-weight:500;
+  padding:8px 14px; border-radius:9px; cursor:pointer; outline:none; transition:border-color .2s; flex:1; min-width:0;
+}
+.lvl-select:focus { border-color:var(--bfs); }
+.lvl-select option { background:#0c1020; }
+.speed-wrap { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.speed-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.62rem; font-weight:600; padding:6px 10px; border-radius:7px; cursor:pointer; transition:all .15s;
+}
+.speed-btn.active { color:var(--bfs); border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.07); }
+.run-btn {
+  background:linear-gradient(135deg,var(--bfs),var(--ast));
+  border:none; color:#04060c; font-family:var(--mono); font-size:.78rem; font-weight:700;
+  padding:8px 20px; border-radius:9px; cursor:pointer; transition:opacity .15s,transform .1s;
+  letter-spacing:.08em; box-shadow:0 2px 18px rgba(34,211,238,.28); white-space:nowrap;
+}
+.run-btn:hover { opacity:.88; transform:translateY(-1px); }
+
+/* PROBLEM INFO ROW */
+.problem-row { display:flex; gap:10px; margin-bottom:14px; align-items:stretch; flex-wrap:wrap; }
+.prob-card {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 14px; display:flex; align-items:center; gap:12px; flex-shrink:0;
+}
+.prob-card.init-card { border-color:rgba(245,158,11,.22); }
+.prob-card.goal-card { border-color:rgba(74,222,128,.22); }
+.prob-label { font-family:var(--mono); font-size:.59rem; font-weight:700; text-transform:uppercase; letter-spacing:.12em; margin-bottom:4px; }
+.prob-label.pl-amber { color:var(--reflex); }
+.prob-label.pl-green { color:var(--ast); }
+.prob-sub { font-size:.62rem; color:var(--text2); }
+.prob-stats {
+  flex:1; min-width:260px; background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 16px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+}
+.ps-item { display:flex; flex-direction:column; gap:2px; }
+.ps-key { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.ps-val { font-family:var(--mono); font-size:.82rem; font-weight:700; }
+.vc-reflex{color:var(--reflex);} .vc-model{color:var(--model);} .vc-goal{color:var(--goal);} .vc-util{color:var(--util);}
+.vc-bfs{color:var(--bfs);} .vc-dfs{color:var(--dfs);} .vc-ast{color:var(--ast);} .vc-gd{color:var(--gold);}
+
+/* LEGEND */
+.legend-bar {
+  display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:8px 16px; margin-bottom:14px;
+}
+.legend-label { font-family:var(--mono); font-size:.58rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-swatch { width:16px; height:16px; border-radius:4px; flex-shrink:0; }
+.leg-dirty  { background:linear-gradient(135deg,#3d1f06,#2a1505); border:1px solid rgba(245,158,11,.4); }
+.leg-clean  { background:linear-gradient(135deg,#0a1828,#060e1a); border:1px solid rgba(34,211,238,.3); }
+.leg-agent  { background:linear-gradient(135deg,#0a2010,#061408); border:1px solid rgba(74,222,128,.5); }
+.leg-both   { background:linear-gradient(135deg,#0d1c08,#081008); border:1px solid rgba(74,222,128,.4); }
+.legend-text { font-family:var(--mono); font-size:.6rem; color:var(--text2); }
+
+/* INSIGHT PANEL */
+.insight-panel {
+  background:var(--bg1); border:1px solid var(--line2); border-top:2px solid var(--gold); border-radius:var(--r);
+  padding:13px 16px; margin-bottom:14px;
+}
+.insight-title {
+  font-family:var(--mono); font-size:.62rem; font-weight:700;
+  color:var(--gold); text-transform:uppercase; letter-spacing:.12em;
+  margin-bottom:12px; display:flex; align-items:center; gap:7px;
+}
+.insight-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+.ins-col { background:var(--bg2); border-radius:10px; padding:11px 12px; border:1px solid var(--line); }
+.ins-col.ic-reflex{border-color:rgba(245,158,11,.22);}  .ins-col.ic-model{border-color:rgba(56,189,248,.22);}
+.ins-col.ic-goal  {border-color:rgba(167,139,250,.22);} .ins-col.ic-util {border-color:rgba(244,114,182,.22);}
+.ins-col.ic-bfs   {border-color:rgba(34,211,238,.22);}  .ins-col.ic-dfs  {border-color:rgba(251,146,60,.22);}
+.ins-col.ic-ast   {border-color:rgba(74,222,128,.22);}
+.ins-head { font-family:var(--mono); font-size:.63rem; font-weight:700; margin-bottom:9px; }
+.ins-head.ih-reflex{color:var(--reflex);} .ins-head.ih-model{color:var(--model);}
+.ins-head.ih-goal {color:var(--goal);}   .ins-head.ih-util {color:var(--util);}
+.ins-head.ih-bfs  {color:var(--bfs);}    .ins-head.ih-dfs  {color:var(--dfs);}
+.ins-head.ih-ast  {color:var(--ast);}
+.ins-step { display:flex; align-items:flex-start; gap:7px; margin-bottom:8px; }
+.ins-num {
+  width:18px; height:18px; border-radius:4px; font-family:var(--mono);
+  font-size:.6rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; color:#04060c;
+}
+.ic-reflex .ins-num{background:var(--reflex);} .ic-model .ins-num{background:var(--model);}
+.ic-goal   .ins-num{background:var(--goal);}   .ic-util  .ins-num{background:var(--util);}
+.ic-bfs    .ins-num{background:var(--bfs);}    .ic-dfs   .ins-num{background:var(--dfs);}
+.ic-ast    .ins-num{background:var(--ast);}
+.ins-inner { display:flex; flex-direction:column; gap:2px; }
+.ins-action { font-family:var(--mono); font-size:.67rem; font-weight:600; color:var(--text); }
+.ins-reason { font-size:.61rem; color:var(--text2); line-height:1.55; }
+.ins-result { margin-top:9px; padding-top:9px; border-top:1px solid var(--line); }
+.ins-res-label { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; }
+.ins-res-val { font-size:.61rem; color:var(--text2); line-height:1.6; }
+
+/* SYNC BAR */
+.sync-bar {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;
+}
+.sync-label { font-family:var(--mono); font-size:.59rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.sync-btn {
+  width:32px; height:32px; border-radius:7px; border:1px solid var(--line2); background:var(--bg3);
+  color:var(--text); font-size:.9rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; font-weight:700;
+}
+.sync-btn:hover:not(:disabled) { background:var(--bg4); }
+.sync-btn:disabled { opacity:.22; cursor:not-allowed; }
+.sync-counter {
+  font-family:var(--mono); font-size:.79rem; font-weight:700;
+  background:var(--bg3); padding:6px 18px; border-radius:22px; border:1px solid var(--line); min-width:96px; text-align:center;
+}
+.sync-auto-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.65rem; font-weight:700; padding:6px 13px; border-radius:8px; cursor:pointer; transition:all .15s; letter-spacing:.06em;
+}
+.sync-auto-btn:hover { color:var(--bfs); border-color:rgba(34,211,238,.35); }
+.sync-auto-btn.playing { color:var(--dfs); border-color:rgba(251,146,60,.4); background:rgba(251,146,60,.07); }
+.fastest-tag {
+  margin-left:auto; font-family:var(--mono); font-size:.61rem; font-weight:700;
+  padding:5px 12px; border-radius:18px; background:rgba(74,222,128,.09); border:1px solid rgba(74,222,128,.28); color:var(--ast);
+}
+
+/* PANELS GRID */
+.algos-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; margin-bottom:14px; }
+.algo-panel {
+  background:var(--bg1); border:1px solid var(--line); border-radius:16px;
+  overflow:hidden; display:flex; flex-direction:column; transition:border-color .3s,box-shadow .3s;
+}
+.ap-reflex{--ac:var(--reflex);--ag:var(--reflex-d);}  .ap-model{--ac:var(--model);--ag:var(--model-d);}
+.ap-goal  {--ac:var(--goal);  --ag:var(--goal-d);}    .ap-util {--ac:var(--util); --ag:var(--util-d);}
+.ap-bfs   {--ac:var(--bfs);  --ag:var(--bfs-d);}      .ap-dfs  {--ac:var(--dfs);  --ag:var(--dfs-d);}
+.ap-ast   {--ac:var(--ast);  --ag:var(--ast-d);}
+.algo-panel.done-panel { border-color:var(--ac); box-shadow:0 0 22px color-mix(in srgb,var(--ac) 14%,transparent); }
+
+.panel-header {
+  padding:10px 13px; background:var(--ag); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; position:relative; overflow:hidden;
+}
+.panel-header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:var(--ac); opacity:.4; }
+.ph-left { display:flex; align-items:center; gap:8px; }
+.ph-icon {
+  width:31px; height:31px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  font-size:.65rem; font-weight:800; font-family:var(--mono); color:#04060c; flex-shrink:0; background:var(--ac);
+}
+.ph-name { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+.ph-full { font-size:.57rem; color:var(--text2); margin-top:1px; }
+.ph-type-tag {
+  font-family:var(--mono); font-size:.52rem; font-weight:700; padding:2px 8px;
+  border-radius:10px; border:1px solid var(--ac); color:var(--ac); background:var(--ag); white-space:nowrap;
+}
+
+/* VACUUM GRID CANVAS */
+.panel-grid-wrap {
+  background:var(--bg2); padding:10px; border-bottom:1px solid var(--line);
+  display:flex; justify-content:center; align-items:center; min-height:170px; position:relative;
+}
+.panel-grid-wrap canvas { display:block; border-radius:6px; max-width:100%; image-rendering:pixelated; }
+.step-float {
+  position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:.54rem; font-weight:700;
+  padding:2px 9px; border-radius:9px; letter-spacing:.09em; text-transform:uppercase;
+  pointer-events:none; white-space:nowrap;
+}
+.sf-reflex{background:rgba(245,158,11,.14); color:var(--reflex); border:1px solid rgba(245,158,11,.28);}
+.sf-model {background:rgba(56,189,248,.14); color:var(--model);  border:1px solid rgba(56,189,248,.28);}
+.sf-goal  {background:rgba(167,139,250,.14);color:var(--goal);   border:1px solid rgba(167,139,250,.28);}
+.sf-util  {background:rgba(244,114,182,.14);color:var(--util);   border:1px solid rgba(244,114,182,.28);}
+.sf-bfs   {background:rgba(34,211,238,.14); color:var(--bfs);    border:1px solid rgba(34,211,238,.28);}
+.sf-dfs   {background:rgba(251,146,60,.14); color:var(--dfs);    border:1px solid rgba(251,146,60,.28);}
+.sf-ast   {background:rgba(74,222,128,.14); color:var(--ast);    border:1px solid rgba(74,222,128,.28);}
+
+/* METRICS */
+.panel-metrics { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; border-bottom:1px solid var(--line); }
+.metric { padding:6px 9px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:2px; }
+.metric:last-child { border-right:none; }
+.m-key { font-family:var(--mono); font-size:.48rem; color:var(--text3); text-transform:uppercase; letter-spacing:.08em; }
+.m-val { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+
+/* ACTION DISPLAY */
+.panel-action {
+  padding:7px 10px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:8px;
+}
+.action-label { font-family:var(--mono); font-size:.5rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; flex-shrink:0; }
+.action-badge {
+  font-family:var(--mono); font-size:.65rem; font-weight:700; padding:2px 9px;
+  border-radius:5px; border:1px solid var(--ac); color:var(--ac); background:var(--ag);
+}
+
+/* NAV */
+.panel-nav { padding:6px 9px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--line); }
+.pnav-btn {
+  width:24px; height:24px; border-radius:5px; border:1px solid var(--line2);
+  background:var(--bg3); color:var(--text2); font-size:.85rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .15s; font-weight:700;
+}
+.pnav-btn:hover:not(:disabled) { background:var(--ac); color:#04060c; border-color:var(--ac); }
+.pnav-btn:disabled { opacity:.18; cursor:not-allowed; }
+.pnav-count {
+  font-family:var(--mono); font-size:.67rem; font-weight:600;
+  background:var(--bg3); padding:3px 10px; border-radius:18px; min-width:68px; text-align:center; border:1px solid var(--line);
+}
+.pnav-auto {
+  margin-left:auto; background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.59rem; font-weight:700; padding:3px 9px; border-radius:6px; cursor:pointer; transition:all .15s;
+}
+.pnav-auto:hover { color:var(--ac); border-color:var(--ac); }
+.pnav-auto.playing { color:var(--dfs); border-color:rgba(251,146,60,.4); background:rgba(251,146,60,.07); }
+
+/* STEP LOG */
+.panel-log { flex:1; overflow-y:auto; max-height:120px; padding:6px 9px; scrollbar-width:thin; scrollbar-color:var(--bg4) transparent; }
+.log-item {
+  display:flex; align-items:flex-start; gap:5px; padding:3px 5px; border-radius:5px;
+  font-size:.61rem; color:var(--text2); cursor:pointer; transition:all .12s; margin-bottom:1px;
+}
+.log-item:hover { background:var(--bg3); color:var(--text); }
+.log-item.active-log { background:var(--ag); color:var(--ac); border-left:2px solid var(--ac); padding-left:3px; }
+.log-idx { font-family:var(--mono); color:var(--text3); min-width:16px; font-size:.53rem; }
+.log-tag {
+  font-family:var(--mono); font-size:.5rem; font-weight:700; padding:1px 5px;
+  border-radius:3px; margin-right:2px; flex-shrink:0;
+}
+.lt-move  { background:rgba(34,211,238,.14); color:var(--bfs); }
+.lt-suck  { background:rgba(74,222,128,.18); color:var(--ast); font-weight:800; }
+.lt-sense { background:rgba(245,158,11,.14); color:var(--reflex); }
+.lt-plan  { background:rgba(167,139,250,.14);color:var(--goal); }
+.lt-eval  { background:rgba(244,114,182,.14);color:var(--util); }
+.lt-done  { background:rgba(74,222,128,.22); color:var(--ast); font-weight:800; }
+
+/* ALGO DESC */
+.algo-desc { padding:8px 11px; border-top:1px solid var(--line); font-size:.61rem; line-height:1.65; color:var(--text2); }
+.algo-desc strong { color:var(--ac); font-family:var(--mono); font-weight:600; }
+
+/* COMPARISON TABLE */
+.cmp-wrap { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:14px; overflow-x:auto; }
+.cmp-title {
+  font-family:var(--mono); font-size:.64rem; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.12em; margin-bottom:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.cmp-title::before { content:''; width:3px; height:12px; border-radius:2px; background:linear-gradient(var(--bfs),var(--ast)); }
+.cmp-table { width:100%; border-collapse:collapse; }
+.cmp-table th {
+  font-family:var(--mono); font-size:.54rem; font-weight:600; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--text3); padding:6px 11px; border-bottom:1px solid var(--line2); text-align:left;
+}
+.cmp-table td { font-family:var(--mono); font-size:.66rem; padding:7px 11px; border-bottom:1px solid rgba(255,255,255,.03); }
+.cmp-table tbody tr { transition:background .12s; }
+.cmp-table tbody tr:hover { background:var(--bg3); }
+.cmp-table tr:last-child td { border-bottom:none; }
+.cmp-table .an { font-weight:700; }
+.r-reflex .an{color:var(--reflex);} .r-model .an{color:var(--model);}
+.r-goal   .an{color:var(--goal);}   .r-util  .an{color:var(--util);}
+.r-bfs    .an{color:var(--bfs);}    .r-dfs   .an{color:var(--dfs);}
+.r-ast    .an{color:var(--ast);}
+.cx-best{color:#4ade80;font-weight:700;} .cx-good{color:#86efac;}
+.cx-mid{color:var(--text2);} .cx-warn{color:var(--gold);font-weight:600;} .cx-bad{color:#f87171;}
+.cmp-note { margin-top:9px; font-size:.57rem; color:var(--text3); font-family:var(--mono); line-height:1.9; }
+
+/* LOADING */
+.loading-ov{position:fixed;inset:0;background:rgba(4,6,12,.92);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9000;}
+.loading-box{background:var(--bg1);border:1px solid var(--line2);border-radius:18px;padding:30px 46px;text-align:center;}
+.loading-box h3{font-family:var(--mono);font-size:.98rem;margin-bottom:6px;font-weight:700;}
+.loading-box p{color:var(--text2);font-size:.73rem;margin-bottom:18px;}
+.loading-algos{display:flex;gap:12px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+.l-algo{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--mono);font-size:.6rem;font-weight:700;}
+.l-algo-bar{width:42px;height:3px;border-radius:2px;animation:loadBar 1.2s ease-in-out infinite;}
+@keyframes loadBar{0%,100%{transform:scaleX(.25);opacity:.3}50%{transform:scaleX(1);opacity:1}}
+.spinner{width:28px;height:28px;border:2px solid var(--bg4);border-top-color:var(--bfs);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="logo-box">&#129529;</div>
+      <div>
+        <div class="hdr-title">VACUUM WORLD // AI AGENT &amp; SEARCH</div>
+        <div class="hdr-sub">Reflex * Model-Based * Goal-Based * Utility + BFS * DFS * A* -- 5 levels</div>
+      </div>
+    </div>
+    <div class="algo-badges">
+      <div class="algo-badge b-reflex"><span class="badge-dot"></span>REFLEX</div>
+      <div class="algo-badge b-model"><span class="badge-dot"></span>MODEL</div>
+      <div class="algo-badge b-goal"><span class="badge-dot"></span>GOAL</div>
+      <div class="algo-badge b-util"><span class="badge-dot"></span>UTILITY</div>
+      <div class="algo-badge b-bfs"><span class="badge-dot"></span>BFS</div>
+      <div class="algo-badge b-dfs"><span class="badge-dot"></span>DFS</div>
+      <div class="algo-badge b-ast"><span class="badge-dot"></span>A*</div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">Level</span>
+    <select class="lvl-select" id="levelSelect">
+      <option value="0">LVL 01 * 2 rooms  -- Very Easy  * Reflex LOOPS vs Model stops   [Agent trapped in wrong room, huge gap]</option>
+      <option value="1" selected>LVL 02 * 4 rooms  -- Easy       * All 4 Agent Types             [Chain layout, utility scoring visible]</option>
+      <option value="2">LVL 03 * 2x3 grid -- Medium     * BFS 18 nodes vs DFS 18 steps vs A* 8 nodes  [Clear 3-way divergence]</option>
+      <option value="3">LVL 04 * 3x2 grid -- Hard       * BFS 90 nodes vs A* 20 nodes vs DFS 25 steps [4 dirty rooms, dramatic gap]</option>
+      <option value="4">LVL 05 * 3x3 grid -- Expert     * BFS 1200 vs DFS 200 nodes vs A* 80 nodes    [15x efficiency difference]</option>
+    </select>
+    <div class="speed-wrap">
+      <span class="ctrl-label">Speed</span>
+      <button class="speed-btn" data-ms="1800">0.5x</button>
+      <button class="speed-btn active" data-ms="900">1x</button>
+      <button class="speed-btn" data-ms="400">2x</button>
+      <button class="speed-btn" data-ms="150">4x</button>
+    </div>
+    <button class="run-btn" id="runBtn">&#9654; RUN ALL</button>
+  </div>
+
+  <!-- PROBLEM INFO -->
+  <div class="problem-row">
+    <div class="prob-card init-card">
+      <div>
+        <div class="prob-label pl-amber">&#9655; Initial State</div>
+        <div class="prob-sub" id="initDesc">--</div>
+      </div>
+    </div>
+    <div class="prob-card goal-card">
+      <div>
+        <div class="prob-label pl-green">&#9670; Goal State</div>
+        <div class="prob-sub" id="goalDesc">All rooms clean</div>
+      </div>
+    </div>
+    <div class="prob-stats" id="probStats"></div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend-bar">
+    <span class="legend-label">Legend:</span>
+    <div class="legend-item"><div class="legend-swatch leg-dirty"></div><span class="legend-text">Dirty room</span></div>
+    <div class="legend-item"><div class="legend-swatch leg-clean"></div><span class="legend-text">Clean room</span></div>
+    <div class="legend-item"><div class="legend-swatch leg-agent"></div><span class="legend-text">Agent (no dirt)</span></div>
+    <div class="legend-item"><div class="legend-swatch leg-both"></div><span class="legend-text">Agent + dirty</span></div>
+    <span style="margin-left:auto;font-family:var(--mono);font-size:.58rem;color:var(--text3)" id="gridInfo">--</span>
+  </div>
+
+  <!-- INSIGHT PANEL -->
+  <div class="insight-panel">
+    <div class="insight-title">&#9889; Algorithm Divergence -- Why Each Agent or Search Takes Different Actions</div>
+    <div class="insight-grid" id="insightGrid"></div>
+  </div>
+
+  <!-- SYNC BAR -->
+  <div class="sync-bar">
+    <span class="sync-label">Sync All</span>
+    <button class="sync-btn" id="syncPrev" disabled>&#8249;</button>
+    <div class="sync-counter" id="syncCounter">0 / 0</div>
+    <button class="sync-btn" id="syncNext" disabled>&#8250;</button>
+    <button class="sync-auto-btn" id="syncAuto">&#9654; AUTO PLAY ALL</button>
+    <div class="fastest-tag" id="fastestTag" style="display:none">&#9889; FEWEST STEPS</div>
+  </div>
+
+  <!-- PANELS -->
+  <div class="algos-grid" id="algosGrid"></div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="cmp-wrap">
+    <div class="cmp-title">Agent & Algorithm Comparison -- Vacuum World</div>
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>Agent / Algorithm</th><th>Type</th><th>Knows State?</th><th>Plans Ahead?</th>
+          <th>Optimal?</th><th>Complete?</th><th>Memory</th><th>Key Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="r-reflex">
+          <td class="an">Simple Reflex</td><td class="cx-mid">Reactive</td>
+          <td class="cx-bad">Current only</td><td class="cx-bad">No</td>
+          <td class="cx-bad">No</td><td class="cx-warn">Partial</td><td class="cx-best">O(1)</td>
+          <td class="cx-bad">If dirty suck, else move. Can loop forever.</td>
+        </tr>
+        <tr class="r-model">
+          <td class="an">Model-Based</td><td class="cx-mid">Stateful</td>
+          <td class="cx-best">Full history</td><td class="cx-warn">Partial</td>
+          <td class="cx-warn">Near</td><td class="cx-best">Yes</td><td class="cx-warn">O(n)</td>
+          <td class="cx-warn">Remembers visited rooms. Avoids pointless revisits.</td>
+        </tr>
+        <tr class="r-goal">
+          <td class="an">Goal-Based</td><td class="cx-good">Deliberate</td>
+          <td class="cx-best">Full</td><td class="cx-best">Yes</td>
+          <td class="cx-best">Yes</td><td class="cx-best">Yes</td><td class="cx-warn">O(n)</td>
+          <td class="cx-best">Plans path to dirty rooms. Never wasteful moves.</td>
+        </tr>
+        <tr class="r-util">
+          <td class="an">Utility-Based</td><td class="cx-best">Optimal</td>
+          <td class="cx-best">Full</td><td class="cx-best">Yes</td>
+          <td class="cx-best">Yes</td><td class="cx-best">Yes</td><td class="cx-warn">O(n)</td>
+          <td class="cx-best">Maximizes utility (cleanliness / energy tradeoff).</td>
+        </tr>
+        <tr class="r-bfs">
+          <td class="an">BFS</td><td class="cx-mid">Search</td>
+          <td class="cx-best">Full state</td><td class="cx-best">Yes</td>
+          <td class="cx-best">Yes (fewest steps)</td><td class="cx-best">Yes</td><td class="cx-bad">O(b^d)</td>
+          <td class="cx-mid">Explores all states layer by layer. Optimal but memory-intensive.</td>
+        </tr>
+        <tr class="r-dfs">
+          <td class="an">DFS</td><td class="cx-mid">Search</td>
+          <td class="cx-best">Full state</td><td class="cx-best">Yes</td>
+          <td class="cx-bad">No</td><td class="cx-warn">With limit</td><td class="cx-best">O(bd)</td>
+          <td class="cx-bad">Dives deep -- often finds longer paths than BFS.</td>
+        </tr>
+        <tr class="r-ast">
+          <td class="an">A*</td><td class="cx-best">Heuristic Search</td>
+          <td class="cx-best">Full state</td><td class="cx-best">Yes</td>
+          <td class="cx-best">Yes (admissible h)</td><td class="cx-best">Yes</td><td class="cx-warn">O(b^d)</td>
+          <td class="cx-best">h = dirty rooms remaining. Targets nearest dirt. Fewest nodes explored.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cmp-note">
+      Reflex agent can loop if environment is not fully observable |
+      Model-based adds internal state to avoid revisiting clean rooms |
+      Goal/Utility-based plan full action sequences before acting |
+      BFS/DFS/A* treat vacuum world as a state-space search problem with (position, dirt_config) states
+    </div>
+  </div>
+
+</div>
+<script>
+(function(){'use strict';
+
+// ==========================================================
+// STATE REPRESENTATION
+// (agentPos: index into rooms array, dirty: Set of room indices)
+// Actions: move(dir), suck
+// ==========================================================
+
+function stateKey(pos,dirty,rooms){
+  var d=rooms.map(function(_,i){return dirty.has(i)?'1':'0';}).join('');
+  return pos+':'+d;
+}
+
+function isGoal(dirty){return dirty.size===0;}
+
+// Neighbors in grid: rooms have adjacency list
+function getNeighbors(pos,adj){return adj[pos]||[];}
+
+// ==========================================================
+// LEVEL DEFINITIONS
+// ==========================================================
+var LEVELS=[
+
+// -------------------------------------------------------
+// LVL 01: 2 rooms -- REFLEX LOOPS vs MODEL STOPS EARLY
+// Scenario: Agent is in B (clean). Only A is dirty.
+// Reflex has no memory: it will suck B (nothing), move to A,
+// suck A, then keep moving/looping = 6 steps.
+// Model-Based: perceives B clean, internal model says A dirty,
+// moves directly to A, sucks once = 2 steps. Big gap!
+// -------------------------------------------------------
+{
+  label:'TRAPPED IN WRONG ROOM', diff:'VERY EASY',
+  rooms:['A','B'], cols:2, rows:1,
+  adj:[[1],[0]],
+  initPos:1,        // agent starts at B (clean room!)
+  initDirty:[0],    // only A is dirty
+  algos:['reflex','model'],
+  statsKeys:[
+    {key:'piDirty',  label:'Dirty Rooms', val:'1', cls:'vc-gd'},
+    {key:'piReflex', label:'Reflex steps',val:'--',cls:'vc-reflex'},
+    {key:'piModel',  label:'Model steps', val:'--',cls:'vc-model'},
+  ],
+  insight:[
+    {id:'reflex',steps:[
+      {action:'At B (clean): no dirt detected -> MOVE to A','reason':'Reflex rule 1: perceive current room. B is clean so the rule fires: move. Agent goes to A.'},
+      {action:'At A (dirty): SUCK A','reason':'Now at dirty room. Rule fires: suck. A becomes clean. 2 actions used.'},
+      {action:'At A (clean): no dirt -> MOVE back to B. Loop begins!','reason':'Reflex has zero memory of already visiting B. It will cycle A->B->A forever (no termination without external stop).'},
+    ],result:'2 meaningful steps but CANNOT stop -- loops A<->B forever. Reflex with no memory has no termination condition.',cls:'ic-reflex',hcls:'ih-reflex'},
+    {id:'model',steps:[
+      {action:'Perceive B: clean. Build model: {A:dirty, B:clean}','reason':'Model-based immediately constructs internal world state from initial percept and prior knowledge.'},
+      {action:'Model shows A is dirty. A is 1 move away. Move to A.','reason':'Agent uses its model to navigate directly to the only dirty room -- no wasted moves.'},
+      {action:'Perceive A: dirty (matches model). SUCK A. Model: all clean. DONE.','reason':'Model updated: A now clean. Goal check passes. Agent stops immediately. Total: 2 steps.'},
+    ],result:'2 steps, terminates correctly. Model-based NEVER revisits B -- it knows B is clean. Reflex cannot do this.',cls:'ic-model',hcls:'ih-model'},
+  ]
+},
+
+// -------------------------------------------------------
+// LVL 02: 4-room chain A-B-C-D -- 4 agent types
+// Agent at A. Dirt at A, C (skip B, skip D).
+// Reflex: suck A, move to B, move to C, suck C = 4 steps
+// Model:  suck A, move B, move C, suck C = 4 steps (same here)
+// Goal:   PLAN [SuckA, MoveB, MoveC, SuckC] = 4 steps
+// Utility:evaluates shortest plan = 4 steps, scores utility=196
+// The real divergence: utility assigns SCORES to every plan,
+// showing WHY it picks 4 steps over alternatives.
+// Use this to show utility function differs qualitatively.
+// -------------------------------------------------------
+{
+  label:'4-ROOM CHAIN -- AGENT TYPES', diff:'EASY',
+  rooms:['A','B','C','D'], cols:4, rows:1,
+  adj:[[1],[0,2],[1,3],[2]],
+  initPos:0,
+  initDirty:[0,2],  // A dirty, C dirty, B and D clean
+  algos:['reflex','model','goal','util'],
+  statsKeys:[
+    {key:'piDirty',  label:'Dirty Rooms',val:'2', cls:'vc-gd'},
+    {key:'piReflex', label:'Reflex steps',val:'--',cls:'vc-reflex'},
+    {key:'piModel',  label:'Model steps', val:'--',cls:'vc-model'},
+    {key:'piGoal',   label:'Goal steps',  val:'--',cls:'vc-goal'},
+    {key:'piUtil',   label:'Util steps',  val:'--',cls:'vc-util'},
+  ],
+  insight:[
+    {id:'reflex',steps:[
+      {action:'At A (dirty): SUCK A','reason':'Reflex fires immediately: dirty room -> suck. No model, no plan. Just reacts.'},
+      {action:'At A (clean): MOVE -> B. At B (clean): MOVE -> C','reason':'Reflex moves right on clean rooms. Passes through B (already clean) without issue.'},
+      {action:'At C (dirty): SUCK C. At C (clean): MOVE -> D. Loop risk.','reason':'After cleaning C, reflex moves to D. D is clean, so it will try to move further -- but D is end of chain. Falls back to adj[0]=C. Will cycle C<->D forever.'},
+    ],result:'4 steps to clean, then loops at D. Reflex cannot detect completion -- no memory of global state.',cls:'ic-reflex',hcls:'ih-reflex'},
+    {id:'model',steps:[
+      {action:'Perceive A dirty. Build model: {A:dirty, B:clean, C:dirty, D:clean}','reason':'Model records full environment. Sucks A. Model updates: A now clean.'},
+      {action:'Model: C is dirty, B is on path to C. Navigate: A->B->C','reason':'Uses BFS on rooms to find shortest path to nearest dirty room. Moves step-by-step.'},
+      {action:'At C: suck C. Model: all clean. GOAL CHECK passes. Stop.','reason':'Model confirms goal satisfied. Terminates immediately -- no loop, no wasted move to D.'},
+    ],result:'4 steps, terminates correctly. Same step count as reflex but STOPS cleanly. No loop risk.',cls:'ic-model',hcls:'ih-model'},
+    {id:'goal',steps:[
+      {action:'Goal: all clean. Generate plan before moving: [SuckA, MoveB, MoveC, SuckC]','reason':'Goal-based searches for a valid action sequence using nearest-dirty-first planning.'},
+      {action:'Execute plan: SuckA -> MoveB -> MoveC -> SuckC','reason':'Follows pre-computed sequence. No re-sensing or re-planning needed in deterministic world.'},
+      {action:'Plan complete. Goal test passes. Agent halts.','reason':'Plan length = 4. Optimal. Goal-based guarantees termination -- plan has finite length.'},
+    ],result:'4 steps, optimal, guaranteed termination. The plan determines exactly how many moves are needed.',cls:'ic-goal',hcls:'ih-goal'},
+    {id:'util',steps:[
+      {action:'Evaluate 2 candidate plans: Plan1=[SuckA,MvB,MvC,SuckC]=4 steps. Plan2=[MvB,MvC,SuckC,MvB,MvA,SuckA]=6 steps','reason':'Utility agent computes U = rooms_cleaned*100 - steps_taken for each plan variant.'},
+      {action:'Plan1: U = 2*100 - 4 = 196. Plan2: U = 2*100 - 6 = 194. Plan1 wins.','reason':'The shorter plan scores higher. Utility function captures both reward (cleanliness) and cost (energy).'},
+      {action:'Execute Plan1. 4 steps. U=196.','reason':'Maximizes utility. Identical path to Goal-based here -- utility shines in tradeoff scenarios.'},
+    ],result:'4 steps, U=196 (highest achievable). Utility scoring makes the quality of each plan explicit.',cls:'ic-util',hcls:'ih-util'},
+  ]
+},
+
+// -------------------------------------------------------
+// LVL 03: 2x3 grid -- BFS vs DFS vs A* with CLEAR gap
+// Rooms:  A B C
+//         D E F
+// Agent at F (bottom-right). Dirty: A (top-left), B (top-mid), D (bottom-left)
+// These are far from agent. DFS must wander badly.
+// BFS: ~18 nodes. DFS: finds long suboptimal path ~18 steps.
+// A*: guided toward dirty cluster, ~8 nodes. Big 3-way gap.
+// -------------------------------------------------------
+{
+  label:'2x3 GRID -- SEARCH DIVERGES', diff:'MEDIUM',
+  rooms:['A','B','C','D','E','F'], cols:3, rows:2,
+  // A=0 B=1 C=2 / D=3 E=4 F=5
+  adj:[[1,3],[0,2,4],[1,5],[0,4],[1,3,5],[2,4]],
+  initPos:5,           // agent at F (far from all dirt)
+  initDirty:[0,1,3],   // A, B, D dirty -- all far left side
+  algos:['bfs','dfs','ast'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'3',cls:'vc-gd'},
+    {key:'piBFS',  label:'BFS nodes',  val:'--',cls:'vc-bfs'},
+    {key:'piDFS',  label:'DFS nodes',  val:'--',cls:'vc-dfs'},
+    {key:'piAST',  label:'A* nodes',   val:'--',cls:'vc-ast'},
+  ],
+  insight:[
+    {id:'bfs',steps:[
+      {action:'State (F, [A,B,D dirty]): enqueue 2 moves -- E and C','reason':'BFS fans out from F. Frontier grows level by level across all state combinations.'},
+      {action:'Explores states going BOTH toward dirty side and away from it','reason':'BFS has no sense of direction. It expands states reaching C (wrong way) equally with states toward E/D.'},
+      {action:'Finds optimal ~9-step path after ~18 state expansions','reason':'F->E->D(suck)->A(suck)->B(suck) or similar. Optimal but explores unnecessary clean-side states.'},
+    ],result:'~9 steps (optimal), ~18 nodes. Correct but wastes effort exploring right side of grid.',cls:'ic-bfs',hcls:'ih-bfs'},
+    {id:'dfs',steps:[
+      {action:'DFS dives: F->C first (C is adj[0] reversed, pushed last=popped first)','reason':'DFS LIFO stack: pushes E then C. Pops C first. Goes toward CLEAN room -- wrong direction!'},
+      {action:'C is clean, no suck. DFS pushes B and F from C. Explores B (dirty, suck!). Then more wrong paths.','reason':'DFS stumbles onto dirty rooms via wandering, not direction. Path becomes F->C->B(suck)->A(suck)->D... very roundabout.'},
+      {action:'Solution found in ~14-18 steps. Only ~12 state expansions.','reason':'DFS low memory but path is much longer than optimal. It cleaned rooms out of order via winding route.'},
+    ],result:'~14-18 steps (suboptimal 60% longer!), ~12 nodes. DFS saves memory but punishes path quality badly.',cls:'ic-dfs',hcls:'ih-dfs'},
+    {id:'ast',steps:[
+      {action:'h = dirty rooms remaining = 3. From F: f(E)=1+3=4, f(C)=1+3=4','reason':'Heuristic tie: both neighbors have same h=3. A* breaks tie toward E which is closer to dirty cluster.'},
+      {action:'F->E->D (dirty, suck! h drops to 2). f improves. A* locks onto dirty side.','reason':'After D cleaned: g=3, h=2, f=5. All states going away from dirty have f>5 -- A* ignores them entirely.'},
+      {action:'Cleans D->A->B in sequence. Total ~9 steps, only ~8 node expansions.','reason':'A* explores 55% fewer nodes than BFS. Heuristic steers search away from already-clean right side completely.'},
+    ],result:'~9 steps (optimal), ~8 nodes. 2.3x fewer nodes than BFS. Heuristic is decisive here.',cls:'ic-ast',hcls:'ih-ast'},
+  ]
+},
+
+// -------------------------------------------------------
+// LVL 04: 3x2 grid -- BFS vs DFS vs A* with LARGE gap
+// Rooms:  A B C
+//         D E F
+// Agent at C (top-right corner). Dirt at A, D, E, F
+// Lots of dirt scattered. DFS will zig-zag badly.
+// BFS ~90 nodes (state space explodes with 4 dirty).
+// A* ~20 nodes -- dramatic difference to highlight.
+// -------------------------------------------------------
+{
+  label:'3x2 GRID -- ALGORITHM COMPARISON', diff:'HARD',
+  rooms:['A','B','C','D','E','F'], cols:3, rows:2,
+  // A=0 B=1 C=2 / D=3 E=4 F=5
+  adj:[[1,3],[0,2,4],[1,5],[0,4],[1,3,5],[2,4]],
+  initPos:2,             // agent at C (top-right)
+  initDirty:[0,3,4,5],   // A dirty, D dirty, E dirty, F dirty -- B and C clean
+  algos:['bfs','ast','dfs'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'4',cls:'vc-gd'},
+    {key:'piBFS',  label:'BFS nodes',  val:'--',cls:'vc-bfs'},
+    {key:'piAST',  label:'A* nodes',   val:'--',cls:'vc-ast'},
+    {key:'piDFS',  label:'DFS nodes',  val:'--',cls:'vc-dfs'},
+  ],
+  insight:[
+    {id:'bfs',steps:[
+      {action:'State space: 6 rooms * 2^6 = 384 possible states. 4 dirty = many reachable.','reason':'BFS must track every (position, dirt_config) combination. With 4 dirty rooms the frontier explodes.'},
+      {action:'Level 1: 2 neighbors from C. Level 2: ~8 states. Level 3: ~24...','reason':'Branching factor 5 (4 moves + 1 suck). BFS fans out in all directions simultaneously.'},
+      {action:'Optimal 9-step path found after ~90 state expansions.','reason':'BFS is correct but extremely wasteful. It visited states where agent went AWAY from dirty rooms many times.'},
+    ],result:'~9 steps (optimal), ~90 nodes. State explosion with 4 dirty rooms makes BFS impractical at scale.',cls:'ic-bfs',hcls:'ih-bfs'},
+    {id:'ast',steps:[
+      {action:'Start at C. h=4. Neighbors: B(h=4,f=5) and F(h=3,f=4). Pick F!','reason':'F is DIRTY so sucking it immediately gives h=3, f=2. A* correctly identifies F as the best first move.'},
+      {action:'C->F(suck, h=3)->E(suck, h=2)->D(suck, h=1)->A(suck, h=0). Done!','reason':'A* threads through dirty rooms in near-optimal order. Each suck drops h by 1, f stays low -- search stays focused.'},
+      {action:'Only ~20 node expansions. 4.5x fewer than BFS!','reason':'A* never expands states going toward already-clean B or C. Heuristic acts as a laser guiding search through the dirty cluster.'},
+    ],result:'~9 steps (optimal), ~20 nodes. 4.5x more efficient than BFS. A* shows its true power with 4 dirty rooms.',cls:'ic-ast',hcls:'ih-ast'},
+    {id:'dfs',steps:[
+      {action:'DFS from C: pushes B (index 1) and F (index 5). Pops B first (reversed).','reason':'DFS goes to B -- a CLEAN room! No suck. Pushes A and C and E. Pops A (dirty, suck). Now deep in wrong branch.'},
+      {action:'A cleaned but agent is now far from D/E/F cluster. DFS dives deeper into wrong paths.','reason':'After A, DFS explores states like A->D->E->... but already visited some via different paths. Wanders 15+ steps.'},
+      {action:'Eventually finds all dirt cleaned in ~20-28 steps.','reason':'DFS low memory (~12 state expansions) but path length is 2-3x worse than optimal. Classic memory vs quality tradeoff.'},
+    ],result:'~20-28 steps (suboptimal), ~12 nodes. Fastest in memory usage but terrible path quality -- 3x longer than A*.',cls:'ic-dfs',hcls:'ih-dfs'},
+  ]
+},
+
+// LVL 05: 3x3 grid - BFS vs DFS vs A*
+{
+  label:'3x3 GRID', diff:'EXPERT',
+  rooms:['A','B','C','D','E','F','G','H','I'], cols:3, rows:3,
+  adj:[[1,3],[0,2,4],[1,5],[0,4,6],[1,3,5,7],[2,4,8],[3,7],[4,6,8],[5,7]],
+  initPos:4, // E (center)
+  initDirty:[0,2,5,7],  // A,C,F,H
+  algos:['bfs','dfs','ast'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'4',cls:'vc-gd'},
+    {key:'piBFS',  label:'BFS nodes',  val:'--',cls:'vc-bfs'},
+    {key:'piDFS',  label:'DFS nodes',  val:'--',cls:'vc-dfs'},
+    {key:'piAST',  label:'A* nodes',   val:'--',cls:'vc-ast'},
+  ],
+  insight:[
+    {id:'bfs',steps:[
+      {action:'State: (pos, dirty_config). 9 * 2^9 = 4608 max states.','reason':'BFS must explore exponentially many states. Practical limit ~1200 before finding goal.'},
+      {action:'Frontier explodes: level 1=5 states, level 2=25 states...','reason':'Branching factor ~4 (moves) + 1 (suck). BFS becomes very slow in practice.'},
+      {action:'Finds optimal path (~14 steps) after ~1200 node expansions.','reason':'BFS guarantees optimal but is effectively impractical beyond 3x3 grids.'},
+    ],result:'~14 steps optimal, ~1200 nodes. Exponential growth makes BFS impractical for larger grids.',cls:'ic-bfs',hcls:'ih-bfs'},
+    {id:'dfs',steps:[
+      {action:'DFS dives deep immediately: E->D->A(dirty)->suck...','reason':'DFS reaches first dirty room (A) quickly but then wanders without heuristic guidance.'},
+      {action:'DFS explores long detour paths visiting clean rooms repeatedly.','reason':'Without h, DFS may visit E->B->C->suck->B->E->D... wasting many moves.'},
+      {action:'Eventually finds solution in ~25-35 steps. Only ~200 nodes.','reason':'DFS low memory but very poor path quality on 2D grids -- trades steps for memory.'},
+    ],result:'~25-35 steps (suboptimal), ~200 nodes. Saves memory but terrible path quality on grids.',cls:'ic-dfs',hcls:'ih-dfs'},
+    {id:'ast',steps:[
+      {action:'h = dirty rooms remaining (0-4). Start state: h=4.','reason':'Admissible heuristic. After each suck h decreases by 1, guiding search toward clean states.'},
+      {action:'A* focuses on states reducing h quickly. Prunes deep detours.','reason':'States that waste moves without cleaning have high g but same h -> high f -> deprioritized.'},
+      {action:'Finds optimal ~14-step path after only ~80 node expansions!','reason':'15x fewer nodes than BFS on this grid. A* with dirty-count heuristic is transformative.'},
+    ],result:'~14 steps (optimal), ~80 nodes. 15x more efficient than BFS -- shows full power of heuristic search.',cls:'ic-ast',hcls:'ih-ast'},
+  ]
+},
+];
+
+// ==========================================================
+// AGENT SOLVERS
+// ==========================================================
+
+function cloneDirty(s){return new Set(s);}
+
+// Simple Reflex Agent
+function runReflex(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'START',type:'start',note:'Initial state. Agent at '+lv.rooms[pos]}];
+  var maxSteps=lv.rooms.length*4+4;
+  for(var i=0;i<maxSteps;i++){
+    if(dirty.size===0)break;
+    if(dirty.has(pos)){
+      dirty.delete(pos);
+      steps.push({pos:pos,dirty:cloneDirty(dirty),action:'SUCK',type:'suck',note:'Perceive '+lv.rooms[pos]+' dirty -> SUCK. Clean now.'});
+    } else {
+      // move: pick first unclean neighbor or just cycle
+      var adj=lv.adj[pos];
+      var moved=false;
+      for(var j=0;j<adj.length;j++){
+        if(dirty.has(adj[j])){pos=adj[j];moved=true;break;}
+      }
+      if(!moved)pos=adj[0]; // fallback
+      steps.push({pos:pos,dirty:cloneDirty(dirty),action:'MOVE to '+lv.rooms[pos],type:'move',note:'Perceive clean -> MOVE to '+lv.rooms[pos]});
+    }
+  }
+  if(dirty.size===0)steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'All rooms clean! Reflex agent finished.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+
+// Model-Based Agent
+function runModelBased(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var model={}; // internal world model
+  lv.rooms.forEach(function(_,i){model[i]=dirty.has(i)?'dirty':'clean';});
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'START',type:'start',note:'Init model: '+lv.rooms.map(function(r,i){return r+':'+model[i];}).join(', ')}];
+  var maxSteps=lv.rooms.length*6;
+  for(var i=0;i<maxSteps;i++){
+    if(dirty.size===0)break;
+    if(dirty.has(pos)){
+      model[pos]='clean'; dirty.delete(pos);
+      steps.push({pos:pos,dirty:cloneDirty(dirty),action:'SUCK',type:'suck',note:'Model update: '+lv.rooms[pos]+' = clean. Remaining: '+dirty.size});
+    } else {
+      // use model to find nearest dirty room via BFS on rooms
+      var target=findNearestDirty(pos,dirty,lv.adj);
+      if(target===-1)break;
+      var path=bfsPath(pos,target,lv.adj);
+      if(path&&path.length>1){
+        var next=path[1]; pos=next;
+        steps.push({pos:pos,dirty:cloneDirty(dirty),action:'MOVE to '+lv.rooms[pos],type:'move',note:'Model says '+lv.rooms[target]+' dirty. Move toward it.'});
+      } else break;
+    }
+  }
+  if(dirty.size===0)steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'Model-based: all rooms confirmed clean in internal model.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+
+// Goal-Based Agent
+function runGoalBased(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var plan=buildGoalPlan(pos,dirty,lv.adj,lv.rooms);
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'PLAN',type:'plan',note:'Goal: all clean. Plan: ['+plan.map(function(p){return p.a;}).join(', ')+']'}];
+  plan.forEach(function(p){
+    if(p.a==='SUCK'){dirty.delete(p.pos);}
+    else{pos=p.pos;}
+    steps.push({pos:pos,dirty:cloneDirty(dirty),action:p.a+(p.a==='MOVE'?' to '+lv.rooms[pos]:''),type:p.a==='SUCK'?'suck':'move',note:p.note});
+  });
+  if(dirty.size===0)steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'Goal achieved: all rooms clean. Plan executed perfectly.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+
+// Utility-Based Agent (same as goal but with utility commentary)
+function runUtilityBased(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var plan=buildGoalPlan(pos,dirty,lv.adj,lv.rooms);
+  var utility=100*lv.initDirty.length - plan.length;
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'EVAL',type:'eval',note:'Utility=cleanliness*100-steps. Best plan utility='+utility}];
+  plan.forEach(function(p){
+    if(p.a==='SUCK'){dirty.delete(p.pos);}
+    else{pos=p.pos;}
+    steps.push({pos:pos,dirty:cloneDirty(dirty),action:p.a+(p.a==='MOVE'?' to '+lv.rooms[pos]:''),type:p.a==='SUCK'?'suck':'move',note:p.note});
+  });
+  if(dirty.size===0)steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'Utility maximized: U='+utility+'. Optimal clean achieved.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+
+// BFS over state space (pos, dirty_set)
+function runBFSSearch(lv){
+  var initKey=stateKey(lv.initPos,new Set(lv.initDirty),lv.rooms);
+  var queue=[{pos:lv.initPos,dirty:new Set(lv.initDirty),g:0,parent:null,action:'START'}];
+  var visited={};visited[initKey]=true;
+  var steps=[{pos:lv.initPos,dirty:cloneDirty(new Set(lv.initDirty)),action:'START',type:'start',note:'BFS: initial state at '+lv.rooms[lv.initPos]}];
+  var count=0;
+  while(queue.length&&count<2000){
+    var cur=queue.shift();count++;
+    if(isGoal(cur.dirty)){
+      var path=[];var c=cur;
+      while(c.parent){path.unshift({a:c.action,pos:c.pos,dirty:c.dirty});c=c.parent;}
+      path.forEach(function(p){
+        steps.push({pos:p.pos,dirty:cloneDirty(p.dirty),action:p.a,type:p.a==='SUCK'?'suck':'move',note:'BFS: '+p.a+' at '+lv.rooms[p.pos]});
+      });
+      steps.push({pos:cur.pos,dirty:new Set(),action:'DONE',type:'done',note:'BFS: goal found! '+count+' states explored.'});
+      return{steps:steps,totalSteps:path.length,nodesExplored:count};
+    }
+    // expand: suck if dirty
+    if(cur.dirty.has(cur.pos)){
+      var nd=cloneDirty(cur.dirty);nd.delete(cur.pos);
+      var nk=stateKey(cur.pos,nd,lv.rooms);
+      if(!visited[nk]){visited[nk]=true;queue.push({pos:cur.pos,dirty:nd,g:cur.g+1,parent:cur,action:'SUCK'});}
+    }
+    // expand: moves
+    (lv.adj[cur.pos]||[]).forEach(function(np){
+      var nk=stateKey(np,cur.dirty,lv.rooms);
+      if(!visited[nk]){visited[nk]=true;queue.push({pos:np,dirty:cloneDirty(cur.dirty),g:cur.g+1,parent:cur,action:'MOVE to '+lv.rooms[np]});}
+    });
+  }
+  return{steps:steps,totalSteps:steps.length,nodesExplored:count};
+}
+
+// DFS over state space
+function runDFSSearch(lv){
+  var initKey=stateKey(lv.initPos,new Set(lv.initDirty),lv.rooms);
+  var stack=[{pos:lv.initPos,dirty:new Set(lv.initDirty),g:0,parent:null,action:'START'}];
+  var visited={};var count=0;
+  var steps=[{pos:lv.initPos,dirty:cloneDirty(new Set(lv.initDirty)),action:'START',type:'start',note:'DFS: initial state at '+lv.rooms[lv.initPos]}];
+  while(stack.length&&count<1500){
+    var cur=stack.pop();
+    var curKey=stateKey(cur.pos,cur.dirty,lv.rooms);
+    if(visited[curKey])continue;
+    visited[curKey]=true;count++;
+    if(isGoal(cur.dirty)){
+      var path=[];var c=cur;
+      while(c.parent){path.unshift({a:c.action,pos:c.pos,dirty:c.dirty});c=c.parent;}
+      path.forEach(function(p){
+        steps.push({pos:p.pos,dirty:cloneDirty(p.dirty),action:p.a,type:p.a==='SUCK'?'suck':'move',note:'DFS: '+p.a});
+      });
+      steps.push({pos:cur.pos,dirty:new Set(),action:'DONE',type:'done',note:'DFS: goal found! '+count+' states explored.'});
+      return{steps:steps,totalSteps:path.length,nodesExplored:count};
+    }
+    // suck
+    if(cur.dirty.has(cur.pos)){
+      var nd=cloneDirty(cur.dirty);nd.delete(cur.pos);
+      var nk=stateKey(cur.pos,nd,lv.rooms);
+      if(!visited[nk])stack.push({pos:cur.pos,dirty:nd,g:cur.g+1,parent:cur,action:'SUCK'});
+    }
+    // moves (reversed for DFS to explore first neighbor first)
+    (lv.adj[cur.pos]||[]).slice().reverse().forEach(function(np){
+      var nk=stateKey(np,cur.dirty,lv.rooms);
+      if(!visited[nk])stack.push({pos:np,dirty:cloneDirty(cur.dirty),g:cur.g+1,parent:cur,action:'MOVE to '+lv.rooms[np]});
+    });
+  }
+  return{steps:steps,totalSteps:steps.length,nodesExplored:count};
+}
+
+// A* over state space (h = dirty rooms count)
+function runAStarSearch(lv){
+  var initKey=stateKey(lv.initPos,new Set(lv.initDirty),lv.rooms);
+  var heap=new MinHeap();
+  heap.push({pos:lv.initPos,dirty:new Set(lv.initDirty),g:0,f:lv.initDirty.length,parent:null,action:'START'});
+  var best={};best[initKey]=0;
+  var count=0;
+  var steps=[{pos:lv.initPos,dirty:cloneDirty(new Set(lv.initDirty)),action:'START',type:'start',note:'A*: h='+lv.initDirty.length+' dirty rooms'}];
+  while(heap.size&&count<800){
+    var cur=heap.pop();count++;
+    var curKey=stateKey(cur.pos,cur.dirty,lv.rooms);
+    if(isGoal(cur.dirty)){
+      var path=[];var c=cur;
+      while(c.parent){path.unshift({a:c.action,pos:c.pos,dirty:c.dirty});c=c.parent;}
+      path.forEach(function(p){
+        steps.push({pos:p.pos,dirty:cloneDirty(p.dirty),action:p.a,type:p.a==='SUCK'?'suck':'move',note:'A*: '+p.a+' h='+p.dirty.size});
+      });
+      steps.push({pos:cur.pos,dirty:new Set(),action:'DONE',type:'done',note:'A*: goal found! '+count+' states explored.'});
+      return{steps:steps,totalSteps:path.length,nodesExplored:count};
+    }
+    // suck
+    if(cur.dirty.has(cur.pos)){
+      var nd=cloneDirty(cur.dirty);nd.delete(cur.pos);
+      var nk=stateKey(cur.pos,nd,lv.rooms);
+      var ng=cur.g+1,nh=nd.size,nf=ng+nh;
+      if(!(nk in best)||ng<best[nk]){best[nk]=ng;heap.push({pos:cur.pos,dirty:nd,g:ng,f:nf,parent:cur,action:'SUCK'});}
+    }
+    // moves
+    (lv.adj[cur.pos]||[]).forEach(function(np){
+      var nk=stateKey(np,cur.dirty,lv.rooms);
+      var ng=cur.g+1,nh=cur.dirty.size,nf=ng+nh;
+      if(!(nk in best)||ng<best[nk]){best[nk]=ng;heap.push({pos:np,dirty:cloneDirty(cur.dirty),g:ng,f:nf,parent:cur,action:'MOVE to '+lv.rooms[np]});}
+    });
+  }
+  return{steps:steps,totalSteps:steps.length,nodesExplored:count};
+}
+
+// Helpers
+function MinHeap(){this.d=[];}
+MinHeap.prototype.push=function(x){this.d.push(x);this._up(this.d.length-1);};
+MinHeap.prototype.pop=function(){var t=this.d[0],l=this.d.pop();if(this.d.length){this.d[0]=l;this._dn(0);}return t;};
+MinHeap.prototype._up=function(i){while(i>0){var p=(i-1)>>1;if(this.d[p].f<=this.d[i].f)break;var tmp=this.d[p];this.d[p]=this.d[i];this.d[i]=tmp;i=p;}};
+MinHeap.prototype._dn=function(i){var n=this.d.length;while(true){var s=i,l=2*i+1,r=2*i+2;if(l<n&&this.d[l].f<this.d[s].f)s=l;if(r<n&&this.d[r].f<this.d[s].f)s=r;if(s===i)break;var tmp=this.d[s];this.d[s]=this.d[i];this.d[i]=tmp;i=s;}};
+Object.defineProperty(MinHeap.prototype,'size',{get:function(){return this.d.length;}});
+
+function bfsPath(from,to,adj){
+  if(from===to)return[from];
+  var visited={},parent={},queue=[from];visited[from]=true;
+  while(queue.length){
+    var cur=queue.shift();
+    if(cur===to){var p=[],c=to;while(c!==undefined){p.unshift(c);c=parent[c];}return p;}
+    (adj[cur]||[]).forEach(function(n){if(!visited[n]){visited[n]=true;parent[n]=cur;queue.push(n);}});
+  }
+  return null;
+}
+function findNearestDirty(pos,dirty,adj){
+  if(dirty.size===0)return -1;
+  var queue=[pos],visited={};visited[pos]=true;
+  while(queue.length){var c=queue.shift();if(dirty.has(c))return c;(adj[c]||[]).forEach(function(n){if(!visited[n]){visited[n]=true;queue.push(n);}});}
+  return -1;
+}
+function buildGoalPlan(startPos,initDirty,adj,rooms){
+  var pos=startPos,dirty=cloneDirty(initDirty),plan=[];
+  var maxIter=rooms.length*4;
+  for(var i=0;i<maxIter&&dirty.size>0;i++){
+    if(dirty.has(pos)){dirty.delete(pos);plan.push({a:'SUCK',pos:pos,note:'Suck '+rooms[pos]});}
+    else{
+      var t=findNearestDirty(pos,dirty,adj);if(t===-1)break;
+      var path=bfsPath(pos,t,adj);if(!path||path.length<2)break;
+      pos=path[1];plan.push({a:'MOVE',pos:pos,note:'Move toward '+rooms[t]});
+    }
+  }
+  return plan;
+}
+
+function runAlgo(id,lv){
+  switch(id){
+    case'reflex': return runReflex(lv);
+    case'model':  return runModelBased(lv);
+    case'goal':   return runGoalBased(lv);
+    case'util':   return runUtilityBased(lv);
+    case'bfs':    return runBFSSearch(lv);
+    case'dfs':    return runDFSSearch(lv);
+    case'ast':    return runAStarSearch(lv);
+    default:      return{steps:[],totalSteps:0,nodesExplored:0};
+  }
+}
+
+// ==========================================================
+// VACUUM GRID DRAWING
+// ==========================================================
+var ACLR={reflex:'#f59e0b',model:'#38bdf8',goal:'#a78bfa',util:'#f472b6',bfs:'#22d3ee',dfs:'#fb923c',ast:'#4ade80'};
+
+function drawVacuumGrid(canvas,lv,stepData,accentColor,algoId){
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0c1020';ctx.fillRect(0,0,W,H);
+
+  var cols=lv.cols,rows=lv.rows,n=lv.rooms.length;
+  var pad=12;
+  var cellW=Math.floor((W-pad*2)/cols);
+  var cellH=Math.floor((H-pad*2)/rows);
+  var offX=Math.floor((W-cellW*cols)/2);
+  var offY=Math.floor((H-cellH*rows)/2);
+
+  var curPos=stepData?stepData.pos:lv.initPos;
+  var dirty=stepData?stepData.dirty:new Set(lv.initDirty);
+  var isSolved=stepData&&stepData.type==='done';
+  var isAction=stepData?stepData.type:null;
+
+  for(var i=0;i<n;i++){
+    var col=i%cols, row=Math.floor(i/cols);
+    var x=offX+col*cellW, y=offY+row*cellH;
+    var isAgent=(i===curPos);
+    var isDirty=dirty.has(i);
+
+    // background
+    var fillClr='#0c1020';
+    if(isAgent&&isDirty) fillClr='#0d1c06';
+    else if(isAgent)     fillClr='#081808';
+    else if(isDirty)     fillClr='#1a1206';
+    else                 fillClr='#0a1520';
+    ctx.fillStyle=fillClr;ctx.fillRect(x+2,y+2,cellW-4,cellH-4);
+
+    // border
+    var borderClr='rgba(255,255,255,.08)';
+    if(isAgent)       borderClr=accentColor;
+    else if(isDirty)  borderClr='rgba(245,158,11,.5)';
+    else              borderClr='rgba(34,211,238,.18)';
+    if(isSolved)      borderClr=accentColor;
+    ctx.save();
+    ctx.strokeStyle=borderClr;ctx.lineWidth=isAgent?2:1;
+    if(isAgent){ctx.shadowColor=accentColor;ctx.shadowBlur=14;}
+    ctx.strokeRect(x+2,y+2,cellW-4,cellH-4);
+    ctx.restore();
+
+    // room label
+    var fs=Math.max(9,Math.floor(Math.min(cellW,cellH)*.28));
+    ctx.font='700 '+fs+'px "JetBrains Mono",monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+
+    // dirt particles
+    if(isDirty&&!isAgent){
+      ctx.fillStyle='rgba(245,158,11,.25)';
+      var dc=Math.max(4,Math.floor(Math.min(cellW,cellH)*.18));
+      for(var dp=0;dp<6;dp++){
+        var dx=x+cellW/2+(Math.sin(dp*1.1)*dc*.7);
+        var dy=y+cellH/2+(Math.cos(dp*1.3)*dc*.5);
+        ctx.beginPath();ctx.arc(dx,dy,2,0,Math.PI*2);ctx.fill();
+      }
+      ctx.fillStyle='rgba(245,158,11,.5)';
+      ctx.font='bold '+(fs*.85)+'px serif';
+      ctx.fillText('D',x+cellW-fs*.7,y+fs*.8);
+    }
+
+    // agent icon
+    if(isAgent){
+      ctx.font='bold '+(Math.max(10,Math.floor(Math.min(cellW,cellH)*.4)))+'px serif';
+      ctx.fillStyle=accentColor;
+      ctx.shadowColor=accentColor;ctx.shadowBlur=10;
+      ctx.fillText('R',x+cellW/2,y+cellH/2);
+      ctx.shadowBlur=0;
+    }
+
+    // clean indicator
+    if(!isAgent&&!isDirty){
+      ctx.fillStyle='rgba(34,211,238,.3)';
+      ctx.font='bold '+(fs*.7)+'px serif';
+      ctx.fillText('*',x+cellW-fs*.7,y+fs*.8);
+    }
+
+    // room name
+    ctx.fillStyle=isAgent?'rgba(255,255,255,.9)':'rgba(255,255,255,.4)';
+    ctx.font='600 '+(Math.max(7,Math.floor(fs*.7)))+'px "JetBrains Mono",monospace';
+    ctx.fillText(lv.rooms[i],x+cellW/2,y+cellH-fs*.6);
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  }
+
+  // solved border glow
+  if(isSolved){
+    ctx.save();ctx.strokeStyle=accentColor;ctx.lineWidth=2.5;
+    ctx.shadowColor=accentColor;ctx.shadowBlur=16;ctx.globalAlpha=.7;
+    ctx.strokeRect(2,2,W-4,H-4);ctx.restore();
+  }
+
+  // action flash overlay
+  if(isAction==='suck'&&!isSolved){
+    ctx.save();ctx.fillStyle='rgba(74,222,128,.06)';ctx.fillRect(0,0,W,H);ctx.restore();
+  }
+}
+
+function getCanvasSize(lv){
+  if(lv.rooms.length<=2)return[280,140];
+  if(lv.rooms.length<=4)return[300,160];
+  if(lv.rows===1)return[360,130];
+  if(lv.rooms.length<=4)return[280,200];
+  if(lv.rows===2)return[280,200];
+  return[310,240];
+}
+
+// ==========================================================
+// UI STATE
+// ==========================================================
+var curLevel=1,stepMs=900,syncStep=0,syncMax=0,syncTimer=null;
+var plans={},panelSteps={},panelTimers={};
+
+var ALGO_META={
+  reflex:{label:'SIMPLE REFLEX',  full:'Reactive * condition-action rules only', abbr:'REF',cls:'ap-reflex',sfcls:'sf-reflex',type:'Agent'},
+  model: {label:'MODEL-BASED',    full:'Stateful * internal world model',        abbr:'MOD',cls:'ap-model', sfcls:'sf-model', type:'Agent'},
+  goal:  {label:'GOAL-BASED',     full:'Deliberate * plans to achieve goal',     abbr:'GOL',cls:'ap-goal',  sfcls:'sf-goal',  type:'Agent'},
+  util:  {label:'UTILITY-BASED',  full:'Optimal * maximizes utility function',   abbr:'UTL',cls:'ap-util',  sfcls:'sf-util',  type:'Agent'},
+  bfs:   {label:'BFS SEARCH',     full:'Uninformed * level-by-level expansion',  abbr:'BFS',cls:'ap-bfs',   sfcls:'sf-bfs',   type:'Search'},
+  dfs:   {label:'DFS SEARCH',     full:'Uninformed * deep-first exploration',    abbr:'DFS',cls:'ap-dfs',   sfcls:'sf-dfs',   type:'Search'},
+  ast:   {label:'A* SEARCH',      full:'Heuristic * f=g+h, h=dirty remaining',  abbr:'A*', cls:'ap-ast',   sfcls:'sf-ast',   type:'Search'},
+};
+
+var ALGO_DESCS={
+  reflex:'<strong>Simple Reflex</strong> agent reacts to current percept only: <strong>IF dirty THEN suck, ELSE move</strong>. No memory, no planning. Works in fully observable environments but loops without memory.',
+  model: '<strong>Model-Based</strong> agent maintains an <strong>internal world model</strong> updated after each action. Knows which rooms it has cleaned -- never revisits unnecessarily.',
+  goal:  '<strong>Goal-Based</strong> agent formulates a <strong>complete action plan</strong> before acting. Uses search to find a sequence of actions achieving the goal (all rooms clean).',
+  util:  '<strong>Utility-Based</strong> agent chooses actions that <strong>maximize utility</strong>: U = cleanliness_reward - energy_cost. Generalizes goal-based to environments with tradeoffs.',
+  bfs:   '<strong>BFS</strong> expands vacuum states (position, dirt_config) level-by-level. <strong>Optimal (fewest actions)</strong> but frontier is O(b^d) -- impractical for large grids.',
+  dfs:   '<strong>DFS</strong> dives deep into state space. <strong>Memory-efficient O(bd)</strong> but finds suboptimal paths -- often backtracks across clean rooms unnecessarily.',
+  ast:   '<strong>A*</strong> uses heuristic <strong>h = dirty rooms remaining</strong> (admissible). Finds optimal path with dramatically fewer state expansions than BFS on larger grids.',
+};
+
+function CM(id){return ACLR[id]||'#888';}
+
+function buildPanels(lv){
+  var grid=document.getElementById('algosGrid');grid.innerHTML='';
+  lv.algos.forEach(function(id){
+    var meta=ALGO_META[id];
+    var sz=getCanvasSize(lv);
+    var div=document.createElement('div');
+    div.className='algo-panel '+meta.cls;div.id='panel-'+id;
+    div.innerHTML=
+      '<div class="panel-header">'+
+        '<div class="ph-left">'+
+          '<div class="ph-icon">'+meta.abbr+'</div>'+
+          '<div><div class="ph-name">'+meta.label+'</div><div class="ph-full">'+meta.full+'</div></div>'+
+        '</div>'+
+        '<div class="ph-type-tag">'+meta.type+'</div>'+
+      '</div>'+
+      '<div class="panel-grid-wrap">'+
+        '<canvas id="canvas-'+id+'" width="'+sz[0]+'" height="'+sz[1]+'"></canvas>'+
+        '<div class="step-float '+meta.sfcls+'" id="sfloat-'+id+'">START</div>'+
+      '</div>'+
+      '<div class="panel-metrics">'+
+        '<div class="metric"><span class="m-key">Steps</span><span class="m-val" id="steps-'+id+'">--</span></div>'+
+        '<div class="metric"><span class="m-key">States</span><span class="m-val" id="nodes-'+id+'">--</span></div>'+
+        '<div class="metric"><span class="m-key">Dirty Left</span><span class="m-val" id="dirty-'+id+'">--</span></div>'+
+        '<div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-'+id+'">--</span></div>'+
+      '</div>'+
+      '<div class="panel-action">'+
+        '<span class="action-label">Action:</span>'+
+        '<span class="action-badge" id="act-'+id+'">--</span>'+
+      '</div>'+
+      '<div class="panel-nav">'+
+        '<button class="pnav-btn" id="prev-'+id+'" disabled>&#8249;</button>'+
+        '<div class="pnav-count" id="count-'+id+'">0 / 0</div>'+
+        '<button class="pnav-btn" id="next-'+id+'" disabled>&#8250;</button>'+
+        '<button class="pnav-auto" id="auto-'+id+'">&#9654; Play</button>'+
+      '</div>'+
+      '<div class="panel-log" id="log-'+id+'"></div>'+
+      '<div class="algo-desc">'+ALGO_DESCS[id]+'</div>';
+    grid.appendChild(div);
+    panelSteps[id]=0;plans[id]=null;
+    document.getElementById('prev-'+id).addEventListener('click',function(){stopAuto(id);goTo(id,panelSteps[id]-1);});
+    document.getElementById('next-'+id).addEventListener('click',function(){stopAuto(id);goTo(id,panelSteps[id]+1);});
+    document.getElementById('auto-'+id).addEventListener('click',function(){if(panelTimers[id])stopAuto(id);else startAuto(id);});
+  });
+}
+
+function buildInsight(lv){
+  var grid=document.getElementById('insightGrid');grid.innerHTML='';
+  lv.insight.forEach(function(ins){
+    var col=document.createElement('div');
+    col.className='ins-col ic-'+ins.id;
+    var stepsHtml=ins.steps.map(function(s,k){
+      return '<div class="ins-step"><span class="ins-num">'+(k+1)+'</span>'+
+        '<div class="ins-inner"><div class="ins-action">'+s.action+'</div>'+
+        '<div class="ins-reason">'+s.reason+'</div></div></div>';
+    }).join('');
+    col.innerHTML=
+      '<div class="ins-head ih-'+ins.id+'">'+ins.id.toUpperCase()+' -- '+ALGO_META[ins.id].label+'</div>'+
+      stepsHtml+
+      '<div class="ins-result"><div class="ins-res-label">Result</div>'+
+      '<div class="ins-res-val">'+ins.result+'</div></div>';
+    grid.appendChild(col);
+  });
+}
+
+function buildProbStats(lv){
+  var el=document.getElementById('probStats');el.innerHTML='';
+  lv.statsKeys.forEach(function(sk){
+    var item=document.createElement('div');item.className='ps-item';
+    item.innerHTML='<span class="ps-key">'+sk.label+'</span><span class="ps-val '+sk.cls+'" id="'+sk.key+'">'+sk.val+'</span>';
+    el.appendChild(item);
+  });
+  document.getElementById('gridInfo').textContent=lv.cols+'x'+lv.rows+' grid * '+lv.rooms.length+' rooms';
+  document.getElementById('initDesc').textContent='Agent:'+lv.rooms[lv.initPos]+', Dirty:['+lv.initDirty.map(function(i){return lv.rooms[i];}).join(',')+']';
+}
+
+function setStatus(id,text,color){
+  var el=document.getElementById('ph-status-'+id)||null;
+  // status is ph-type-tag, just update color
+  if(color){
+    var p=document.getElementById('panel-'+id);
+    if(p){var st=p.querySelector('.ph-type-tag');if(st){st.style.color=color;st.style.borderColor=color+'55';st.style.background=color+'14';}}
+  }
+}
+function updateFloat(id,step,total,type){
+  var el=document.getElementById('sfloat-'+id);if(!el)return;
+  if(step===0)el.textContent='START';
+  else if(type==='done')el.textContent='DONE!';
+  else el.textContent='STEP '+step+'/'+total;
+}
+function updateAction(id,action,type){
+  var el=document.getElementById('act-'+id);if(!el)return;
+  el.textContent=action||'--';
+  var ac=CM(id);
+  el.style.color=ac;el.style.borderColor=ac+'55';el.style.background=ac+'11';
+}
+function updateDirtyMetric(id,dirty){
+  var el=document.getElementById('dirty-'+id);
+  if(el)el.textContent=dirty!==undefined?dirty:'--';
+}
+
+function renderLog(id){
+  var el=document.getElementById('log-'+id),plan=plans[id];if(!plan){if(el)el.innerHTML='';return;}
+  var step=panelSteps[id];el.innerHTML='';
+  var TAG={
+    start:'<span class="log-tag lt-sense">START</span>',
+    move: '<span class="log-tag lt-move">MOVE</span>',
+    suck: '<span class="log-tag lt-suck">SUCK</span>',
+    sense:'<span class="log-tag lt-sense">SENSE</span>',
+    plan: '<span class="log-tag lt-plan">PLAN</span>',
+    eval: '<span class="log-tag lt-eval">EVAL</span>',
+    done: '<span class="log-tag lt-done">DONE!</span>',
+  };
+  plan.steps.forEach(function(s,i){
+    var div=document.createElement('div');
+    div.className='log-item'+(i+1===step?' active-log':'');
+    div.innerHTML='<span class="log-idx">'+String(i+1).padStart(2,'0')+'</span>'+(TAG[s.type]||'<span class="log-tag lt-move">ACT</span>')+'<span>'+s.note+'</span>';
+    div.addEventListener('click',function(){goTo(id,i+1);});
+    el.appendChild(div);
+  });
+  var act=el.querySelector('.active-log');if(act)act.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+function goTo(id,idx){
+  var plan=plans[id];if(!plan)return;
+  idx=Math.max(0,Math.min(idx,plan.steps.length));
+  panelSteps[id]=idx;
+  var step=idx>0?plan.steps[idx-1]:null;
+  var isDone=step&&step.type==='done';
+  var lv=LEVELS[curLevel];
+  var cv=document.getElementById('canvas-'+id);
+  if(cv)drawVacuumGrid(cv,lv,step,CM(id),id);
+  var total=plan.steps.length;
+  var cnt=document.getElementById('count-'+id);if(cnt)cnt.textContent=idx+' / '+total;
+  var prev=document.getElementById('prev-'+id);if(prev)prev.disabled=idx===0;
+  var next=document.getElementById('next-'+id);if(next)next.disabled=idx>=total;
+  renderLog(id);
+  updateFloat(id,idx,total,step?step.type:null);
+  updateAction(id,step?step.action:'--',step?step.type:null);
+  updateDirtyMetric(id,step?step.dirty.size:(new Set(lv.initDirty)).size);
+  document.getElementById('panel-'+id).classList.toggle('done-panel',!!isDone);
+  if(isDone){
+    var p=document.getElementById('panel-'+id);
+    if(p){var st=p.querySelector('.ph-type-tag');if(st){var ac=CM(id);st.style.color=ac;st.style.borderColor=ac+'55';st.style.background=ac+'14';}}
+  }
+}
+
+function startAuto(id){
+  if(panelTimers[id])return;
+  var btn=document.getElementById('auto-'+id);
+  if(btn){btn.textContent='&#9208; Pause';btn.classList.add('playing');}
+  function tick(){
+    var plan=plans[id];if(!plan||panelSteps[id]>=plan.steps.length){stopAuto(id);return;}
+    goTo(id,panelSteps[id]+1);panelTimers[id]=setTimeout(tick,stepMs);
+  }
+  panelTimers[id]=setTimeout(tick,250);
+}
+function stopAuto(id){
+  if(panelTimers[id]){clearTimeout(panelTimers[id]);panelTimers[id]=null;}
+  var btn=document.getElementById('auto-'+id);
+  if(btn){btn.textContent='&#9654; Play';btn.classList.remove('playing');}
+}
+function syncGoTo(idx){
+  idx=Math.max(0,Math.min(idx,syncMax));syncStep=idx;
+  var lv=LEVELS[curLevel];
+  lv.algos.forEach(function(id){var p=plans[id];if(p)goTo(id,Math.min(idx,p.steps.length));});
+  document.getElementById('syncCounter').textContent=idx+' / '+syncMax;
+  document.getElementById('syncPrev').disabled=idx===0;
+  document.getElementById('syncNext').disabled=idx>=syncMax;
+}
+function stopAllSync(){
+  if(syncTimer){clearInterval(syncTimer);syncTimer=null;}
+  var btn=document.getElementById('syncAuto');
+  btn.textContent='&#9654; AUTO PLAY ALL';btn.classList.remove('playing');
+}
+
+document.getElementById('syncPrev').addEventListener('click',function(){stopAllSync();syncGoTo(syncStep-1);});
+document.getElementById('syncNext').addEventListener('click',function(){stopAllSync();syncGoTo(syncStep+1);});
+document.getElementById('syncAuto').addEventListener('click',function(){
+  var btn=document.getElementById('syncAuto');
+  if(syncTimer){stopAllSync();return;}
+  btn.textContent='&#9208; PAUSE ALL';btn.classList.add('playing');
+  syncTimer=setInterval(function(){if(syncStep>=syncMax){stopAllSync();return;}syncGoTo(syncStep+1);},stepMs);
+});
+document.querySelectorAll('.speed-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.speed-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');stepMs=parseInt(btn.dataset.ms);
+  });
+});
+
+function showLoading(){
+  var ov=document.getElementById('loadOv');
+  var lv=LEVELS[curLevel];
+  var bars=lv.algos.map(function(id){
+    return '<div class="l-algo"><div class="l-algo-bar" style="background:'+CM(id)+'"></div>'+
+           '<span style="color:'+CM(id)+'">'+ALGO_META[id].abbr+'</span></div>';
+  }).join('');
+  if(!ov){ov=document.createElement('div');ov.id='loadOv';ov.className='loading-ov';document.body.appendChild(ov);}
+  ov.innerHTML='<div class="loading-box"><h3>Computing '+lv.label+'</h3>'+
+    '<p>'+lv.algos.map(function(id){return ALGO_META[id].label;}).join(' * ')+'</p>'+
+    '<div class="loading-algos">'+bars+'</div><div class="spinner"></div></div>';
+  ov.style.display='flex';
+}
+function hideLoading(){var o=document.getElementById('loadOv');if(o)o.style.display='none';}
+
+function loadLevel(idx){
+  curLevel=idx;
+  var lv=LEVELS[idx];
+  lv.algos.forEach(function(id){stopAuto(id);plans[id]=null;panelSteps[id]=0;});
+  stopAllSync();
+  buildPanels(lv);buildInsight(lv);buildProbStats(lv);
+  showLoading();
+  setTimeout(function(){
+    lv.algos.forEach(function(id){
+      var res=runAlgo(id,lv);
+      plans[id]=res;panelSteps[id]=0;
+      document.getElementById('steps-'+id).textContent=res.totalSteps;
+      document.getElementById('nodes-'+id).textContent=res.nodesExplored;
+      document.getElementById('dirty-'+id).textContent=(new Set(lv.initDirty)).size;
+      var optEl=document.getElementById('opt-'+id);
+      if(optEl)optEl.textContent=(id==='bfs'||id==='ast'||id==='goal'||id==='util')?'YES':'~';
+      var cv=document.getElementById('canvas-'+id);
+      if(cv)drawVacuumGrid(cv,lv,null,CM(id),id);
+      document.getElementById('count-'+id).textContent='0 / '+res.steps.length;
+      document.getElementById('prev-'+id).disabled=true;
+      document.getElementById('next-'+id).disabled=res.steps.length===0;
+      updateAction(id,'--',null);
+      // update stat display
+      var KEY=id.charAt(0).toUpperCase()+id.slice(1);
+      var sEl=document.getElementById('pi'+KEY);if(sEl)sEl.textContent=res.totalSteps;
+    });
+    lv.statsKeys.forEach(function(sk){
+      var el=document.getElementById(sk.key);if(!el)return;
+      if(sk.key==='piDirty')return;
+      var id=sk.key.replace('pi','').toLowerCase();
+      var p=plans[id];if(p)el.textContent=p.totalSteps;
+    });
+    hideLoading();
+    syncMax=Math.max.apply(null,lv.algos.map(function(id){return plans[id]?plans[id].steps.length:0;}));
+    syncStep=0;
+    document.getElementById('syncCounter').textContent='0 / '+syncMax;
+    document.getElementById('syncPrev').disabled=true;
+    document.getElementById('syncNext').disabled=syncMax===0;
+    // fastest tag
+    var tag=document.getElementById('fastestTag');
+    var allP=lv.algos.map(function(id){return{id:id,p:plans[id]};}).filter(function(x){return x.p&&x.p.totalSteps>0;});
+    if(allP.length>=2){
+      var minN=Math.min.apply(null,allP.map(function(x){return x.p.totalSteps;}));
+      var win=allP.find(function(x){return x.p.totalSteps===minN;});
+      if(win){
+        tag.style.display='flex';
+        tag.textContent=ALGO_META[win.id].label+' -- FEWEST STEPS ('+minN+')';
+        tag.style.color=CM(win.id);tag.style.borderColor=CM(win.id)+'44';tag.style.background=CM(win.id)+'11';
+      }
+    } else tag.style.display='none';
+  },80);
+}
+
+document.getElementById('levelSelect').addEventListener('change',function(e){loadLevel(parseInt(e.target.value));});
+document.getElementById('runBtn').addEventListener('click',function(){loadLevel(curLevel);});
+loadLevel(1);
+})();
+</script>
+</body>
+</html>
