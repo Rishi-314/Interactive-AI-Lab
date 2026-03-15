@@ -6,6 +6,7 @@
 <title>VACUUM WORLD -- AI Agent &amp; Search Algorithms</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* [Keep all your existing CSS styles exactly as they were] */
 :root {
   --bg:    #04060c;
   --bg1:   #080c18;
@@ -342,7 +343,7 @@ body::after {
 .algo-desc { padding:8px 11px; border-top:1px solid var(--line); font-size:.61rem; line-height:1.65; color:var(--text2); }
 .algo-desc strong { color:var(--ac); font-family:var(--mono); font-weight:600; }
 
-/* COMPARISON TABLE */
+/* COMPARISON TABLE - NOW DYNAMIC */
 .cmp-wrap { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:14px; overflow-x:auto; }
 .cmp-title {
   font-family:var(--mono); font-size:.64rem; font-weight:700; color:var(--text2);
@@ -470,59 +471,18 @@ body::after {
   <!-- PANELS -->
   <div class="algos-grid" id="algosGrid"></div>
 
-  <!-- COMPARISON TABLE -->
+  <!-- COMPARISON TABLE - NOW DYNAMIC -->
   <div class="cmp-wrap">
-    <div class="cmp-title">Agent & Algorithm Comparison -- Vacuum World</div>
-    <table class="cmp-table">
+    <div class="cmp-title">Agent & Algorithm Comparison -- Vacuum World (Level <span id="levelDisplay">2</span>)</div>
+    <table class="cmp-table" id="comparisonTable">
       <thead>
         <tr>
           <th>Agent / Algorithm</th><th>Type</th><th>Knows State?</th><th>Plans Ahead?</th>
           <th>Optimal?</th><th>Complete?</th><th>Memory</th><th>Key Behavior</th>
         </tr>
       </thead>
-      <tbody>
-        <tr class="r-reflex">
-          <td class="an">Simple Reflex</td><td class="cx-mid">Reactive</td>
-          <td class="cx-bad">Current only</td><td class="cx-bad">No</td>
-          <td class="cx-bad">No</td><td class="cx-warn">Partial</td><td class="cx-best">O(1)</td>
-          <td class="cx-bad">If dirty suck, else move. Can loop forever.</td>
-        </tr>
-        <tr class="r-model">
-          <td class="an">Model-Based</td><td class="cx-mid">Stateful</td>
-          <td class="cx-best">Full history</td><td class="cx-warn">Partial</td>
-          <td class="cx-warn">Near</td><td class="cx-best">Yes</td><td class="cx-warn">O(n)</td>
-          <td class="cx-warn">Remembers visited rooms. Avoids pointless revisits.</td>
-        </tr>
-        <tr class="r-goal">
-          <td class="an">Goal-Based</td><td class="cx-good">Deliberate</td>
-          <td class="cx-best">Full</td><td class="cx-best">Yes</td>
-          <td class="cx-best">Yes</td><td class="cx-best">Yes</td><td class="cx-warn">O(n)</td>
-          <td class="cx-best">Plans path to dirty rooms. Never wasteful moves.</td>
-        </tr>
-        <tr class="r-util">
-          <td class="an">Utility-Based</td><td class="cx-best">Optimal</td>
-          <td class="cx-best">Full</td><td class="cx-best">Yes</td>
-          <td class="cx-best">Yes</td><td class="cx-best">Yes</td><td class="cx-warn">O(n)</td>
-          <td class="cx-best">Maximizes utility (cleanliness / energy tradeoff).</td>
-        </tr>
-        <tr class="r-bfs">
-          <td class="an">BFS</td><td class="cx-mid">Search</td>
-          <td class="cx-best">Full state</td><td class="cx-best">Yes</td>
-          <td class="cx-best">Yes (fewest steps)</td><td class="cx-best">Yes</td><td class="cx-bad">O(b^d)</td>
-          <td class="cx-mid">Explores all states layer by layer. Optimal but memory-intensive.</td>
-        </tr>
-        <tr class="r-dfs">
-          <td class="an">DFS</td><td class="cx-mid">Search</td>
-          <td class="cx-best">Full state</td><td class="cx-best">Yes</td>
-          <td class="cx-bad">No</td><td class="cx-warn">With limit</td><td class="cx-best">O(bd)</td>
-          <td class="cx-bad">Dives deep -- often finds longer paths than BFS.</td>
-        </tr>
-        <tr class="r-ast">
-          <td class="an">A*</td><td class="cx-best">Heuristic Search</td>
-          <td class="cx-best">Full state</td><td class="cx-best">Yes</td>
-          <td class="cx-best">Yes (admissible h)</td><td class="cx-best">Yes</td><td class="cx-warn">O(b^d)</td>
-          <td class="cx-best">h = dirty rooms remaining. Targets nearest dirt. Fewest nodes explored.</td>
-        </tr>
+      <tbody id="comparisonBody">
+        <!-- Will be populated dynamically -->
       </tbody>
     </table>
     <div class="cmp-note">
@@ -580,14 +540,14 @@ var LEVELS=[
   ],
   insight:[
     {id:'reflex',steps:[
-      {action:'At B (clean): no dirt detected -> MOVE to A','reason':'Reflex rule 1: perceive current room. B is clean so the rule fires: move. Agent goes to A.'},
-      {action:'At A (dirty): SUCK A','reason':'Now at dirty room. Rule fires: suck. A becomes clean. 2 actions used.'},
-      {action:'At A (clean): no dirt -> MOVE back to B. Loop begins!','reason':'Reflex has zero memory of already visiting B. It will cycle A->B->A forever (no termination without external stop).'},
+      {action:'At B (clean): no dirt detected -> MOVE to A',reason:'Reflex rule 1: perceive current room. B is clean so the rule fires: move. Agent goes to A.'},
+      {action:'At A (dirty): SUCK A',reason:'Now at dirty room. Rule fires: suck. A becomes clean. 2 actions used.'},
+      {action:'At A (clean): no dirt -> MOVE back to B. Loop begins!',reason:'Reflex has zero memory of already visiting B. It will cycle A->B->A forever (no termination without external stop).'},
     ],result:'2 meaningful steps but CANNOT stop -- loops A<->B forever. Reflex with no memory has no termination condition.',cls:'ic-reflex',hcls:'ih-reflex'},
     {id:'model',steps:[
-      {action:'Perceive B: clean. Build model: {A:dirty, B:clean}','reason':'Model-based immediately constructs internal world state from initial percept and prior knowledge.'},
-      {action:'Model shows A is dirty. A is 1 move away. Move to A.','reason':'Agent uses its model to navigate directly to the only dirty room -- no wasted moves.'},
-      {action:'Perceive A: dirty (matches model). SUCK A. Model: all clean. DONE.','reason':'Model updated: A now clean. Goal check passes. Agent stops immediately. Total: 2 steps.'},
+      {action:'Perceive B: clean. Build model: {A:dirty, B:clean}',reason:'Model-based immediately constructs internal world state from initial percept and prior knowledge.'},
+      {action:'Model shows A is dirty. A is 1 move away. Move to A.',reason:'Agent uses its model to navigate directly to the only dirty room -- no wasted moves.'},
+      {action:'Perceive A: dirty (matches model). SUCK A. Model: all clean. DONE.',reason:'Model updated: A now clean. Goal check passes. Agent stops immediately. Total: 2 steps.'},
     ],result:'2 steps, terminates correctly. Model-based NEVER revisits B -- it knows B is clean. Reflex cannot do this.',cls:'ic-model',hcls:'ih-model'},
   ]
 },
@@ -619,24 +579,24 @@ var LEVELS=[
   ],
   insight:[
     {id:'reflex',steps:[
-      {action:'At A (dirty): SUCK A','reason':'Reflex fires immediately: dirty room -> suck. No model, no plan. Just reacts.'},
-      {action:'At A (clean): MOVE -> B. At B (clean): MOVE -> C','reason':'Reflex moves right on clean rooms. Passes through B (already clean) without issue.'},
-      {action:'At C (dirty): SUCK C. At C (clean): MOVE -> D. Loop risk.','reason':'After cleaning C, reflex moves to D. D is clean, so it will try to move further -- but D is end of chain. Falls back to adj[0]=C. Will cycle C<->D forever.'},
+      {action:'At A (dirty): SUCK A',reason:'Reflex fires immediately: dirty room -> suck. No model, no plan. Just reacts.'},
+      {action:'At A (clean): MOVE -> B. At B (clean): MOVE -> C',reason:'Reflex moves right on clean rooms. Passes through B (already clean) without issue.'},
+      {action:'At C (dirty): SUCK C. At C (clean): MOVE -> D. Loop risk.',reason:'After cleaning C, reflex moves to D. D is clean, so it will try to move further -- but D is end of chain. Falls back to adj[0]=C. Will cycle C<->D forever.'},
     ],result:'4 steps to clean, then loops at D. Reflex cannot detect completion -- no memory of global state.',cls:'ic-reflex',hcls:'ih-reflex'},
     {id:'model',steps:[
-      {action:'Perceive A dirty. Build model: {A:dirty, B:clean, C:dirty, D:clean}','reason':'Model records full environment. Sucks A. Model updates: A now clean.'},
-      {action:'Model: C is dirty, B is on path to C. Navigate: A->B->C','reason':'Uses BFS on rooms to find shortest path to nearest dirty room. Moves step-by-step.'},
-      {action:'At C: suck C. Model: all clean. GOAL CHECK passes. Stop.','reason':'Model confirms goal satisfied. Terminates immediately -- no loop, no wasted move to D.'},
+      {action:'Perceive A dirty. Build model: {A:dirty, B:clean, C:dirty, D:clean}',reason:'Model records full environment. Sucks A. Model updates: A now clean.'},
+      {action:'Model: C is dirty, B is on path to C. Navigate: A->B->C',reason:'Uses BFS on rooms to find shortest path to nearest dirty room. Moves step-by-step.'},
+      {action:'At C: suck C. Model: all clean. GOAL CHECK passes. Stop.',reason:'Model confirms goal satisfied. Terminates immediately -- no loop, no wasted move to D.'},
     ],result:'4 steps, terminates correctly. Same step count as reflex but STOPS cleanly. No loop risk.',cls:'ic-model',hcls:'ih-model'},
     {id:'goal',steps:[
-      {action:'Goal: all clean. Generate plan before moving: [SuckA, MoveB, MoveC, SuckC]','reason':'Goal-based searches for a valid action sequence using nearest-dirty-first planning.'},
-      {action:'Execute plan: SuckA -> MoveB -> MoveC -> SuckC','reason':'Follows pre-computed sequence. No re-sensing or re-planning needed in deterministic world.'},
-      {action:'Plan complete. Goal test passes. Agent halts.','reason':'Plan length = 4. Optimal. Goal-based guarantees termination -- plan has finite length.'},
+      {action:'Goal: all clean. Generate plan before moving: [SuckA, MoveB, MoveC, SuckC]',reason:'Goal-based searches for a valid action sequence using nearest-dirty-first planning.'},
+      {action:'Execute plan: SuckA -> MoveB -> MoveC -> SuckC',reason:'Follows pre-computed sequence. No re-sensing or re-planning needed in deterministic world.'},
+      {action:'Plan complete. Goal test passes. Agent halts.',reason:'Plan length = 4. Optimal. Goal-based guarantees termination -- plan has finite length.'},
     ],result:'4 steps, optimal, guaranteed termination. The plan determines exactly how many moves are needed.',cls:'ic-goal',hcls:'ih-goal'},
     {id:'util',steps:[
-      {action:'Evaluate 2 candidate plans: Plan1=[SuckA,MvB,MvC,SuckC]=4 steps. Plan2=[MvB,MvC,SuckC,MvB,MvA,SuckA]=6 steps','reason':'Utility agent computes U = rooms_cleaned*100 - steps_taken for each plan variant.'},
-      {action:'Plan1: U = 2*100 - 4 = 196. Plan2: U = 2*100 - 6 = 194. Plan1 wins.','reason':'The shorter plan scores higher. Utility function captures both reward (cleanliness) and cost (energy).'},
-      {action:'Execute Plan1. 4 steps. U=196.','reason':'Maximizes utility. Identical path to Goal-based here -- utility shines in tradeoff scenarios.'},
+      {action:'Evaluate 2 candidate plans: Plan1=[SuckA,MvB,MvC,SuckC]=4 steps. Plan2=[MvB,MvC,SuckC,MvB,MvA,SuckA]=6 steps',reason:'Utility agent computes U = rooms_cleaned*100 - steps_taken for each plan variant.'},
+      {action:'Plan1: U = 2*100 - 4 = 196. Plan2: U = 2*100 - 6 = 194. Plan1 wins.',reason:'The shorter plan scores higher. Utility function captures both reward (cleanliness) and cost (energy).'},
+      {action:'Execute Plan1. 4 steps. U=196.',reason:'Maximizes utility. Identical path to Goal-based here -- utility shines in tradeoff scenarios.'},
     ],result:'4 steps, U=196 (highest achievable). Utility scoring makes the quality of each plan explicit.',cls:'ic-util',hcls:'ih-util'},
   ]
 },
@@ -666,19 +626,19 @@ var LEVELS=[
   ],
   insight:[
     {id:'bfs',steps:[
-      {action:'State (F, [A,B,D dirty]): enqueue 2 moves -- E and C','reason':'BFS fans out from F. Frontier grows level by level across all state combinations.'},
-      {action:'Explores states going BOTH toward dirty side and away from it','reason':'BFS has no sense of direction. It expands states reaching C (wrong way) equally with states toward E/D.'},
-      {action:'Finds optimal ~9-step path after ~18 state expansions','reason':'F->E->D(suck)->A(suck)->B(suck) or similar. Optimal but explores unnecessary clean-side states.'},
+      {action:'State (F, [A,B,D dirty]): enqueue 2 moves -- E and C',reason:'BFS fans out from F. Frontier grows level by level across all state combinations.'},
+      {action:'Explores states going BOTH toward dirty side and away from it',reason:'BFS has no sense of direction. It expands states reaching C (wrong way) equally with states toward E/D.'},
+      {action:'Finds optimal ~9-step path after ~18 state expansions',reason:'F->E->D(suck)->A(suck)->B(suck) or similar. Optimal but explores unnecessary clean-side states.'},
     ],result:'~9 steps (optimal), ~18 nodes. Correct but wastes effort exploring right side of grid.',cls:'ic-bfs',hcls:'ih-bfs'},
     {id:'dfs',steps:[
-      {action:'DFS dives: F->C first (C is adj[0] reversed, pushed last=popped first)','reason':'DFS LIFO stack: pushes E then C. Pops C first. Goes toward CLEAN room -- wrong direction!'},
-      {action:'C is clean, no suck. DFS pushes B and F from C. Explores B (dirty, suck!). Then more wrong paths.','reason':'DFS stumbles onto dirty rooms via wandering, not direction. Path becomes F->C->B(suck)->A(suck)->D... very roundabout.'},
-      {action:'Solution found in ~14-18 steps. Only ~12 state expansions.','reason':'DFS low memory but path is much longer than optimal. It cleaned rooms out of order via winding route.'},
+      {action:'DFS dives: F->C first (C is adj[0] reversed, pushed last=popped first)',reason:'DFS LIFO stack: pushes E then C. Pops C first. Goes toward CLEAN room -- wrong direction!'},
+      {action:'C is clean, no suck. DFS pushes B and F from C. Explores B (dirty, suck!). Then more wrong paths.',reason:'DFS stumbles onto dirty rooms via wandering, not direction. Path becomes F->C->B(suck)->A(suck)->D... very roundabout.'},
+      {action:'Solution found in ~14-18 steps. Only ~12 state expansions.',reason:'DFS low memory but path is much longer than optimal. It cleaned rooms out of order via winding route.'},
     ],result:'~14-18 steps (suboptimal 60% longer!), ~12 nodes. DFS saves memory but punishes path quality badly.',cls:'ic-dfs',hcls:'ih-dfs'},
     {id:'ast',steps:[
-      {action:'h = dirty rooms remaining = 3. From F: f(E)=1+3=4, f(C)=1+3=4','reason':'Heuristic tie: both neighbors have same h=3. A* breaks tie toward E which is closer to dirty cluster.'},
-      {action:'F->E->D (dirty, suck! h drops to 2). f improves. A* locks onto dirty side.','reason':'After D cleaned: g=3, h=2, f=5. All states going away from dirty have f>5 -- A* ignores them entirely.'},
-      {action:'Cleans D->A->B in sequence. Total ~9 steps, only ~8 node expansions.','reason':'A* explores 55% fewer nodes than BFS. Heuristic steers search away from already-clean right side completely.'},
+      {action:'h = dirty rooms remaining = 3. From F: f(E)=1+3=4, f(C)=1+3=4',reason:'Heuristic tie: both neighbors have same h=3. A* breaks tie toward E which is closer to dirty cluster.'},
+      {action:'F->E->D (dirty, suck! h drops to 2). f improves. A* locks onto dirty side.',reason:'After D cleaned: g=3, h=2, f=5. All states going away from dirty have f>5 -- A* ignores them entirely.'},
+      {action:'Cleans D->A->B in sequence. Total ~9 steps, only ~8 node expansions.',reason:'A* explores 55% fewer nodes than BFS. Heuristic steers search away from already-clean right side completely.'},
     ],result:'~9 steps (optimal), ~8 nodes. 2.3x fewer nodes than BFS. Heuristic is decisive here.',cls:'ic-ast',hcls:'ih-ast'},
   ]
 },
@@ -708,19 +668,19 @@ var LEVELS=[
   ],
   insight:[
     {id:'bfs',steps:[
-      {action:'State space: 6 rooms * 2^6 = 384 possible states. 4 dirty = many reachable.','reason':'BFS must track every (position, dirt_config) combination. With 4 dirty rooms the frontier explodes.'},
-      {action:'Level 1: 2 neighbors from C. Level 2: ~8 states. Level 3: ~24...','reason':'Branching factor 5 (4 moves + 1 suck). BFS fans out in all directions simultaneously.'},
-      {action:'Optimal 9-step path found after ~90 state expansions.','reason':'BFS is correct but extremely wasteful. It visited states where agent went AWAY from dirty rooms many times.'},
+      {action:'State space: 6 rooms * 2^6 = 384 possible states. 4 dirty = many reachable.',reason:'BFS must track every (position, dirt_config) combination. With 4 dirty rooms the frontier explodes.'},
+      {action:'Level 1: 2 neighbors from C. Level 2: ~8 states. Level 3: ~24...',reason:'Branching factor 5 (4 moves + 1 suck). BFS fans out in all directions simultaneously.'},
+      {action:'Optimal 9-step path found after ~90 state expansions.',reason:'BFS is correct but extremely wasteful. It visited states where agent went AWAY from dirty rooms many times.'},
     ],result:'~9 steps (optimal), ~90 nodes. State explosion with 4 dirty rooms makes BFS impractical at scale.',cls:'ic-bfs',hcls:'ih-bfs'},
     {id:'ast',steps:[
-      {action:'Start at C. h=4. Neighbors: B(h=4,f=5) and F(h=3,f=4). Pick F!','reason':'F is DIRTY so sucking it immediately gives h=3, f=2. A* correctly identifies F as the best first move.'},
-      {action:'C->F(suck, h=3)->E(suck, h=2)->D(suck, h=1)->A(suck, h=0). Done!','reason':'A* threads through dirty rooms in near-optimal order. Each suck drops h by 1, f stays low -- search stays focused.'},
-      {action:'Only ~20 node expansions. 4.5x fewer than BFS!','reason':'A* never expands states going toward already-clean B or C. Heuristic acts as a laser guiding search through the dirty cluster.'},
+      {action:'Start at C. h=4. Neighbors: B(h=4,f=5) and F(h=3,f=4). Pick F!',reason:'F is DIRTY so sucking it immediately gives h=3, f=2. A* correctly identifies F as the best first move.'},
+      {action:'C->F(suck, h=3)->E(suck, h=2)->D(suck, h=1)->A(suck, h=0). Done!',reason:'A* threads through dirty rooms in near-optimal order. Each suck drops h by 1, f stays low -- search stays focused.'},
+      {action:'Only ~20 node expansions. 4.5x fewer than BFS!',reason:'A* never expands states going toward already-clean B or C. Heuristic acts as a laser guiding search through the dirty cluster.'},
     ],result:'~9 steps (optimal), ~20 nodes. 4.5x more efficient than BFS. A* shows its true power with 4 dirty rooms.',cls:'ic-ast',hcls:'ih-ast'},
     {id:'dfs',steps:[
-      {action:'DFS from C: pushes B (index 1) and F (index 5). Pops B first (reversed).','reason':'DFS goes to B -- a CLEAN room! No suck. Pushes A and C and E. Pops A (dirty, suck). Now deep in wrong branch.'},
-      {action:'A cleaned but agent is now far from D/E/F cluster. DFS dives deeper into wrong paths.','reason':'After A, DFS explores states like A->D->E->... but already visited some via different paths. Wanders 15+ steps.'},
-      {action:'Eventually finds all dirt cleaned in ~20-28 steps.','reason':'DFS low memory (~12 state expansions) but path length is 2-3x worse than optimal. Classic memory vs quality tradeoff.'},
+      {action:'DFS from C: pushes B (index 1) and F (index 5). Pops B first (reversed).',reason:'DFS goes to B -- a CLEAN room! No suck. Pushes A and C and E. Pops A (dirty, suck). Now deep in wrong branch.'},
+      {action:'A cleaned but agent is now far from D/E/F cluster. DFS dives deeper into wrong paths.',reason:'After A, DFS explores states like A->D->E->... but already visited some via different paths. Wanders 15+ steps.'},
+      {action:'Eventually finds all dirt cleaned in ~20-28 steps.',reason:'DFS low memory (~12 state expansions) but path length is 2-3x worse than optimal. Classic memory vs quality tradeoff.'},
     ],result:'~20-28 steps (suboptimal), ~12 nodes. Fastest in memory usage but terrible path quality -- 3x longer than A*.',cls:'ic-dfs',hcls:'ih-dfs'},
   ]
 },
@@ -741,19 +701,19 @@ var LEVELS=[
   ],
   insight:[
     {id:'bfs',steps:[
-      {action:'State: (pos, dirty_config). 9 * 2^9 = 4608 max states.','reason':'BFS must explore exponentially many states. Practical limit ~1200 before finding goal.'},
-      {action:'Frontier explodes: level 1=5 states, level 2=25 states...','reason':'Branching factor ~4 (moves) + 1 (suck). BFS becomes very slow in practice.'},
-      {action:'Finds optimal path (~14 steps) after ~1200 node expansions.','reason':'BFS guarantees optimal but is effectively impractical beyond 3x3 grids.'},
+      {action:'State: (pos, dirty_config). 9 * 2^9 = 4608 max states.',reason:'BFS must explore exponentially many states. Practical limit ~1200 before finding goal.'},
+      {action:'Frontier explodes: level 1=5 states, level 2=25 states...',reason:'Branching factor ~4 (moves) + 1 (suck). BFS becomes very slow in practice.'},
+      {action:'Finds optimal path (~14 steps) after ~1200 node expansions.',reason:'BFS guarantees optimal but is effectively impractical beyond 3x3 grids.'},
     ],result:'~14 steps optimal, ~1200 nodes. Exponential growth makes BFS impractical for larger grids.',cls:'ic-bfs',hcls:'ih-bfs'},
     {id:'dfs',steps:[
-      {action:'DFS dives deep immediately: E->D->A(dirty)->suck...','reason':'DFS reaches first dirty room (A) quickly but then wanders without heuristic guidance.'},
-      {action:'DFS explores long detour paths visiting clean rooms repeatedly.','reason':'Without h, DFS may visit E->B->C->suck->B->E->D... wasting many moves.'},
-      {action:'Eventually finds solution in ~25-35 steps. Only ~200 nodes.','reason':'DFS low memory but very poor path quality on 2D grids -- trades steps for memory.'},
+      {action:'DFS dives deep immediately: E->D->A(dirty)->suck...',reason:'DFS reaches first dirty room (A) quickly but then wanders without heuristic guidance.'},
+      {action:'DFS explores long detour paths visiting clean rooms repeatedly.',reason:'Without h, DFS may visit E->B->C->suck->B->E->D... wasting many moves.'},
+      {action:'Eventually finds solution in ~25-35 steps. Only ~200 nodes.',reason:'DFS low memory but very poor path quality on 2D grids -- trades steps for memory.'},
     ],result:'~25-35 steps (suboptimal), ~200 nodes. Saves memory but terrible path quality on grids.',cls:'ic-dfs',hcls:'ih-dfs'},
     {id:'ast',steps:[
-      {action:'h = dirty rooms remaining (0-4). Start state: h=4.','reason':'Admissible heuristic. After each suck h decreases by 1, guiding search toward clean states.'},
-      {action:'A* focuses on states reducing h quickly. Prunes deep detours.','reason':'States that waste moves without cleaning have high g but same h -> high f -> deprioritized.'},
-      {action:'Finds optimal ~14-step path after only ~80 node expansions!','reason':'15x fewer nodes than BFS on this grid. A* with dirty-count heuristic is transformative.'},
+      {action:'h = dirty rooms remaining (0-4). Start state: h=4.',reason:'Admissible heuristic. After each suck h decreases by 1, guiding search toward clean states.'},
+      {action:'A* focuses on states reducing h quickly. Prunes deep detours.',reason:'States that waste moves without cleaning have high g but same h -> high f -> deprioritized.'},
+      {action:'Finds optimal ~14-step path after only ~80 node expansions!',reason:'15x fewer nodes than BFS on this grid. A* with dirty-count heuristic is transformative.'},
     ],result:'~14 steps (optimal), ~80 nodes. 15x more efficient than BFS -- shows full power of heuristic search.',cls:'ic-ast',hcls:'ih-ast'},
   ]
 },
@@ -1143,6 +1103,76 @@ var ALGO_DESCS={
 
 function CM(id){return ACLR[id]||'#888';}
 
+function buildComparisonTable(lv) {
+  var tbody = document.getElementById('comparisonBody');
+  var levelDisplay = document.getElementById('levelDisplay');
+  levelDisplay.textContent = (curLevel + 1).toString(); // 1-indexed for display
+  
+  // All possible algorithm data
+  var allAlgos = {
+    reflex: {
+      name: 'Simple Reflex', type: 'Reactive', state: 'Current only', plans: 'No',
+      optimal: 'No', complete: 'Partial', memory: 'O(1)',
+      behavior: 'If dirty suck, else move. Can loop forever.',
+      rowClass: 'r-reflex'
+    },
+    model: {
+      name: 'Model-Based', type: 'Stateful', state: 'Full history', plans: 'Partial',
+      optimal: 'Near', complete: 'Yes', memory: 'O(n)',
+      behavior: 'Remembers visited rooms. Avoids pointless revisits.',
+      rowClass: 'r-model'
+    },
+    goal: {
+      name: 'Goal-Based', type: 'Deliberate', state: 'Full', plans: 'Yes',
+      optimal: 'Yes', complete: 'Yes', memory: 'O(n)',
+      behavior: 'Plans path to dirty rooms. Never wasteful moves.',
+      rowClass: 'r-goal'
+    },
+    util: {
+      name: 'Utility-Based', type: 'Optimal', state: 'Full', plans: 'Yes',
+      optimal: 'Yes', complete: 'Yes', memory: 'O(n)',
+      behavior: 'Maximizes utility (cleanliness / energy tradeoff).',
+      rowClass: 'r-util'
+    },
+    bfs: {
+      name: 'BFS', type: 'Search', state: 'Full state', plans: 'Yes',
+      optimal: 'Yes (fewest steps)', complete: 'Yes', memory: 'O(b^d)',
+      behavior: 'Explores all states layer by layer. Optimal but memory-intensive.',
+      rowClass: 'r-bfs'
+    },
+    dfs: {
+      name: 'DFS', type: 'Search', state: 'Full state', plans: 'Yes',
+      optimal: 'No', complete: 'With limit', memory: 'O(bd)',
+      behavior: 'Dives deep -- often finds longer paths than BFS.',
+      rowClass: 'r-dfs'
+    },
+    ast: {
+      name: 'A*', type: 'Heuristic Search', state: 'Full state', plans: 'Yes',
+      optimal: 'Yes (admissible h)', complete: 'Yes', memory: 'O(b^d)',
+      behavior: 'h = dirty rooms remaining. Targets nearest dirt. Fewest nodes explored.',
+      rowClass: 'r-ast'
+    }
+  };
+  
+  var html = '';
+  lv.algos.forEach(function(id) {
+    var algo = allAlgos[id];
+    if (algo) {
+      html += '<tr class="' + algo.rowClass + '">' +
+        '<td class="an">' + algo.name + '</td>' +
+        '<td class="cx-mid">' + algo.type + '</td>' +
+        '<td class="' + (algo.state === 'Current only' ? 'cx-bad' : (algo.state === 'Partial' ? 'cx-warn' : 'cx-best')) + '">' + algo.state + '</td>' +
+        '<td class="' + (algo.plans === 'No' ? 'cx-bad' : (algo.plans === 'Partial' ? 'cx-warn' : 'cx-best')) + '">' + algo.plans + '</td>' +
+        '<td class="' + (algo.optimal === 'No' ? 'cx-bad' : (algo.optimal.includes('Near') ? 'cx-warn' : 'cx-best')) + '">' + algo.optimal + '</td>' +
+        '<td class="' + (algo.complete === 'Yes' ? 'cx-best' : (algo.complete === 'With limit' ? 'cx-warn' : 'cx-bad')) + '">' + algo.complete + '</td>' +
+        '<td class="' + (algo.memory === 'O(1)' ? 'cx-best' : (algo.memory === 'O(n)' ? 'cx-warn' : 'cx-bad')) + '">' + algo.memory + '</td>' +
+        '<td class="cx-mid">' + algo.behavior + '</td>' +
+        '</tr>';
+    }
+  });
+  tbody.innerHTML = html;
+}
+
 function buildPanels(lv){
   var grid=document.getElementById('algosGrid');grid.innerHTML='';
   lv.algos.forEach(function(id){
@@ -1186,6 +1216,9 @@ function buildPanels(lv){
     document.getElementById('next-'+id).addEventListener('click',function(){stopAuto(id);goTo(id,panelSteps[id]+1);});
     document.getElementById('auto-'+id).addEventListener('click',function(){if(panelTimers[id])stopAuto(id);else startAuto(id);});
   });
+  
+  // Update comparison table
+  buildComparisonTable(lv);
 }
 
 function buildInsight(lv){
@@ -1292,7 +1325,7 @@ function goTo(id,idx){
 function startAuto(id){
   if(panelTimers[id])return;
   var btn=document.getElementById('auto-'+id);
-  if(btn){btn.textContent='&#9208; Pause';btn.classList.add('playing');}
+  if(btn){btn.textContent='⏸ Pause';btn.classList.add('playing');}
   function tick(){
     var plan=plans[id];if(!plan||panelSteps[id]>=plan.steps.length){stopAuto(id);return;}
     goTo(id,panelSteps[id]+1);panelTimers[id]=setTimeout(tick,stepMs);
@@ -1302,8 +1335,28 @@ function startAuto(id){
 function stopAuto(id){
   if(panelTimers[id]){clearTimeout(panelTimers[id]);panelTimers[id]=null;}
   var btn=document.getElementById('auto-'+id);
-  if(btn){btn.textContent='&#9654; Play';btn.classList.remove('playing');}
+  if(btn){btn.textContent='▶ Play';btn.classList.remove('playing');}
 }
+
+// NEW FUNCTION: Play all algorithms
+function playAllAlgorithms() {
+  var lv = LEVELS[curLevel];
+  lv.algos.forEach(function(id) {
+    if (plans[id] && panelSteps[id] < plans[id].steps.length) {
+      startAuto(id);
+    }
+  });
+}
+
+function stopAllAuto() {
+  var lv = LEVELS[curLevel];
+  lv.algos.forEach(function(id) {
+    if (panelTimers[id]) {
+      stopAuto(id);
+    }
+  });
+}
+
 function syncGoTo(idx){
   idx=Math.max(0,Math.min(idx,syncMax));syncStep=idx;
   var lv=LEVELS[curLevel];
@@ -1315,7 +1368,7 @@ function syncGoTo(idx){
 function stopAllSync(){
   if(syncTimer){clearInterval(syncTimer);syncTimer=null;}
   var btn=document.getElementById('syncAuto');
-  btn.textContent='&#9654; AUTO PLAY ALL';btn.classList.remove('playing');
+  btn.textContent='▶ AUTO PLAY ALL';btn.classList.remove('playing');
 }
 
 document.getElementById('syncPrev').addEventListener('click',function(){stopAllSync();syncGoTo(syncStep-1);});
@@ -1323,7 +1376,7 @@ document.getElementById('syncNext').addEventListener('click',function(){stopAllS
 document.getElementById('syncAuto').addEventListener('click',function(){
   var btn=document.getElementById('syncAuto');
   if(syncTimer){stopAllSync();return;}
-  btn.textContent='&#9208; PAUSE ALL';btn.classList.add('playing');
+  btn.textContent='⏸ PAUSE ALL';btn.classList.add('playing');
   syncTimer=setInterval(function(){if(syncStep>=syncMax){stopAllSync();return;}syncGoTo(syncStep+1);},stepMs);
 });
 document.querySelectorAll('.speed-btn').forEach(function(btn){
@@ -1351,58 +1404,137 @@ function hideLoading(){var o=document.getElementById('loadOv');if(o)o.style.disp
 function loadLevel(idx){
   curLevel=idx;
   var lv=LEVELS[idx];
-  lv.algos.forEach(function(id){stopAuto(id);plans[id]=null;panelSteps[id]=0;});
+  
+  // Stop all automations first
+  stopAllAuto();
   stopAllSync();
-  buildPanels(lv);buildInsight(lv);buildProbStats(lv);
+  
+  lv.algos.forEach(function(id){
+    plans[id]=null;
+    panelSteps[id]=0;
+  });
+  
+  // Rebuild UI
+  buildPanels(lv);
+  buildInsight(lv);
+  buildProbStats(lv);
+  
   showLoading();
+  
+  // Use setTimeout to allow UI to update before heavy computation
   setTimeout(function(){
+    // Run all algorithms
     lv.algos.forEach(function(id){
       var res=runAlgo(id,lv);
-      plans[id]=res;panelSteps[id]=0;
+      plans[id]=res;
+      panelSteps[id]=0;
+      
+      // Update metrics
       document.getElementById('steps-'+id).textContent=res.totalSteps;
       document.getElementById('nodes-'+id).textContent=res.nodesExplored;
       document.getElementById('dirty-'+id).textContent=(new Set(lv.initDirty)).size;
+      
       var optEl=document.getElementById('opt-'+id);
-      if(optEl)optEl.textContent=(id==='bfs'||id==='ast'||id==='goal'||id==='util')?'YES':'~';
+      if(optEl){
+        if(id==='bfs'||id==='ast'||id==='goal'||id==='util') optEl.textContent='YES';
+        else if(id==='model' || id==='reflex') optEl.textContent='~';
+        else optEl.textContent='NO';
+      }
+      
+      // Draw initial state
       var cv=document.getElementById('canvas-'+id);
       if(cv)drawVacuumGrid(cv,lv,null,CM(id),id);
+      
+      // Update navigation
       document.getElementById('count-'+id).textContent='0 / '+res.steps.length;
       document.getElementById('prev-'+id).disabled=true;
       document.getElementById('next-'+id).disabled=res.steps.length===0;
       updateAction(id,'--',null);
-      // update stat display
-      var KEY=id.charAt(0).toUpperCase()+id.slice(1);
-      var sEl=document.getElementById('pi'+KEY);if(sEl)sEl.textContent=res.totalSteps;
-    });
-    lv.statsKeys.forEach(function(sk){
-      var el=document.getElementById(sk.key);if(!el)return;
-      if(sk.key==='piDirty')return;
-      var id=sk.key.replace('pi','').toLowerCase();
-      var p=plans[id];if(p)el.textContent=p.totalSteps;
-    });
-    hideLoading();
-    syncMax=Math.max.apply(null,lv.algos.map(function(id){return plans[id]?plans[id].steps.length:0;}));
-    syncStep=0;
-    document.getElementById('syncCounter').textContent='0 / '+syncMax;
-    document.getElementById('syncPrev').disabled=true;
-    document.getElementById('syncNext').disabled=syncMax===0;
-    // fastest tag
-    var tag=document.getElementById('fastestTag');
-    var allP=lv.algos.map(function(id){return{id:id,p:plans[id]};}).filter(function(x){return x.p&&x.p.totalSteps>0;});
-    if(allP.length>=2){
-      var minN=Math.min.apply(null,allP.map(function(x){return x.p.totalSteps;}));
-      var win=allP.find(function(x){return x.p.totalSteps===minN;});
-      if(win){
-        tag.style.display='flex';
-        tag.textContent=ALGO_META[win.id].label+' -- FEWEST STEPS ('+minN+')';
-        tag.style.color=CM(win.id);tag.style.borderColor=CM(win.id)+'44';tag.style.background=CM(win.id)+'11';
+      
+      // Update stat display in problem row
+      var keyMap = {
+        'reflex': 'piReflex',
+        'model': 'piModel',
+        'goal': 'piGoal',
+        'util': 'piUtil',
+        'bfs': 'piBFS',
+        'dfs': 'piDFS',
+        'ast': 'piAST'
+      };
+      var statId = keyMap[id];
+      if(statId) {
+        var statEl = document.getElementById(statId);
+        if(statEl) statEl.textContent = res.totalSteps;
       }
-    } else tag.style.display='none';
-  },80);
+    });
+    
+    // Update problem stats with actual values
+    lv.statsKeys.forEach(function(sk){
+      var el = document.getElementById(sk.key);
+      if(el && sk.key !== 'piDirty') {
+        var id = sk.key.replace('pi','').toLowerCase();
+        if(plans[id]) el.textContent = plans[id].totalSteps;
+      }
+    });
+    
+    hideLoading();
+    
+    // Update sync max
+    syncMax = Math.max.apply(null, lv.algos.map(function(id){ 
+      return plans[id] ? plans[id].steps.length : 0; 
+    }));
+    syncStep = 0;
+    document.getElementById('syncCounter').textContent = '0 / '+syncMax;
+    document.getElementById('syncPrev').disabled = true;
+    document.getElementById('syncNext').disabled = syncMax === 0;
+    
+    // Show fastest tag
+    var tag = document.getElementById('fastestTag');
+    var allP = lv.algos.map(function(id){return {id:id,p:plans[id]};})
+               .filter(function(x){return x.p && x.p.totalSteps>0;});
+    
+    if(allP.length >= 2){
+      var minN = Math.min.apply(null, allP.map(function(x){return x.p.totalSteps;}));
+      var win = allP.find(function(x){return x.p.totalSteps === minN;});
+      if(win){
+        tag.style.display = 'flex';
+        tag.textContent = ALGO_META[win.id].label+' -- FEWEST STEPS ('+minN+')';
+        tag.style.color = CM(win.id);
+        tag.style.borderColor = CM(win.id)+'44';
+        tag.style.background = CM(win.id)+'11';
+      }
+    } else tag.style.display = 'none';
+    
+  }, 80);
 }
 
-document.getElementById('levelSelect').addEventListener('change',function(e){loadLevel(parseInt(e.target.value));});
-document.getElementById('runBtn').addEventListener('click',function(){loadLevel(curLevel);});
+// Fix the run button - now plays all algorithms
+document.getElementById('levelSelect').addEventListener('change', function(e){
+  loadLevel(parseInt(e.target.value));
+});
+
+// Fix run button event listener
+document.getElementById('runBtn').addEventListener('click', function(e){
+  e.preventDefault(); // Prevent any default behavior
+  loadLevel(curLevel);
+  // Small delay to ensure algorithms are loaded then play them
+  setTimeout(function() {
+    playAllAlgorithms();
+  }, 500);
+});
+
+// Fix speed button event listeners
+document.querySelectorAll('.speed-btn').forEach(function(btn){
+  btn.addEventListener('click', function(e){
+    document.querySelectorAll('.speed-btn').forEach(function(b){
+      b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    stepMs = parseInt(btn.dataset.ms);
+  });
+});
+
+// Initial load
 loadLevel(1);
 })();
 </script>
