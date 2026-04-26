@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VACUUM WORLD -- AI Agent &amp; Search Algorithms</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #04060c;
+  --bg1:   #080c18;
+  --bg2:   #0c1020;
+  --bg3:   #111628;
+  --bg4:   #172030;
+  --line:  rgba(255,255,255,.05);
+  --line2: rgba(255,255,255,.10);
+
+  --reflex: #f59e0b;   --reflex-d: rgba(245,158,11,.09);
+  --model:  #38bdf8;   --model-d:  rgba(56,189,248,.09);
+  --goal:   #a78bfa;   --goal-d:   rgba(167,139,250,.09);
+  --util:   #f472b6;   --util-d:   rgba(244,114,182,.09);
+  --bfs:    #22d3ee;   --bfs-d:    rgba(34,211,238,.09);
+  --dfs:    #fb923c;   --dfs-d:    rgba(251,146,60,.09);
+  --ast:    #4ade80;   --ast-d:    rgba(74,222,128,.09);
+
+  --gold:  #fbbf24;
+  --text:  #ccd6f0;
+  --text2: #3d5278;
+  --text3: #243244;
+
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Plus Jakarta Sans', sans-serif;
+  --r: 14px;
+}
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); overflow-x:hidden; }
+
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image: radial-gradient(rgba(34,211,238,.012) 1px, transparent 1px);
+  background-size:28px 28px; pointer-events:none; z-index:0;
+}
+body::after {
+  content:''; position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.02) 3px,rgba(0,0,0,.02) 4px);
+  pointer-events:none; z-index:9999;
+}
+.app { position:relative; z-index:1; max-width:1840px; margin:0 auto; padding:18px 14px 70px; }
+
+/* HEADER */
+.hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; margin-bottom:14px;
+  background:var(--bg1); border:1px solid var(--line2); border-radius:18px;
+  position:relative; overflow:hidden; flex-wrap:wrap; gap:10px;
+}
+.hdr::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--reflex) 15%,var(--bfs) 38%,var(--ast) 62%,var(--goal) 82%,transparent);
+  opacity:.8;
+}
+.hdr-left { display:flex; align-items:center; gap:12px; }
+.logo-box {
+  width:44px; height:44px; border-radius:11px;
+  background:linear-gradient(135deg,var(--bfs),var(--ast));
+  display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0;
+  box-shadow:0 0 28px rgba(34,211,238,.28);
+}
+.hdr-title {
+  font-family:var(--mono); font-size:1.15rem; font-weight:800; letter-spacing:.02em;
+  background:linear-gradient(90deg,var(--reflex) 0%,var(--bfs) 30%,var(--ast) 60%,#fff 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hdr-sub { font-size:.62rem; color:var(--text2); margin-top:2px; letter-spacing:.09em; text-transform:uppercase; }
+.algo-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.algo-badge {
+  display:flex; align-items:center; gap:5px; padding:4px 10px;
+  border-radius:22px; font-family:var(--mono); font-size:.59rem; font-weight:600; letter-spacing:.08em; border:1px solid;
+}
+.b-reflex { color:var(--reflex); border-color:rgba(245,158,11,.32);  background:rgba(245,158,11,.07); }
+.b-model  { color:var(--model);  border-color:rgba(56,189,248,.32);  background:rgba(56,189,248,.07); }
+.b-goal   { color:var(--goal);   border-color:rgba(167,139,250,.32); background:rgba(167,139,250,.07); }
+.b-util   { color:var(--util);   border-color:rgba(244,114,182,.32); background:rgba(244,114,182,.07); }
+.b-bfs    { color:var(--bfs);    border-color:rgba(34,211,238,.32);  background:rgba(34,211,238,.07); }
+.b-dfs    { color:var(--dfs);    border-color:rgba(251,146,60,.32);  background:rgba(251,146,60,.07); }
+.b-ast    { color:var(--ast);    border-color:rgba(74,222,128,.32);  background:rgba(74,222,128,.07); }
+.badge-dot { width:5px; height:5px; border-radius:50%; animation:pulse 2.2s ease-in-out infinite; }
+.b-reflex .badge-dot{background:var(--reflex);} .b-model .badge-dot{background:var(--model);}
+.b-goal   .badge-dot{background:var(--goal);}   .b-util  .badge-dot{background:var(--util);}
+.b-bfs    .badge-dot{background:var(--bfs);}    .b-dfs   .badge-dot{background:var(--dfs);}
+.b-ast    .badge-dot{background:var(--ast);}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.7)}}
+
+/* CUSTOM CONFIG PANEL */
+.config-panel {
+  background:var(--bg1);
+  border:1px solid var(--line2);
+  border-top: 2px solid var(--bfs);
+  border-radius:var(--r);
+  padding:14px 18px;
+  margin-bottom:10px;
+  position:relative;
+  overflow:hidden;
+}
+.config-panel::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, var(--reflex), var(--bfs), var(--ast));
+  opacity:.5;
+}
+.config-title {
+  font-family:var(--mono); font-size:.6rem; font-weight:700;
+  color:var(--bfs); text-transform:uppercase; letter-spacing:.15em;
+  margin-bottom:12px; display:flex; align-items:center; gap:7px;
+}
+.config-title::after {
+  content:''; flex:1; height:1px; background:var(--line);
+}
+.config-row {
+  display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;
+}
+.config-field {
+  display:flex; flex-direction:column; gap:5px;
+}
+.config-label {
+  font-family:var(--mono); font-size:.55rem; font-weight:600;
+  color:var(--text3); text-transform:uppercase; letter-spacing:.12em;
+  display:flex; align-items:center; gap:4px;
+}
+.config-label .cfg-icon { font-size:.7rem; }
+.config-input {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.8rem; font-weight:600;
+  padding:8px 12px; border-radius:9px; outline:none;
+  transition:border-color .2s, box-shadow .2s;
+  min-width:0;
+}
+.config-input:focus {
+  border-color:var(--bfs);
+  box-shadow: 0 0 0 2px rgba(34,211,238,.12);
+}
+select.config-input { cursor:pointer; }
+.dim-select { width:85px; }
+.start-select { width:110px; }
+
+.algo-checks { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.algo-check-item {
+  display:flex; align-items:center; gap:0;
+  cursor:pointer; user-select:none;
+}
+.algo-check-item input[type=checkbox] { display:none; }
+.algo-check-pill {
+  display:flex; align-items:center; gap:5px;
+  padding:6px 12px; border-radius:20px;
+  font-family:var(--mono); font-size:.63rem; font-weight:700; letter-spacing:.08em;
+  border:1px solid; transition:all .18s; cursor:pointer;
+}
+.algo-check-item input:checked + .algo-check-pill { opacity:1; }
+.algo-check-item input:not(:checked) + .algo-check-pill { opacity:.28; filter:grayscale(.6); }
+
+.pill-reflex{color:var(--reflex);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);}
+.pill-model {color:var(--model); border-color:rgba(56,189,248,.35); background:rgba(56,189,248,.08);}
+.pill-goal  {color:var(--goal);  border-color:rgba(167,139,250,.35); background:rgba(167,139,250,.08);}
+.pill-util  {color:var(--util);  border-color:rgba(244,114,182,.35); background:rgba(244,114,182,.08);}
+.pill-bfs   {color:var(--bfs);   border-color:rgba(34,211,238,.35);  background:rgba(34,211,238,.08);}
+.pill-dfs   {color:var(--dfs);   border-color:rgba(251,146,60,.35);  background:rgba(251,146,60,.08);}
+.pill-ast   {color:var(--ast);   border-color:rgba(74,222,128,.35);  background:rgba(74,222,128,.08);}
+
+.pill-check-icon { font-size:.55rem; }
+
+.speed-config-wrap { display:flex; gap:4px; align-items:center; }
+.speed-config-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.62rem; font-weight:600; padding:6px 10px;
+  border-radius:7px; cursor:pointer; transition:all .15s;
+}
+.speed-config-btn.active { color:var(--bfs); border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.07); }
+
+.cfg-run-btn {
+  background: linear-gradient(135deg, var(--bfs), var(--ast));
+  border:none; color:#04060c; font-family:var(--mono); font-size:.8rem; font-weight:800;
+  padding:10px 24px; border-radius:10px; cursor:pointer;
+  transition:opacity .15s, transform .1s; letter-spacing:.1em;
+  box-shadow:0 2px 20px rgba(34,211,238,.35); white-space:nowrap;
+  display:flex; align-items:center; gap:7px; align-self:flex-end;
+}
+.cfg-run-btn:hover { opacity:.88; transform:translateY(-1px); }
+.cfg-run-btn:active { transform:translateY(0); }
+
+.dirty-select {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.8rem; font-weight:600;
+  padding:8px 12px; border-radius:9px; outline:none;
+  min-width:140px;
+}
+.dirty-select option:checked { background:rgba(245,158,11,.3); }
+
+/* CONTROLS */
+.ctrl-bar {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; margin-bottom:14px;
+}
+.ctrl-label { font-family:var(--mono); font-size:.59rem; color:var(--text3); text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; }
+.lvl-select {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.75rem; font-weight:500;
+  padding:8px 14px; border-radius:9px; cursor:pointer; outline:none; transition:border-color .2s; flex:1; min-width:0;
+}
+.lvl-select:focus { border-color:var(--bfs); }
+.lvl-select option { background:#0c1020; }
+.speed-wrap { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.speed-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.62rem; font-weight:600; padding:6px 10px; border-radius:7px; cursor:pointer; transition:all .15s;
+}
+.speed-btn.active { color:var(--bfs); border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.07); }
+.run-btn {
+  background:linear-gradient(135deg,var(--bfs),var(--ast));
+  border:none; color:#04060c; font-family:var(--mono); font-size:.78rem; font-weight:700;
+  padding:8px 20px; border-radius:9px; cursor:pointer; transition:opacity .15s,transform .1s;
+  letter-spacing:.08em; box-shadow:0 2px 18px rgba(34,211,238,.28); white-space:nowrap;
+}
+.run-btn:hover { opacity:.88; transform:translateY(-1px); }
+
+/* PROBLEM INFO ROW */
+.problem-row { display:flex; gap:10px; margin-bottom:14px; align-items:stretch; flex-wrap:wrap; }
+.prob-card {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 14px; display:flex; align-items:center; gap:12px; flex-shrink:0;
+}
+.prob-card.init-card { border-color:rgba(245,158,11,.22); }
+.prob-card.goal-card { border-color:rgba(74,222,128,.22); }
+.prob-label { font-family:var(--mono); font-size:.59rem; font-weight:700; text-transform:uppercase; letter-spacing:.12em; margin-bottom:4px; }
+.prob-label.pl-amber { color:var(--reflex); }
+.prob-label.pl-green { color:var(--ast); }
+.prob-sub { font-size:.62rem; color:var(--text2); }
+.prob-stats {
+  flex:1; min-width:260px; background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 16px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+}
+.ps-item { display:flex; flex-direction:column; gap:2px; }
+.ps-key { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.ps-val { font-family:var(--mono); font-size:.82rem; font-weight:700; }
+.vc-reflex{color:var(--reflex);} .vc-model{color:var(--model);} .vc-goal{color:var(--goal);} .vc-util{color:var(--util);}
+.vc-bfs{color:var(--bfs);} .vc-dfs{color:var(--dfs);} .vc-ast{color:var(--ast);} .vc-gd{color:var(--gold);}
+
+/* LEGEND */
+.legend-bar {
+  display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:8px 16px; margin-bottom:14px;
+}
+.legend-label { font-family:var(--mono); font-size:.58rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-swatch { width:16px; height:16px; border-radius:4px; flex-shrink:0; }
+.leg-dirty  { background:linear-gradient(135deg,#3d1f06,#2a1505); border:1px solid rgba(245,158,11,.4); }
+.leg-clean  { background:linear-gradient(135deg,#0a1828,#060e1a); border:1px solid rgba(34,211,238,.3); }
+.leg-agent  { background:linear-gradient(135deg,#0a2010,#061408); border:1px solid rgba(74,222,128,.5); }
+.leg-both   { background:linear-gradient(135deg,#0d1c08,#081008); border:1px solid rgba(74,222,128,.4); }
+.legend-text { font-family:var(--mono); font-size:.6rem; color:var(--text2); }
+
+/* INSIGHT PANEL */
+.insight-panel {
+  background:var(--bg1); border:1px solid var(--line2); border-top:2px solid var(--gold); border-radius:var(--r);
+  padding:13px 16px; margin-bottom:14px;
+}
+.insight-title {
+  font-family:var(--mono); font-size:.62rem; font-weight:700;
+  color:var(--gold); text-transform:uppercase; letter-spacing:.12em;
+  margin-bottom:12px; display:flex; align-items:center; gap:7px;
+}
+.insight-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+.ins-col { background:var(--bg2); border-radius:10px; padding:11px 12px; border:1px solid var(--line); }
+.ins-col.ic-reflex{border-color:rgba(245,158,11,.22);}  .ins-col.ic-model{border-color:rgba(56,189,248,.22);}
+.ins-col.ic-goal  {border-color:rgba(167,139,250,.22);} .ins-col.ic-util {border-color:rgba(244,114,182,.22);}
+.ins-col.ic-bfs   {border-color:rgba(34,211,238,.22);}  .ins-col.ic-dfs  {border-color:rgba(251,146,60,.22);}
+.ins-col.ic-ast   {border-color:rgba(74,222,128,.22);}
+.ins-head { font-family:var(--mono); font-size:.63rem; font-weight:700; margin-bottom:9px; }
+.ins-head.ih-reflex{color:var(--reflex);} .ins-head.ih-model{color:var(--model);}
+.ins-head.ih-goal {color:var(--goal);}   .ins-head.ih-util {color:var(--util);}
+.ins-head.ih-bfs  {color:var(--bfs);}    .ins-head.ih-dfs  {color:var(--dfs);}
+.ins-head.ih-ast  {color:var(--ast);}
+.ins-step { display:flex; align-items:flex-start; gap:7px; margin-bottom:8px; }
+.ins-num {
+  width:18px; height:18px; border-radius:4px; font-family:var(--mono);
+  font-size:.6rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; color:#04060c;
+}
+.ic-reflex .ins-num{background:var(--reflex);} .ic-model .ins-num{background:var(--model);}
+.ic-goal   .ins-num{background:var(--goal);}   .ic-util  .ins-num{background:var(--util);}
+.ic-bfs    .ins-num{background:var(--bfs);}    .ic-dfs   .ins-num{background:var(--dfs);}
+.ic-ast    .ins-num{background:var(--ast);}
+.ins-inner { display:flex; flex-direction:column; gap:2px; }
+.ins-action { font-family:var(--mono); font-size:.67rem; font-weight:600; color:var(--text); }
+.ins-reason { font-size:.61rem; color:var(--text2); line-height:1.55; }
+.ins-result { margin-top:9px; padding-top:9px; border-top:1px solid var(--line); }
+.ins-res-label { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; }
+.ins-res-val { font-size:.61rem; color:var(--text2); line-height:1.6; }
+
+/* SYNC BAR */
+.sync-bar {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;
+}
+.sync-label { font-family:var(--mono); font-size:.59rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.sync-btn {
+  width:32px; height:32px; border-radius:7px; border:1px solid var(--line2); background:var(--bg3);
+  color:var(--text); font-size:.9rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; font-weight:700;
+}
+.sync-btn:hover:not(:disabled) { background:var(--bg4); }
+.sync-btn:disabled { opacity:.22; cursor:not-allowed; }
+.sync-counter {
+  font-family:var(--mono); font-size:.79rem; font-weight:700;
+  background:var(--bg3); padding:6px 18px; border-radius:22px; border:1px solid var(--line); min-width:96px; text-align:center;
+}
+.sync-auto-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.65rem; font-weight:700; padding:6px 13px; border-radius:8px; cursor:pointer; transition:all .15s; letter-spacing:.06em;
+}
+.sync-auto-btn:hover { color:var(--bfs); border-color:rgba(34,211,238,.35); }
+.sync-auto-btn.playing { color:var(--dfs); border-color:rgba(251,146,60,.4); background:rgba(251,146,60,.07); }
+.fastest-tag {
+  margin-left:auto; font-family:var(--mono); font-size:.61rem; font-weight:700;
+  padding:5px 12px; border-radius:18px; background:rgba(74,222,128,.09); border:1px solid rgba(74,222,128,.28); color:var(--ast);
+}
+
+/* PANELS GRID */
+.algos-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; margin-bottom:14px; }
+.algo-panel {
+  background:var(--bg1); border:1px solid var(--line); border-radius:16px;
+  overflow:hidden; display:flex; flex-direction:column; transition:border-color .3s,box-shadow .3s;
+}
+.ap-reflex{--ac:var(--reflex);--ag:var(--reflex-d);}  .ap-model{--ac:var(--model);--ag:var(--model-d);}
+.ap-goal  {--ac:var(--goal);  --ag:var(--goal-d);}    .ap-util {--ac:var(--util); --ag:var(--util-d);}
+.ap-bfs   {--ac:var(--bfs);  --ag:var(--bfs-d);}      .ap-dfs  {--ac:var(--dfs);  --ag:var(--dfs-d);}
+.ap-ast   {--ac:var(--ast);  --ag:var(--ast-d);}
+.algo-panel.done-panel { border-color:var(--ac); box-shadow:0 0 22px color-mix(in srgb,var(--ac) 14%,transparent); }
+
+.panel-header {
+  padding:10px 13px; background:var(--ag); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; position:relative; overflow:hidden;
+}
+.panel-header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:var(--ac); opacity:.4; }
+.ph-left { display:flex; align-items:center; gap:8px; }
+.ph-icon {
+  width:31px; height:31px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  font-size:.65rem; font-weight:800; font-family:var(--mono); color:#04060c; flex-shrink:0; background:var(--ac);
+}
+.ph-name { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+.ph-full { font-size:.57rem; color:var(--text2); margin-top:1px; }
+.ph-type-tag {
+  font-family:var(--mono); font-size:.52rem; font-weight:700; padding:2px 8px;
+  border-radius:10px; border:1px solid var(--ac); color:var(--ac); background:var(--ag); white-space:nowrap;
+}
+
+.panel-grid-wrap {
+  background:var(--bg2); padding:10px; border-bottom:1px solid var(--line);
+  display:flex; justify-content:center; align-items:center; min-height:170px; position:relative;
+}
+.panel-grid-wrap canvas { display:block; border-radius:6px; max-width:100%; image-rendering:pixelated; }
+.step-float {
+  position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:.54rem; font-weight:700;
+  padding:2px 9px; border-radius:9px; letter-spacing:.09em; text-transform:uppercase;
+  pointer-events:none; white-space:nowrap;
+}
+.sf-reflex{background:rgba(245,158,11,.14); color:var(--reflex); border:1px solid rgba(245,158,11,.28);}
+.sf-model {background:rgba(56,189,248,.14); color:var(--model);  border:1px solid rgba(56,189,248,.28);}
+.sf-goal  {background:rgba(167,139,250,.14);color:var(--goal);   border:1px solid rgba(167,139,250,.28);}
+.sf-util  {background:rgba(244,114,182,.14);color:var(--util);   border:1px solid rgba(244,114,182,.28);}
+.sf-bfs   {background:rgba(34,211,238,.14); color:var(--bfs);    border:1px solid rgba(34,211,238,.28);}
+.sf-dfs   {background:rgba(251,146,60,.14); color:var(--dfs);    border:1px solid rgba(251,146,60,.28);}
+.sf-ast   {background:rgba(74,222,128,.14); color:var(--ast);    border:1px solid rgba(74,222,128,.28);}
+
+.panel-metrics { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; border-bottom:1px solid var(--line); }
+.metric { padding:6px 9px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:2px; }
+.metric:last-child { border-right:none; }
+.m-key { font-family:var(--mono); font-size:.48rem; color:var(--text3); text-transform:uppercase; letter-spacing:.08em; }
+.m-val { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+
+.panel-action {
+  padding:7px 10px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:8px;
+}
+.action-label { font-family:var(--mono); font-size:.5rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; flex-shrink:0; }
+.action-badge {
+  font-family:var(--mono); font-size:.65rem; font-weight:700; padding:2px 9px;
+  border-radius:5px; border:1px solid var(--ac); color:var(--ac); background:var(--ag);
+}
+
+.panel-nav { padding:6px 9px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--line); }
+.pnav-btn {
+  width:24px; height:24px; border-radius:5px; border:1px solid var(--line2);
+  background:var(--bg3); color:var(--text2); font-size:.85rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .15s; font-weight:700;
+}
+.pnav-btn:hover:not(:disabled) { background:var(--ac); color:#04060c; border-color:var(--ac); }
+.pnav-btn:disabled { opacity:.18; cursor:not-allowed; }
+.pnav-count {
+  font-family:var(--mono); font-size:.67rem; font-weight:600;
+  background:var(--bg3); padding:3px 10px; border-radius:18px; min-width:68px; text-align:center; border:1px solid var(--line);
+}
+.pnav-auto {
+  margin-left:auto; background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.59rem; font-weight:700; padding:3px 9px; border-radius:6px; cursor:pointer;
+}
+.pnav-auto:hover { color:var(--ac); border-color:var(--ac); }
+.pnav-auto.playing { color:var(--dfs); border-color:rgba(251,146,60,.4); background:rgba(251,146,60,.07); }
+
+.panel-log { flex:1; overflow-y:auto; max-height:120px; padding:6px 9px; scrollbar-width:thin; }
+.log-item {
+  display:flex; align-items:flex-start; gap:5px; padding:3px 5px; border-radius:5px;
+  font-size:.61rem; color:var(--text2); cursor:pointer; transition:all .12s; margin-bottom:1px;
+}
+.log-item:hover { background:var(--bg3); color:var(--text); }
+.log-item.active-log { background:var(--ag); color:var(--ac); border-left:2px solid var(--ac); padding-left:3px; }
+.log-idx { font-family:var(--mono); color:var(--text3); min-width:16px; font-size:.53rem; }
+.log-tag {
+  font-family:var(--mono); font-size:.5rem; font-weight:700; padding:1px 5px;
+  border-radius:3px; margin-right:2px; flex-shrink:0;
+}
+.lt-move  { background:rgba(34,211,238,.14); color:var(--bfs); }
+.lt-suck  { background:rgba(74,222,128,.18); color:var(--ast); font-weight:800; }
+.lt-sense { background:rgba(245,158,11,.14); color:var(--reflex); }
+.lt-plan  { background:rgba(167,139,250,.14);color:var(--goal); }
+.lt-eval  { background:rgba(244,114,182,.14);color:var(--util); }
+.lt-done  { background:rgba(74,222,128,.22); color:var(--ast); font-weight:800; }
+
+.algo-desc { padding:8px 11px; border-top:1px solid var(--line); font-size:.61rem; line-height:1.65; color:var(--text2); }
+.algo-desc strong { color:var(--ac); font-family:var(--mono); font-weight:600; }
+
+.cmp-wrap { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:14px; overflow-x:auto; }
+.cmp-title {
+  font-family:var(--mono); font-size:.64rem; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.12em; margin-bottom:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.cmp-title::before { content:''; width:3px; height:12px; border-radius:2px; background:linear-gradient(var(--bfs),var(--ast)); }
+.cmp-table { width:100%; border-collapse:collapse; }
+.cmp-table th {
+  font-family:var(--mono); font-size:.54rem; font-weight:600; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--text3); padding:6px 11px; border-bottom:1px solid var(--line2); text-align:left;
+}
+.cmp-table td { font-family:var(--mono); font-size:.66rem; padding:7px 11px; border-bottom:1px solid rgba(255,255,255,.03); }
+.cmp-table tbody tr { transition:background .12s; }
+.cmp-table tbody tr:hover { background:var(--bg3); }
+.cmp-table tr:last-child td { border-bottom:none; }
+.cmp-table .an { font-weight:700; }
+.r-reflex .an{color:var(--reflex);} .r-model .an{color:var(--model);}
+.r-goal   .an{color:var(--goal);}   .r-util  .an{color:var(--util);}
+.r-bfs    .an{color:var(--bfs);}    .r-dfs   .an{color:var(--dfs);}
+.r-ast    .an{color:var(--ast);}
+.cx-best{color:#4ade80;font-weight:700;} .cx-good{color:#86efac;}
+.cx-mid{color:var(--text2);} .cx-warn{color:var(--gold);font-weight:600;} .cx-bad{color:#f87171;}
+.cmp-note { margin-top:9px; font-size:.57rem; color:var(--text3); font-family:var(--mono); line-height:1.9; }
+
+.loading-ov{position:fixed;inset:0;background:rgba(4,6,12,.92);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9000;}
+.loading-box{background:var(--bg1);border:1px solid var(--line2);border-radius:18px;padding:30px 46px;text-align:center;}
+.loading-box h3{font-family:var(--mono);font-size:.98rem;margin-bottom:6px;font-weight:700;}
+.loading-box p{color:var(--text2);font-size:.73rem;margin-bottom:18px;}
+.loading-algos{display:flex;gap:12px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+.l-algo{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--mono);font-size:.6rem;font-weight:700;}
+.l-algo-bar{width:42px;height:3px;border-radius:2px;animation:loadBar 1.2s ease-in-out infinite;}
+@keyframes loadBar{0%,100%{transform:scaleX(.25);opacity:.3}50%{transform:scaleX(1);opacity:1}}
+.spinner{width:28px;height:28px;border:2px solid var(--bg4);border-top-color:var(--bfs);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="logo-box">&#129529;</div>
+      <div>
+        <div class="hdr-title">VACUUM WORLD // AI AGENT &amp; SEARCH</div>
+        <div class="hdr-sub">Reflex * Model-Based * Goal-Based * Utility + BFS * DFS * A* -- 5 levels</div>
+      </div>
+    </div>
+    <div class="algo-badges">
+      <div class="algo-badge b-reflex"><span class="badge-dot"></span>REFLEX</div>
+      <div class="algo-badge b-model"><span class="badge-dot"></span>MODEL</div>
+      <div class="algo-badge b-goal"><span class="badge-dot"></span>GOAL</div>
+      <div class="algo-badge b-util"><span class="badge-dot"></span>UTILITY</div>
+      <div class="algo-badge b-bfs"><span class="badge-dot"></span>BFS</div>
+      <div class="algo-badge b-dfs"><span class="badge-dot"></span>DFS</div>
+      <div class="algo-badge b-ast"><span class="badge-dot"></span>A*</div>
+    </div>
+  </div>
+
+  <!-- CUSTOM CONFIG PANEL -->
+  <div class="config-panel">
+    <div class="config-title">⚙ Custom Configuration</div>
+    <div class="config-row">
+      <!-- Grid dimensions -->
+      <div class="config-field">
+        <span class="config-label"><span class="cfg-icon">🧹</span> Grid (rows × cols)</span>
+        <div style="display:flex; gap:8px;">
+          <select class="config-input dim-select" id="cfgRows">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
+          </select>
+          <span style="color:var(--text2); align-self:center;">×</span>
+          <select class="config-input dim-select" id="cfgCols">
+            <option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Start cell -->
+      <div class="config-field">
+        <span class="config-label"><span class="cfg-icon">🏁</span> Start Room</span>
+        <select class="config-input start-select" id="cfgStart"></select>
+      </div>
+
+      <!-- Dirty cells (multi-select) -->
+      <div class="config-field">
+        <span class="config-label"><span class="cfg-icon">💩</span> Dirty Rooms</span>
+        <select multiple class="config-input dirty-select" id="cfgDirty" size="4"></select>
+      </div>
+
+      <!-- Algorithms -->
+      <div class="config-field">
+        <span class="config-label">Algorithms</span>
+        <div class="algo-checks">
+          <label class="algo-check-item"><input type="checkbox" id="chkReflex" checked><span class="algo-check-pill pill-reflex"><span class="pill-check-icon">✓</span> REFLEX</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkModel" checked><span class="algo-check-pill pill-model"><span class="pill-check-icon">✓</span> MODEL</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkGoal" checked><span class="algo-check-pill pill-goal"><span class="pill-check-icon">✓</span> GOAL</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkUtil" checked><span class="algo-check-pill pill-util"><span class="pill-check-icon">✓</span> UTILITY</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkBFS" checked><span class="algo-check-pill pill-bfs"><span class="pill-check-icon">✓</span> BFS</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkDFS" checked><span class="algo-check-pill pill-dfs"><span class="pill-check-icon">✓</span> DFS</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkAST" checked><span class="algo-check-pill pill-ast"><span class="pill-check-icon">✓</span> A*</span></label>
+        </div>
+      </div>
+
+      <!-- Playback speed -->
+      <div class="config-field">
+        <span class="config-label">⏵ Playback (ms)</span>
+        <div class="speed-config-wrap">
+          <button class="speed-config-btn" data-ms="1800">0.5×</button>
+          <button class="speed-config-btn active" data-ms="900">1×</button>
+          <button class="speed-config-btn" data-ms="400">2×</button>
+          <button class="speed-config-btn" data-ms="150">4×</button>
+        </div>
+      </div>
+
+      <!-- Run -->
+      <button class="cfg-run-btn" id="cfgRunBtn">▶ RUN CUSTOM</button>
+    </div>
+  </div>
+
+  <!-- CONTROLS (preset levels) -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">Preset Level</span>
+    <select class="lvl-select" id="levelSelect">
+      <option value="0">LVL 01 * 2 rooms  -- Very Easy  * Reflex LOOPS vs Model stops</option>
+      <option value="1" selected>LVL 02 * 4 rooms  -- Easy       * All 4 Agent Types</option>
+      <option value="2">LVL 03 * 2x3 grid -- Medium     * BFS 18 nodes vs DFS 18 steps vs A* 8 nodes</option>
+      <option value="3">LVL 04 * 3x2 grid -- Hard       * BFS 90 nodes vs A* 20 nodes vs DFS 25 steps</option>
+      <option value="4">LVL 05 * 3x3 grid -- Expert     * BFS 1200 vs DFS 200 nodes vs A* 80 nodes</option>
+    </select>
+    <div class="speed-wrap">
+      <span class="ctrl-label">Speed</span>
+      <button class="speed-btn" data-ms="1800">0.5x</button>
+      <button class="speed-btn active" data-ms="900">1x</button>
+      <button class="speed-btn" data-ms="400">2x</button>
+      <button class="speed-btn" data-ms="150">4x</button>
+    </div>
+    <button class="run-btn" id="runBtn">▶ RUN PRESET LEVEL</button>
+  </div>
+
+  <!-- PROBLEM INFO -->
+  <div class="problem-row">
+    <div class="prob-card init-card">
+      <div>
+        <div class="prob-label pl-amber">&#9655; Initial State</div>
+        <div class="prob-sub" id="initDesc">--</div>
+      </div>
+    </div>
+    <div class="prob-card goal-card">
+      <div>
+        <div class="prob-label pl-green">&#9670; Goal State</div>
+        <div class="prob-sub" id="goalDesc">All rooms clean</div>
+      </div>
+    </div>
+    <div class="prob-stats" id="probStats"></div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend-bar">
+    <span class="legend-label">Legend:</span>
+    <div class="legend-item"><div class="legend-swatch leg-dirty"></div><span class="legend-text">Dirty room</span></div>
+    <div class="legend-item"><div class="legend-swatch leg-clean"></div><span class="legend-text">Clean room</span></div>
+    <div class="legend-item"><div class="legend-swatch leg-agent"></div><span class="legend-text">Agent (no dirt)</span></div>
+    <div class="legend-item"><div class="legend-swatch leg-both"></div><span class="legend-text">Agent + dirty</span></div>
+    <span style="margin-left:auto;font-family:var(--mono);font-size:.58rem;color:var(--text3)" id="gridInfo">--</span>
+  </div>
+
+  <!-- INSIGHT PANEL (visible only for preset levels) -->
+  <div class="insight-panel" id="insightPanel">
+    <div class="insight-title">⚡ Algorithm Divergence -- Why Each Agent or Search Takes Different Actions</div>
+    <div class="insight-grid" id="insightGrid"></div>
+  </div>
+
+  <!-- SYNC BAR -->
+  <div class="sync-bar">
+    <span class="sync-label">Sync All</span>
+    <button class="sync-btn" id="syncPrev" disabled>&#8249;</button>
+    <div class="sync-counter" id="syncCounter">0 / 0</div>
+    <button class="sync-btn" id="syncNext" disabled>&#8250;</button>
+    <button class="sync-auto-btn" id="syncAuto">▶ AUTO PLAY ALL</button>
+    <div class="fastest-tag" id="fastestTag" style="display:none">⚡ FEWEST STEPS</div>
+  </div>
+
+  <!-- ALGORITHM PANELS (dynamic) -->
+  <div class="algos-grid" id="algosGrid"></div>
+
+  <!-- COMPARISON TABLE (dynamic) -->
+  <div class="cmp-wrap">
+    <div class="cmp-title">Agent & Algorithm Comparison -- Vacuum World (Level <span id="levelDisplay">2</span>)</div>
+    <table class="cmp-table" id="comparisonTable">
+      <thead><tr><th>Agent / Algorithm</th><th>Type</th><th>Knows State?</th><th>Plans Ahead?</th><th>Optimal?</th><th>Complete?</th><th>Memory</th><th>Key Behavior</th></tr></thead>
+      <tbody id="comparisonBody"></tbody>
+    </table>
+    <div class="cmp-note">Reflex agent can loop if environment is not fully observable | Model-based adds internal state | Goal/Utility-based plan full sequences | BFS/DFS/A* treat vacuum world as state-space search.</div>
+  </div>
+
+</div>
+<script>
+(function(){'use strict';
+
+// ==========================================================
+// STATE REPRESENTATION
+// ==========================================================
+function stateKey(pos,dirty,rooms){ var d=rooms.map(function(_,i){return dirty.has(i)?'1':'0';}).join(''); return pos+':'+d; }
+function isGoal(dirty){return dirty.size===0;}
+function getNeighbors(pos,adj){return adj[pos]||[];}
+function cloneDirty(s){return new Set(s);}
+
+// ==========================================================
+// LEVEL DEFINITIONS (preset) - unchanged
+// ==========================================================
+var LEVELS = [
+{
+  label:'TRAPPED IN WRONG ROOM', diff:'VERY EASY',
+  rooms:['A','B'], cols:2, rows:1,
+  adj:[[1],[0]],
+  initPos:1, initDirty:[0],
+  algos:['reflex','model'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'1',cls:'vc-gd'},
+    {key:'piReflex',label:'Reflex steps',val:'--',cls:'vc-reflex'},
+    {key:'piModel',label:'Model steps',val:'--',cls:'vc-model'},
+  ],
+  insight:[
+    {id:'reflex',steps:[{action:'At B (clean): no dirt -> MOVE to A',reason:'Reflex rule 1: perceive current room. B is clean so the rule fires: move.'},{action:'At A (dirty): SUCK A',reason:'Now at dirty room. Rule fires: suck. A becomes clean.'},{action:'At A (clean): no dirt -> MOVE back to B. Loop begins!',reason:'Reflex has zero memory. It will cycle A->B->A forever.'}],result:'2 meaningful steps but CANNOT stop -- loops A<->B forever.',cls:'ic-reflex',hcls:'ih-reflex'},
+    {id:'model',steps:[{action:'Perceive B: clean. Build model: {A:dirty, B:clean}',reason:'Model-based immediately constructs internal world state.'},{action:'Model shows A is dirty. A is 1 move away. Move to A.',reason:'Agent uses model to navigate directly to dirty room.'},{action:'Perceive A: dirty -> SUCK A. Model: all clean. DONE.',reason:'Model updated: A now clean. Goal check passes. Stops immediately.'}],result:'2 steps, terminates correctly. Model-based NEVER revisits B.',cls:'ic-model',hcls:'ih-model'},
+  ]
+},
+{
+  label:'4-ROOM CHAIN -- AGENT TYPES', diff:'EASY',
+  rooms:['A','B','C','D'], cols:4, rows:1,
+  adj:[[1],[0,2],[1,3],[2]],
+  initPos:0, initDirty:[0,2],
+  algos:['reflex','model','goal','util'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'2',cls:'vc-gd'},
+    {key:'piReflex',label:'Reflex steps',val:'--',cls:'vc-reflex'},
+    {key:'piModel',label:'Model steps',val:'--',cls:'vc-model'},
+    {key:'piGoal',label:'Goal steps',val:'--',cls:'vc-goal'},
+    {key:'piUtil',label:'Util steps',val:'--',cls:'vc-util'},
+  ],
+  insight:[
+    {id:'reflex',steps:[{action:'At A (dirty): SUCK A',reason:'Reflex fires immediately.'},{action:'At A (clean): MOVE->B, at B (clean): MOVE->C',reason:'Reflex moves right on clean rooms.'},{action:'At C (dirty): SUCK C. Then moves to D, loops.',reason:'After cleaning C, reflex moves to D. D clean -> will cycle C<->D.'}],result:'4 steps to clean, then loops at D.',cls:'ic-reflex',hcls:'ih-reflex'},
+    {id:'model',steps:[{action:'Perceive A dirty. Build model: {A:dirty,B:clean,C:dirty,D:clean}',reason:'Model records full environment.'},{action:'Model: C is dirty, B is on path -> A->B->C',reason:'Uses BFS on rooms to find shortest path to nearest dirty.'},{action:'At C: suck C. Model: all clean. GOAL. Stop.',reason:'Model confirms goal satisfied. Terminates immediately.'}],result:'4 steps, terminates correctly.',cls:'ic-model',hcls:'ih-model'},
+    {id:'goal',steps:[{action:'Goal: all clean. Plan: [SuckA, MoveB, MoveC, SuckC]',reason:'Goal-based searches for a valid action sequence.'},{action:'Execute plan step by step.',reason:'Follows pre-computed sequence.'},{action:'Plan complete. Goal test passes. Halts.',reason:'Plan length = 4. Optimal. Guaranteed termination.'}],result:'4 steps, optimal, guaranteed termination.',cls:'ic-goal',hcls:'ih-goal'},
+    {id:'util',steps:[{action:'Evaluate plans: Plan1=[SuckA,MvB,MvC,SuckC]=4 steps. Plan2 longer.',reason:'Utility agent computes U = rooms_cleaned*100 - steps.'},{action:'Plan1: U=2*100-4=196. Plan2: 194. Plan1 wins.',reason:'The shorter plan scores higher.'},{action:'Execute Plan1. 4 steps. U=196.',reason:'Utility maximized. Identical to goal here.'}],result:'4 steps, U=196 (highest).',cls:'ic-util',hcls:'ih-util'},
+  ]
+},
+{
+  label:'2x3 GRID -- SEARCH DIVERGES', diff:'MEDIUM',
+  rooms:['A','B','C','D','E','F'], cols:3, rows:2,
+  adj:[[1,3],[0,2,4],[1,5],[0,4],[1,3,5],[2,4]],
+  initPos:5, initDirty:[0,1,3],
+  algos:['bfs','dfs','ast'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'3',cls:'vc-gd'},
+    {key:'piBFS',label:'BFS nodes',val:'--',cls:'vc-bfs'},
+    {key:'piDFS',label:'DFS nodes',val:'--',cls:'vc-dfs'},
+    {key:'piAST',label:'A* nodes',val:'--',cls:'vc-ast'},
+  ],
+  insight:[
+    {id:'bfs',steps:[{action:'State (F, [A,B,D dirty]): enqueue moves E and C',reason:'BFS fans out level by level.'},{action:'Explores both toward dirty side and away from it',reason:'BFS has no sense of direction.'},{action:'Finds optimal ~9-step path after ~18 expansions',reason:'Optimal but wasteful.'}],result:'~9 steps, ~18 nodes.',cls:'ic-bfs',hcls:'ih-bfs'},
+    {id:'dfs',steps:[{action:'DFS dives: F->C first',reason:'DFS LIFO stack: pushes E then C, pops C first. Goes to CLEAN room!'},{action:'C clean, then B (dirty) -> suck. Wanders further.',reason:'DFS stumbles onto dirty via wandering.'},{action:'Solution in ~14-18 steps, ~12 nodes.',reason:'Low memory but path is much longer.'}],result:'~14-18 steps, ~12 nodes.',cls:'ic-dfs',hcls:'ih-dfs'},
+    {id:'ast',steps:[{action:'h = dirty rooms = 3. From F: f(E)=4, f(C)=4 (tie)',reason:'Heuristic tie-breaks toward E (closer to dirty).'},{action:'F->E->D (dirty, suck! h=2). A* locks onto dirty side.',reason:'After D cleaned, all states going away have higher f.'},{action:'Cleans D->A->B in sequence. ~9 steps, ~8 nodes.',reason:'2.3x fewer nodes than BFS.'}],result:'~9 steps, ~8 nodes.',cls:'ic-ast',hcls:'ih-ast'},
+  ]
+},
+{
+  label:'3x2 GRID -- ALGORITHM COMPARISON', diff:'HARD',
+  rooms:['A','B','C','D','E','F'], cols:3, rows:2,
+  adj:[[1,3],[0,2,4],[1,5],[0,4],[1,3,5],[2,4]],
+  initPos:2, initDirty:[0,3,4,5],
+  algos:['bfs','ast','dfs'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'4',cls:'vc-gd'},
+    {key:'piBFS',label:'BFS nodes',val:'--',cls:'vc-bfs'},
+    {key:'piAST',label:'A* nodes',val:'--',cls:'vc-ast'},
+    {key:'piDFS',label:'DFS nodes',val:'--',cls:'vc-dfs'},
+  ],
+  insight:[
+    {id:'bfs',steps:[{action:'State space: 6 rooms * 2^6 = 384 states. 4 dirty = many reachable.',reason:'BFS frontier explodes.'},{action:'Level 1: 2 neighbors, Level 2: ~8, Level 3: ~24',reason:'Branching factor ~5. BFS fans out wildly.'},{action:'Optimal 9-step path after ~90 expansions.',reason:'BFS correct but extremely wasteful.'}],result:'~9 steps, ~90 nodes.',cls:'ic-bfs',hcls:'ih-bfs'},
+    {id:'ast',steps:[{action:'Start at C. h=4. Neighbors: B(h=4,f=5) and F(h=3,f=4). Pick F!',reason:'F is DIRTY, sucking it immediately gives h=3, f=2.'},{action:'C->F(suck,h=3)->E(suck,h=2)->D(suck,h=1)->A(suck,h=0)',reason:'A* threads through dirty rooms in optimal order.'},{action:'Only ~20 node expansions. 4.5x fewer than BFS!',reason:'Heuristic guides search like a laser.'}],result:'~9 steps, ~20 nodes.',cls:'ic-ast',hcls:'ih-ast'},
+    {id:'dfs',steps:[{action:'DFS from C: pushes B (clean) first, then F (dirty). Pops B first.',reason:'DFS goes to CLEAN room B first.'},{action:'B clean -> A (dirty) suck. Then wanders far from D/E/F.',reason:'After A, agent is far from remaining dirty cluster.'},{action:'Finds solution in ~20-28 steps, ~12 nodes.',reason:'Terrible path quality, but memory efficient.'}],result:'~20-28 steps, ~12 nodes.',cls:'ic-dfs',hcls:'ih-dfs'},
+  ]
+},
+{
+  label:'3x3 GRID', diff:'EXPERT',
+  rooms:['A','B','C','D','E','F','G','H','I'], cols:3, rows:3,
+  adj:[[1,3],[0,2,4],[1,5],[0,4,6],[1,3,5,7],[2,4,8],[3,7],[4,6,8],[5,7]],
+  initPos:4, initDirty:[0,2,5,7],
+  algos:['bfs','dfs','ast'],
+  statsKeys:[
+    {key:'piDirty',label:'Dirty Rooms',val:'4',cls:'vc-gd'},
+    {key:'piBFS',label:'BFS nodes',val:'--',cls:'vc-bfs'},
+    {key:'piDFS',label:'DFS nodes',val:'--',cls:'vc-dfs'},
+    {key:'piAST',label:'A* nodes',val:'--',cls:'vc-ast'},
+  ],
+  insight:[
+    {id:'bfs',steps:[{action:'State: 9*2^9=4608 max states.',reason:'BFS may explore ~1200 nodes before finding goal.'},{action:'Frontier explodes: level 1=5, level2=25...',reason:'BFS becomes very slow.'},{action:'Finds optimal ~14-step path after ~1200 nodes.',reason:'BFS practically impractical beyond 3x3.'}],result:'~14 steps, ~1200 nodes.',cls:'ic-bfs',hcls:'ih-bfs'},
+    {id:'dfs',steps:[{action:'DFS dives deep: E->D->A(suck)...',reason:'DFS reaches first dirty quickly but wanders.'},{action:'Visits clean rooms repeatedly, long detours.',reason:'No heuristic guidance.'},{action:'Solution in ~25-35 steps, ~200 nodes.',reason:'Memory efficient, terrible path quality.'}],result:'~25-35 steps, ~200 nodes.',cls:'ic-dfs',hcls:'ih-dfs'},
+    {id:'ast',steps:[{action:'h = dirty remaining (0-4). Start h=4.',reason:'Admissible heuristic.'},{action:'Focuses on states reducing h quickly, prunes deep detours.',reason:'States with high g but same h are deprioritized.'},{action:'Optimal 14-step path after only ~80 nodes!',reason:'15x fewer nodes than BFS.'}],result:'~14 steps, ~80 nodes.',cls:'ic-ast',hcls:'ih-ast'},
+  ]
+},
+];
+
+// ==========================================================
+// AGENT SOLVERS (unchanged)
+// ==========================================================
+function runReflex(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'START',type:'start',note:'Initial state. Agent at '+lv.rooms[pos]}];
+  var maxSteps=lv.rooms.length*4+4;
+  for(var i=0;i<maxSteps;i++){
+    if(dirty.size===0)break;
+    if(dirty.has(pos)){
+      dirty.delete(pos);
+      steps.push({pos:pos,dirty:cloneDirty(dirty),action:'SUCK',type:'suck',note:'Perceive '+lv.rooms[pos]+' dirty -> SUCK. Clean now.'});
+    } else {
+      var adj=lv.adj[pos];
+      var moved=false;
+      for(var j=0;j<adj.length;j++){ if(dirty.has(adj[j])){pos=adj[j];moved=true;break;} }
+      if(!moved)pos=adj[0];
+      steps.push({pos:pos,dirty:cloneDirty(dirty),action:'MOVE to '+lv.rooms[pos],type:'move',note:'Perceive clean -> MOVE to '+lv.rooms[pos]});
+    }
+  }
+  if(dirty.size===0) steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'All rooms clean! Reflex agent finished.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+function runModelBased(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var model={}; lv.rooms.forEach(function(_,i){model[i]=dirty.has(i)?'dirty':'clean';});
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'START',type:'start',note:'Init model: '+lv.rooms.map(function(r,i){return r+':'+model[i];}).join(', ')}];
+  var maxSteps=lv.rooms.length*6;
+  for(var i=0;i<maxSteps;i++){
+    if(dirty.size===0)break;
+    if(dirty.has(pos)){
+      model[pos]='clean'; dirty.delete(pos);
+      steps.push({pos:pos,dirty:cloneDirty(dirty),action:'SUCK',type:'suck',note:'Model update: '+lv.rooms[pos]+' = clean. Remaining: '+dirty.size});
+    } else {
+      var target=findNearestDirty(pos,dirty,lv.adj);
+      if(target===-1)break;
+      var path=bfsPath(pos,target,lv.adj);
+      if(path&&path.length>1){ var next=path[1]; pos=next; steps.push({pos:pos,dirty:cloneDirty(dirty),action:'MOVE to '+lv.rooms[pos],type:'move',note:'Model says '+lv.rooms[target]+' dirty. Move toward it.'});}
+      else break;
+    }
+  }
+  if(dirty.size===0) steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'Model-based: all rooms confirmed clean.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+function runGoalBased(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var plan=buildGoalPlan(pos,dirty,lv.adj,lv.rooms);
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'PLAN',type:'plan',note:'Goal: all clean. Plan: ['+plan.map(function(p){return p.a;}).join(', ')+']'}];
+  plan.forEach(function(p){
+    if(p.a==='SUCK'){ dirty.delete(p.pos); } else { pos=p.pos; }
+    steps.push({pos:pos,dirty:cloneDirty(dirty),action:p.a+(p.a==='MOVE'?' to '+lv.rooms[pos]:''),type:p.a==='SUCK'?'suck':'move',note:p.note});
+  });
+  if(dirty.size===0) steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'Goal achieved: all rooms clean. Plan executed perfectly.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+function runUtilityBased(lv){
+  var pos=lv.initPos, dirty=cloneDirty(lv.initDirty);
+  var plan=buildGoalPlan(pos,dirty,lv.adj,lv.rooms);
+  var utility=100*lv.initDirty.length - plan.length;
+  var steps=[{pos:pos,dirty:cloneDirty(dirty),action:'EVAL',type:'eval',note:'Utility=cleanliness*100-steps. Best plan utility='+utility}];
+  plan.forEach(function(p){
+    if(p.a==='SUCK'){ dirty.delete(p.pos); } else { pos=p.pos; }
+    steps.push({pos:pos,dirty:cloneDirty(dirty),action:p.a+(p.a==='MOVE'?' to '+lv.rooms[pos]:''),type:p.a==='SUCK'?'suck':'move',note:p.note});
+  });
+  if(dirty.size===0) steps.push({pos:pos,dirty:new Set(),action:'DONE',type:'done',note:'Utility maximized: U='+utility+'. Optimal clean achieved.'});
+  return{steps:steps,totalSteps:steps.length-1,nodesExplored:steps.length};
+}
+function runBFSSearch(lv){
+  var initKey=stateKey(lv.initPos,new Set(lv.initDirty),lv.rooms);
+  var queue=[{pos:lv.initPos,dirty:new Set(lv.initDirty),g:0,parent:null,action:'START'}];
+  var visited={}; visited[initKey]=true;
+  var steps=[{pos:lv.initPos,dirty:cloneDirty(new Set(lv.initDirty)),action:'START',type:'start',note:'BFS: initial state at '+lv.rooms[lv.initPos]}];
+  var count=0;
+  while(queue.length&&count<2000){
+    var cur=queue.shift(); count++;
+    if(isGoal(cur.dirty)){
+      var path=[]; var c=cur;
+      while(c.parent){ path.unshift({a:c.action,pos:c.pos,dirty:c.dirty}); c=c.parent; }
+      path.forEach(function(p){ steps.push({pos:p.pos,dirty:cloneDirty(p.dirty),action:p.a,type:p.a==='SUCK'?'suck':'move',note:'BFS: '+p.a+' at '+lv.rooms[p.pos]}); });
+      steps.push({pos:cur.pos,dirty:new Set(),action:'DONE',type:'done',note:'BFS: goal found! '+count+' states explored.'});
+      return{steps:steps,totalSteps:path.length,nodesExplored:count};
+    }
+    if(cur.dirty.has(cur.pos)){
+      var nd=cloneDirty(cur.dirty); nd.delete(cur.pos);
+      var nk=stateKey(cur.pos,nd,lv.rooms);
+      if(!visited[nk]){ visited[nk]=true; queue.push({pos:cur.pos,dirty:nd,g:cur.g+1,parent:cur,action:'SUCK'}); }
+    }
+    (lv.adj[cur.pos]||[]).forEach(function(np){
+      var nk=stateKey(np,cur.dirty,lv.rooms);
+      if(!visited[nk]){ visited[nk]=true; queue.push({pos:np,dirty:cloneDirty(cur.dirty),g:cur.g+1,parent:cur,action:'MOVE to '+lv.rooms[np]}); }
+    });
+  }
+  return{steps:steps,totalSteps:steps.length,nodesExplored:count};
+}
+function runDFSSearch(lv){
+  var initKey=stateKey(lv.initPos,new Set(lv.initDirty),lv.rooms);
+  var stack=[{pos:lv.initPos,dirty:new Set(lv.initDirty),g:0,parent:null,action:'START'}];
+  var visited={}; var count=0;
+  var steps=[{pos:lv.initPos,dirty:cloneDirty(new Set(lv.initDirty)),action:'START',type:'start',note:'DFS: initial state at '+lv.rooms[lv.initPos]}];
+  while(stack.length&&count<1500){
+    var cur=stack.pop();
+    var curKey=stateKey(cur.pos,cur.dirty,lv.rooms);
+    if(visited[curKey]) continue;
+    visited[curKey]=true; count++;
+    if(isGoal(cur.dirty)){
+      var path=[]; var c=cur;
+      while(c.parent){ path.unshift({a:c.action,pos:c.pos,dirty:c.dirty}); c=c.parent; }
+      path.forEach(function(p){ steps.push({pos:p.pos,dirty:cloneDirty(p.dirty),action:p.a,type:p.a==='SUCK'?'suck':'move',note:'DFS: '+p.a}); });
+      steps.push({pos:cur.pos,dirty:new Set(),action:'DONE',type:'done',note:'DFS: goal found! '+count+' states explored.'});
+      return{steps:steps,totalSteps:path.length,nodesExplored:count};
+    }
+    if(cur.dirty.has(cur.pos)){
+      var nd=cloneDirty(cur.dirty); nd.delete(cur.pos);
+      var nk=stateKey(cur.pos,nd,lv.rooms);
+      if(!visited[nk]) stack.push({pos:cur.pos,dirty:nd,g:cur.g+1,parent:cur,action:'SUCK'});
+    }
+    (lv.adj[cur.pos]||[]).slice().reverse().forEach(function(np){
+      var nk=stateKey(np,cur.dirty,lv.rooms);
+      if(!visited[nk]) stack.push({pos:np,dirty:cloneDirty(cur.dirty),g:cur.g+1,parent:cur,action:'MOVE to '+lv.rooms[np]});
+    });
+  }
+  return{steps:steps,totalSteps:steps.length,nodesExplored:count};
+}
+function runAStarSearch(lv){
+  var initKey=stateKey(lv.initPos,new Set(lv.initDirty),lv.rooms);
+  var heap=new MinHeap();
+  heap.push({pos:lv.initPos,dirty:new Set(lv.initDirty),g:0,f:lv.initDirty.length,parent:null,action:'START'});
+  var best={}; best[initKey]=0;
+  var count=0;
+  var steps=[{pos:lv.initPos,dirty:cloneDirty(new Set(lv.initDirty)),action:'START',type:'start',note:'A*: h='+lv.initDirty.length+' dirty rooms'}];
+  while(heap.size&&count<800){
+    var cur=heap.pop(); count++;
+    var curKey=stateKey(cur.pos,cur.dirty,lv.rooms);
+    if(isGoal(cur.dirty)){
+      var path=[]; var c=cur;
+      while(c.parent){ path.unshift({a:c.action,pos:c.pos,dirty:c.dirty}); c=c.parent; }
+      path.forEach(function(p){ steps.push({pos:p.pos,dirty:cloneDirty(p.dirty),action:p.a,type:p.a==='SUCK'?'suck':'move',note:'A*: '+p.a+' h='+p.dirty.size}); });
+      steps.push({pos:cur.pos,dirty:new Set(),action:'DONE',type:'done',note:'A*: goal found! '+count+' states explored.'});
+      return{steps:steps,totalSteps:path.length,nodesExplored:count};
+    }
+    if(cur.dirty.has(cur.pos)){
+      var nd=cloneDirty(cur.dirty); nd.delete(cur.pos);
+      var nk=stateKey(cur.pos,nd,lv.rooms);
+      var ng=cur.g+1, nh=nd.size, nf=ng+nh;
+      if(!(nk in best)||ng<best[nk]){ best[nk]=ng; heap.push({pos:cur.pos,dirty:nd,g:ng,f:nf,parent:cur,action:'SUCK'}); }
+    }
+    (lv.adj[cur.pos]||[]).forEach(function(np){
+      var nk=stateKey(np,cur.dirty,lv.rooms);
+      var ng=cur.g+1, nh=cur.dirty.size, nf=ng+nh;
+      if(!(nk in best)||ng<best[nk]){ best[nk]=ng; heap.push({pos:np,dirty:cloneDirty(cur.dirty),g:ng,f:nf,parent:cur,action:'MOVE to '+lv.rooms[np]}); }
+    });
+  }
+  return{steps:steps,totalSteps:steps.length,nodesExplored:count};
+}
+// Helpers
+function MinHeap(){this.d=[];}
+MinHeap.prototype.push=function(x){this.d.push(x);this._up(this.d.length-1);};
+MinHeap.prototype.pop=function(){var t=this.d[0],l=this.d.pop();if(this.d.length){this.d[0]=l;this._dn(0);}return t;};
+MinHeap.prototype._up=function(i){while(i>0){var p=Math.floor((i-1)/2);if(this.d[p].f<=this.d[i].f)break;var t=this.d[p];this.d[p]=this.d[i];this.d[i]=t;i=p;}};
+MinHeap.prototype._dn=function(i){var n=this.d.length;while(true){var l=2*i+1,r=2*i+2,s=i;if(l<n&&this.d[l].f<this.d[s].f)s=l;if(r<n&&this.d[r].f<this.d[s].f)s=r;if(s===i)break;var t=this.d[s];this.d[s]=this.d[i];this.d[i]=t;i=s;}};
+MinHeap.prototype.size=function(){return this.d.length;};
+
+// ==========================================================
+// HELPER FUNCTIONS
+// ==========================================================
+function findNearestDirty(pos,dirty,adj){
+  var best=-1,bestDist=9999;
+  dirty.forEach(function(d){
+    var dist=bfsDist(pos,d,adj);
+    if(dist<bestDist){bestDist=dist;best=d;}
+  });
+  return best;
+}
+function bfsDist(start,end,adj){
+  var q=[start],vis={},dist={};vis[start]=true;dist[start]=0;
+  while(q.length){
+    var cur=q.shift();
+    if(cur===end)return dist[cur];
+    (adj[cur]||[]).forEach(function(n){
+      if(!vis[n]){vis[n]=true;dist[n]=dist[cur]+1;q.push(n);}
+    });
+  }
+  return 9999;
+}
+function bfsPath(start,end,adj){
+  var q=[start],vis={},parent={};vis[start]=true;
+  while(q.length){
+    var cur=q.shift();
+    if(cur===end){
+      var path=[end];while(path[path.length-1]!==start)path.push(parent[path[path.length-1]]);return path.reverse();
+    }
+    (adj[cur]||[]).forEach(function(n){if(!vis[n]){vis[n]=true;parent[n]=cur;q.push(n);}});
+  }
+  return null;
+}
+function buildGoalPlan(pos,dirty,adj,rooms){
+  var plan=[];var d=new Set(dirty);
+  while(d.size>0){
+    var target=findNearestDirty(pos,d,adj);
+    if(target===-1)break;
+    var path=bfsPath(pos,target,adj);
+    if(!path)break;
+    for(var i=1;i<path.length;i++){
+      pos=path[i];plan.push({a:'MOVE',pos:pos,note:'Move toward '+rooms[target]});
+    }
+    if(d.has(pos)){d.delete(pos);plan.push({a:'SUCK',pos:pos,note:'Suck at '+rooms[pos]});}
+  }
+  return plan;
+}
+
+// ==========================================================
+// UI STATE
+// ==========================================================
+var currentLevel=1;
+var playbackSpeed=900;
+var algoResults={};
+var currentStep=0;
+var maxSteps=0;
+var autoPlayInterval=null;
+
+// ==========================================================
+// DOM ELEMENTS
+// ==========================================================
+var levelSelect=document.getElementById('levelSelect');
+var runBtn=document.getElementById('runBtn');
+var cfgRunBtn=document.getElementById('cfgRunBtn');
+var syncPrev=document.getElementById('syncPrev');
+var syncNext=document.getElementById('syncNext');
+var syncCounter=document.getElementById('syncCounter');
+var syncAuto=document.getElementById('syncAuto');
+var algosGrid=document.getElementById('algosGrid');
+var insightGrid=document.getElementById('insightGrid');
+var comparisonBody=document.getElementById('comparisonBody');
+var levelDisplay=document.getElementById('levelDisplay');
+var initDesc=document.getElementById('initDesc');
+var goalDesc=document.getElementById('goalDesc');
+var probStats=document.getElementById('probStats');
+var gridInfo=document.getElementById('gridInfo');
+var insightPanel=document.getElementById('insightPanel');
+var fastestTag=document.getElementById('fastestTag');
+
+// ==========================================================
+// LEVEL CONFIG
+// ==========================================================
+var cfgRows=document.getElementById('cfgRows');
+var cfgCols=document.getElementById('cfgCols');
+var cfgStart=document.getElementById('cfgStart');
+var cfgDirty=document.getElementById('cfgDirty');
+var speedBtns=document.querySelectorAll('.speed-btn');
+var speedConfigBtns=document.querySelectorAll('.speed-config-btn');
+
+// ==========================================================
+// INITIALIZE
+// ==========================================================
+function init(){
+  populateConfigSelects();
+  setupEventListeners();
+  runPresetLevel(1);
+}
+
+function populateConfigSelects(){
+  var rows=parseInt(cfgRows.value),cols=parseInt(cfgCols.value);
+  var total=rows*cols;
+  var letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  cfgStart.innerHTML='';
+  cfgDirty.innerHTML='';
+  for(var i=0;i<total;i++){
+    var opt=document.createElement('option');
+    opt.value=i;opt.text=letters[i];
+    cfgStart.appendChild(opt);
+    var opt2=document.createElement('option');
+    opt2.value=i;opt2.text=letters[i];
+    cfgDirty.appendChild(opt2);
+  }
+}
+
+function setupEventListeners(){
+  levelSelect.addEventListener('change',function(){runPresetLevel(parseInt(this.value));});
+  runBtn.addEventListener('click',function(){runPresetLevel(parseInt(levelSelect.value));});
+  cfgRunBtn.addEventListener('click',function(){runCustomConfig();});
+  
+  cfgRows.addEventListener('change',populateConfigSelects);
+  cfgCols.addEventListener('change',populateConfigSelects);
+  
+  speedBtns.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      speedBtns.forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      playbackSpeed=parseInt(btn.dataset.ms);
+    });
+  });
+  
+  speedConfigBtns.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      speedConfigBtns.forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      playbackSpeed=parseInt(btn.dataset.ms);
+    });
+  });
+  
+  syncPrev.addEventListener('click',function(){stepAll(-1);});
+  syncNext.addEventListener('click',function(){stepAll(1);});
+  syncAuto.addEventListener('click',toggleAutoPlay);
+}
+
+function runPresetLevel(lvl){
+  currentLevel=lvl;
+  var level=LEVELS[lvl];
+  if(!level)return;
+  
+  levelDisplay.textContent=lvl;
+  initDesc.textContent='Agent at '+level.rooms[level.initPos]+', dirty: '+level.initDirty.map(function(i){return level.rooms[i];}).join(', ');
+  
+  var algos=[];
+  if(document.getElementById('chkReflex').checked)algos.push('reflex');
+  if(document.getElementById('chkModel').checked)algos.push('model');
+  if(document.getElementById('chkGoal').checked)algos.push('goal');
+  if(document.getElementById('chkUtil').checked)algos.push('util');
+  if(document.getElementById('chkBFS').checked)algos.push('bfs');
+  if(document.getElementById('chkDFS').checked)algos.push('dfs');
+  if(document.getElementById('chkAST').checked)algos.push('ast');
+  
+  algoResults={};
+  algos.forEach(function(algo){
+    switch(algo){
+      case'reflex':algoResults.reflex=runReflex(level);break;
+      case'model':algoResults.model=runModelBased(level);break;
+      case'goal':algoResults.goal=runGoalBased(level);break;
+      case'util':algoResults.util=runUtilityBased(level);break;
+      case'bfs':algoResults.bfs=runBFSSearch(level);break;
+      case'dfs':algoResults.dfs=runDFSSearch(level);break;
+      case'ast':algoResults.ast=runAStarSearch(level);break;
+    }
+  });
+  
+  maxSteps=0;
+  Object.keys(algoResults).forEach(function(k){maxSteps=Math.max(maxSteps,algoResults[k].steps.length);});
+  currentStep=0;
+  
+  updateSyncControls();
+  renderAlgoPanels(level,algos);
+  renderInsightPanel(level);
+  renderComparisonTable(level,algos);
+  renderProblemStats(level);
+  gridInfo.textContent=level.cols+'×'+level.rows+' grid, '+level.rooms.length+' rooms';
+  
+  stepAll(0);
+}
+
+function runCustomConfig(){
+  var rows=parseInt(cfgRows.value);
+  var cols=parseInt(cfgCols.value);
+  var total=rows*cols;
+  var letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  
+  var adj=[];
+  for(var i=0;i<total;i++){
+    var neighbors=[];
+    var r=Math.floor(i/cols),c=i%cols;
+    if(c>0)neighbors.push(i-1);
+    if(c<cols-1)neighbors.push(i+1);
+    if(r>0)neighbors.push(i-cols);
+    if(r<rows-1)neighbors.push(i+cols);
+    adj.push(neighbors);
+  }
+  
+  var startPos=parseInt(cfgStart.value);
+  var dirtySet=new Set();
+  Array.from(cfgDirty.selectedOptions).forEach(function(opt){dirtySet.add(parseInt(opt.value));});
+  
+  var customLevel={
+    rooms:letters.substring(0,total).split(''),
+    cols:cols,rows:rows,
+    adj:adj,
+    initPos:startPos,
+    initDirty:Array.from(dirtySet)
+  };
+  
+  var algos=[];
+  if(document.getElementById('chkReflex').checked)algos.push('reflex');
+  if(document.getElementById('chkModel').checked)algos.push('model');
+  if(document.getElementById('chkGoal').checked)algos.push('goal');
+  if(document.getElementById('chkUtil').checked)algos.push('util');
+  if(document.getElementById('chkBFS').checked)algos.push('bfs');
+  if(document.getElementById('chkDFS').checked)algos.push('dfs');
+  if(document.getElementById('chkAST').checked)algos.push('ast');
+  
+  algoResults={};
+  algos.forEach(function(algo){
+    switch(algo){
+      case'reflex':algoResults.reflex=runReflex(customLevel);break;
+      case'model':algoResults.model=runModelBased(customLevel);break;
+      case'goal':algoResults.goal=runGoalBased(customLevel);break;
+      case'util':algoResults.util=runUtilityBased(customLevel);break;
+      case'bfs':algoResults.bfs=runBFSSearch(customLevel);break;
+      case'dfs':algoResults.dfs=runDFSSearch(customLevel);break;
+      case'ast':algoResults.ast=runAStarSearch(customLevel);break;
+    }
+  });
+  
+  maxSteps=0;
+  Object.keys(algoResults).forEach(function(k){maxSteps=Math.max(maxSteps,algoResults[k].steps.length);});
+  currentStep=0;
+  
+  updateSyncControls();
+  renderAlgoPanels(customLevel,algos);
+  insightPanel.style.display='none';
+  renderComparisonTable(customLevel,algos);
+  renderProblemStats(customLevel);
+  gridInfo.textContent=cols+'×'+rows+' grid, '+total+' rooms';
+  
+  stepAll(0);
+}
+
+function updateSyncControls(){
+  syncCounter.textContent=(currentStep+1)+' / '+maxSteps;
+  syncPrev.disabled=currentStep<=0;
+  syncNext.disabled=currentStep>=maxSteps-1;
+}
+
+function stepAll(dir){
+  if(dir!==0){
+    currentStep+=dir;
+    if(currentStep<0)currentStep=0;
+    if(currentStep>=maxSteps)currentStep=maxSteps-1;
+  }
+  updateSyncControls();
+  
+  Object.keys(algoResults).forEach(function(algo){
+    var result=algoResults[algo];
+    var step=result.steps[currentStep];
+    if(step){
+      updatePanelCanvas(algo,step);
+      updatePanelLog(algo,currentStep);
+      updatePanelMetrics(algo,result,currentStep);
+    }
+  });
+}
+
+function toggleAutoPlay(){
+  if(autoPlayInterval){
+    clearInterval(autoPlayInterval);
+    autoPlayInterval=null;
+    syncAuto.classList.remove('playing');
+    syncAuto.textContent='▶ AUTO PLAY ALL';
+  }else{
+    syncAuto.classList.add('playing');
+    syncAuto.textContent='⏸ PAUSE';
+    autoPlayInterval=setInterval(function(){
+      if(currentStep>=maxSteps-1){
+        clearInterval(autoPlayInterval);
+        autoPlayInterval=null;
+        syncAuto.classList.remove('playing');
+        syncAuto.textContent='▶ AUTO PLAY ALL';
+        return;
+      }
+      stepAll(1);
+    },playbackSpeed);
+  }
+}
+
+// ==========================================================
+// RENDER FUNCTIONS
+// ==========================================================
+function renderAlgoPanels(level,algos){
+  algosGrid.innerHTML='';
+  var algoNames={reflex:'Reflex',model:'Model-Based',goal:'Goal-Based',util:'Utility',bfs:'BFS',dfs:'DFS',ast:'A*'};
+  var algoTypes={reflex:'Reactive',model:'Internal State',goal:'Planning',util:'Utility',bfs:'Search',dfs:'Search',ast:'Search'};
+  
+  algos.forEach(function(algo){
+    var result=algoResults[algo];
+    var panel=document.createElement('div');
+    panel.className='algo-panel ap-'+algo;
+    panel.id='panel-'+algo;
+    
+    var totalSteps=result.totalSteps;
+    var nodes=result.nodesExplored;
+    var isDone=currentStep>=result.steps.length-1;
+    if(isDone)panel.classList.add('done-panel');
+    
+    panel.innerHTML='<div class="panel-header"><div class="ph-left"><div class="ph-icon">'+algo.substring(0,2).toUpperCase()+'</div><div><div class="ph-name">'+algoNames[algo]+'</div><div class="ph-full">'+algoTypes[algo]+'</div></div></div><div class="ph-type-tag">'+algoTypes[algo]+'</div></div>'+
+      '<div class="panel-grid-wrap"><canvas id="canvas-'+algo+'" width="140" height="140"></canvas><div class="step-float sf-'+algo+'">STEP '+(currentStep+1)+'</div></div>'+
+      '<div class="panel-metrics"><div class="metric"><div class="m-key">Steps</div><div class="m-val" id="metric-steps-'+algo+'">0</div></div><div class="metric"><div class="m-key">Nodes</div><div class="m-val" id="metric-nodes-'+algo+'">'+nodes+'</div></div><div class="metric"><div class="m-key">Status</div><div class="m-val" id="metric-status-'+algo+'">--</div></div><div class="metric"><div class="m-key">Action</div><div class="m-val" id="metric-action-'+algo+'">--</div></div></div>'+
+      '<div class="panel-action"><span class="action-label">Current</span><div class="action-badge" id="action-badge-'+algo+'">--</div></div>'+
+      '<div class="panel-nav"><button class="pnav-btn" id="prev-'+algo+'">&#8249;</button><div class="pnav-count" id="count-'+algo+'">0 / '+result.steps.length+'</div><button class="pnav-btn" id="next-'+algo+'">&#8250;</button></div>'+
+      '<div class="panel-log" id="log-'+algo+'"></div>'+
+      '<div class="algo-desc"><strong>'+algoNames[algo]+'</strong> agent explores the vacuum world '+level.rooms.length+'-room environment.</div>';
+    
+    algosGrid.appendChild(panel);
+    
+    document.getElementById('prev-'+algo).addEventListener('click',(function(a){return function(){stepAlgo(a,-1);};})(algo));
+    document.getElementById('next-'+algo).addEventListener('click',(function(a){return function(){stepAlgo(a,1);};})(algo));
+    
+    renderPanelLog(algo,result);
+  });
+}
+
+function renderPanelLog(algo,result){
+  var log=document.getElementById('log-'+algo);
+  log.innerHTML='';
+  result.steps.forEach(function(step,i){
+    var item=document.createElement('div');
+    item.className='log-item'+(i===currentStep?' active-log':'');
+    var tagClass='lt-'+step.type;
+    item.innerHTML='<span class="log-idx">'+(i+1)+'</span><span class="log-tag '+tagClass+'">'+step.type.toUpperCase()+'</span>'+step.action;
+    log.appendChild(item);
+  });
+}
+
+function updatePanelLog(algo,stepIdx){
+  var log=document.getElementById('log-'+algo);
+  var items=log.querySelectorAll('.log-item');
+  items.forEach(function(item,i){item.classList.toggle('active-log',i===stepIdx);});
+}
+
+function updatePanelMetrics(algo,result,stepIdx){
+  var step=result.steps[stepIdx];
+  document.getElementById('metric-steps-'+algo).textContent=stepIdx;
+  document.getElementById('metric-status-'+algo).textContent=step.type.toUpperCase();
+  document.getElementById('metric-action-'+algo).textContent=step.action.substring(0,12);
+  document.getElementById('action-badge-'+algo).textContent=step.action;
+  document.getElementById('count-'+algo).textContent=(stepIdx+1)+' / '+result.steps.length;
+  
+  var float=document.querySelector('#panel-'+algo+' .step-float');
+  if(float)float.textContent='STEP '+(stepIdx+1);
+  
+  var panel=document.getElementById('panel-'+algo);
+  if(step.type==='done')panel.classList.add('done-panel');
+}
+
+function updatePanelCanvas(algo,step){
+  var canvas=document.getElementById('canvas-'+algo);
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var level=LEVELS[currentLevel]||{rooms:['A','B','C'],cols:3,rows:1,adj:[[1],[0,2],[1]]};
+  
+  ctx.fillStyle='#0c1020';
+  ctx.fillRect(0,0,140,140);
+  
+  var cellSize=140/Math.max(level.rooms.length,3);
+  var offset=(140-cellSize*level.rooms.length)/2;
+  
+  level.rooms.forEach(function(room,i){
+    var x=offset+(i%level.cols)*cellSize;
+    var y=offset+Math.floor(i/level.cols)*cellSize;
+    
+    var isDirty=step.dirty.has(i);
+    var isAgent=step.pos===i;
+    
+    ctx.strokeStyle='rgba(255,255,255,0.15)';
+    ctx.strokeRect(x+2,y+2,cellSize-4,cellSize-4);
+    
+    if(isDirty&&isAgent){
+      ctx.fillStyle='#0d1c08';
+      ctx.fillRect(x+2,y+2,cellSize-4,cellSize-4);
+      ctx.strokeStyle='rgba(74,222,128,0.5)';
+      ctx.lineWidth=2;
+      ctx.strokeRect(x+2,y+2,cellSize-4,cellSize-4);
+      ctx.lineWidth=1;
+    }else if(isDirty){
+      ctx.fillStyle='#3d1f06';
+      ctx.fillRect(x+2,y+2,cellSize-4,cellSize-4);
+      ctx.strokeStyle='rgba(245,158,11,0.4)';
+      ctx.strokeRect(x+2,y+2,cellSize-4,cellSize-4);
+    }else if(isAgent){
+      ctx.fillStyle='#0a2010';
+      ctx.fillRect(x+2,y+2,cellSize-4,cellSize-4);
+      ctx.strokeStyle='rgba(74,222,128,0.5)';
+      ctx.lineWidth=2;
+      ctx.strokeRect(x+2,y+2,cellSize-4,cellSize-4);
+      ctx.lineWidth=1;
+    }else{
+      ctx.fillStyle='#0a1828';
+      ctx.fillRect(x+2,y+2,cellSize-4,cellSize-4);
+    }
+    
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.font='bold 10px JetBrains Mono';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(room,x+cellSize/2,y+cellSize/2);
+  });
+}
+
+function stepAlgo(algo,dir){
+  var result=algoResults[algo];
+  var stepKey='step-'+algo;
+  var current=window[stepKey]||0;
+  current+=dir;
+  if(current<0)current=0;
+  if(current>=result.steps.length)current=result.steps.length-1;
+  window[stepKey]=current;
+  
+  var step=result.steps[current];
+  updatePanelCanvas(algo,step);
+  updatePanelLog(algo,current);
+  updatePanelMetrics(algo,result,current);
+}
+
+function renderInsightPanel(level){
+  if(!level.insight){
+    insightPanel.style.display='none';
+    return;
+  }
+  insightPanel.style.display='block';
+  insightGrid.innerHTML='';
+  
+  level.insight.forEach(function(ins){
+    var col=document.createElement('div');
+    col.className='ins-col '+ins.cls;
+    
+    var stepsHtml=ins.steps.map(function(s,i){
+      return'<div class="ins-step"><div class="ins-num">'+(i+1)+'</div><div class="ins-inner"><div class="ins-action">'+s.action+'</div><div class="ins-reason">'+s.reason+'</div></div></div>';
+    }).join('');
+    
+    col.innerHTML='<div class="ins-head '+ins.hcls+'">'+ins.id.toUpperCase()+'</div>'+stepsHtml+'<div class="ins-result"><div class="ins-res-label">Result</div><div class="ins-res-val">'+ins.result+'</div></div>';
+    insightGrid.appendChild(col);
+  });
+}
+
+function renderComparisonTable(level,algos){
+  comparisonBody.innerHTML='';
+  var rows=[
+    {name:'Reflex',type:'Reactive',knows:'No',plans:'No',opt:'No',complete:'No',mem:'O(1)',key:'reflex'},
+    {name:'Model-Based',type:'Internal State',knows:'Partial',plans:'No',opt:'No',complete:'Yes',mem:'O(n)',key:'model'},
+    {name:'Goal-Based',type:'Planning',knows:'Full',plans:'Yes',opt:'Yes',complete:'Yes',mem:'O(n)',key:'goal'},
+    {name:'Utility',type:'Utility',knows:'Full',plans:'Yes',opt:'Yes',complete:'Yes',mem:'O(n)',key:'util'},
+    {name:'BFS',type:'Search',knows:'Full',plans:'Yes',opt:'Yes',complete:'Yes',mem:'O(b^d)',key:'bfs'},
+    {name:'DFS',type:'Search',knows:'Full',plans:'Yes',opt:'No',complete:'No',mem:'O(d)',key:'dfs'},
+    {name:'A*',type:'Search',knows:'Full',plans:'Yes',opt:'Yes',complete:'Yes',mem:'O(b^d)',key:'ast'},
+  ];
+  
+  rows.forEach(function(row){
+    if(algos.indexOf(row.key)===-1)return;
+    var tr=document.createElement('tr');
+    tr.className='r-'+row.key;
+    tr.innerHTML='<td class="an">'+row.name+'</td><td>'+row.type+'</td><td>'+row.knows+'</td><td>'+row.plans+'</td><td>'+row.opt+'</td><td>'+row.complete+'</td><td>'+row.mem+'</td><td>'+getKeyBehavior(row.key)+'</td>';
+    comparisonBody.appendChild(tr);
+  });
+}
+
+function getKeyBehavior(algo){
+  var behaviors={reflex:'Reacts to current percept only',model:'Maintains internal world model',goal:'Forms plan to achieve goal',util:'Maximizes utility function',bfs:'Explores uniformly',dfs:'Goes deep first',ast:'Uses heuristic to guide'};
+  return behaviors[algo]||'--';
+}
+
+function renderProblemStats(level){
+  probStats.innerHTML='';
+  level.statsKeys.forEach(function(sk){
+    var item=document.createElement('div');
+    item.className='ps-item';
+    item.innerHTML='<div class="ps-key">'+sk.label+'</div><div class="ps-val '+sk.cls+'">'+sk.val+'</div>';
+    probStats.appendChild(item);
+  });
+}
+
+// Start the app
+init();
+})();
+</script>
+</body>
+</html>

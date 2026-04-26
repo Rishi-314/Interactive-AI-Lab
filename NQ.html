@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N-QUEENS</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #06080e;
+  --bg1:   #0b0f1a;
+  --bg2:   #101524;
+  --bg3:   #161d2e;
+  --bg4:   #1c2540;
+  --line:  rgba(255,255,255,.052);
+  --line2: rgba(255,255,255,.10);
+
+  /* algo colors */
+  --bt:   #f97316;   /* Backtracking  — amber-orange */
+  --bt-d: rgba(249,115,22,.08);
+  --bfs:  #38bdf8;   /* BFS           — sky blue */
+  --bfs-d:rgba(56,189,248,.08);
+  --dfs:  #a78bfa;   /* DFS           — violet */
+  --dfs-d:rgba(167,139,250,.08);
+  --mc:   #34d399;   /* Min-Conflicts — emerald */
+  --mc-d: rgba(52,211,153,.08);
+  --ga:   #fb7185;   /* Genetic       — rose */
+  --ga-d: rgba(251,113,133,.08);
+  --sa:   #fbbf24;   /* Sim. Anneal   — amber */
+  --sa-d: rgba(251,191,36,.08);
+  --hc:   #e879f9;   /* Hill Climbing — fuchsia */
+  --hc-d: rgba(232,121,249,.08);
+
+  --cell-light: #1e2a42;
+  --cell-dark:  #141c2e;
+  --queen-safe: #34d399;
+  --queen-conf: #f87171;
+  --gold: #fbbf24;
+  --text:  #d8e8f8;
+  --text2: #516888;
+  --text3: #2c3f5a;
+
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Outfit', sans-serif;
+  --r:14px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden;}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,rgba(56,189,248,.018) 1px,transparent 1px);
+  background-size:30px 30px;pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.02) 3px,rgba(0,0,0,.02) 4px);
+  pointer-events:none;z-index:9999;
+}
+.app{position:relative;z-index:1;max-width:1820px;margin:0 auto;padding:18px 14px 70px;}
+
+/* ╔══════════ HEADER ══════════╗ */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;margin-bottom:14px;
+  background:var(--bg1);border:1px solid var(--line2);border-radius:18px;
+  position:relative;overflow:hidden;flex-wrap:wrap;gap:10px;
+}
+.hdr::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--bt) 18%,var(--mc) 42%,var(--bfs) 62%,var(--ga) 82%,transparent);
+  opacity:.75;
+}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.logo-box{
+  width:44px;height:44px;border-radius:11px;
+  background:linear-gradient(135deg,var(--mc),var(--bfs));
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;
+  box-shadow:0 0 26px rgba(52,211,153,.3);
+}
+.hdr-title{
+  font-family:var(--mono);font-size:1.18rem;font-weight:700;letter-spacing:.02em;
+  background:linear-gradient(90deg,var(--bt) 0%,var(--sa) 25%,var(--mc) 55%,var(--bfs) 80%,#fff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hdr-sub{font-size:.63rem;color:var(--text2);margin-top:2px;letter-spacing:.09em;text-transform:uppercase;}
+.algo-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.algo-badge{
+  display:flex;align-items:center;gap:5px;padding:4px 10px;
+  border-radius:22px;font-family:var(--mono);font-size:.6rem;font-weight:600;letter-spacing:.09em;border:1px solid;
+}
+.b-bt  {color:var(--bt); border-color:rgba(249,115,22,.3); background:rgba(249,115,22,.07);}
+.b-bfs {color:var(--bfs);border-color:rgba(56,189,248,.3); background:rgba(56,189,248,.07);}
+.b-dfs {color:var(--dfs);border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.07);}
+.b-mc  {color:var(--mc); border-color:rgba(52,211,153,.3); background:rgba(52,211,153,.07);}
+.b-ga  {color:var(--ga); border-color:rgba(251,113,133,.3);background:rgba(251,113,133,.07);}
+.b-sa  {color:var(--sa); border-color:rgba(251,191,36,.3); background:rgba(251,191,36,.07);}
+.b-hc  {color:var(--hc); border-color:rgba(232,121,249,.3);background:rgba(232,121,249,.07);}
+.badge-dot{width:5px;height:5px;border-radius:50%;animation:pulse 2.2s ease-in-out infinite;}
+.b-bt  .badge-dot{background:var(--bt);}
+.b-bfs .badge-dot{background:var(--bfs);}
+.b-dfs .badge-dot{background:var(--dfs);}
+.b-mc  .badge-dot{background:var(--mc);}
+.b-ga  .badge-dot{background:var(--ga);}
+.b-sa  .badge-dot{background:var(--sa);}
+.b-hc  .badge-dot{background:var(--hc);}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.7)}}
+
+/* ╔══════════ CUSTOM CONFIG PANEL ══════════╗ */
+.config-panel {
+  background:var(--bg1);
+  border:1px solid var(--line2);
+  border-top: 2px solid var(--mc);
+  border-radius:var(--r);
+  padding:14px 18px;
+  margin-bottom:10px;
+  position:relative;
+  overflow:hidden;
+}
+.config-panel::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, var(--bt), var(--mc), var(--bfs));
+  opacity:.5;
+}
+.config-title {
+  font-family:var(--mono); font-size:.6rem; font-weight:700;
+  color:var(--mc); text-transform:uppercase; letter-spacing:.15em;
+  margin-bottom:12px; display:flex; align-items:center; gap:7px;
+}
+.config-title::after {
+  content:''; flex:1; height:1px; background:var(--line);
+}
+.config-row {
+  display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;
+}
+.config-field {
+  display:flex; flex-direction:column; gap:5px;
+}
+.config-label {
+  font-family:var(--mono); font-size:.55rem; font-weight:600;
+  color:var(--text3); text-transform:uppercase; letter-spacing:.12em;
+  display:flex; align-items:center; gap:4px;
+}
+.config-label .cfg-icon { font-size:.7rem; }
+.config-input {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.8rem; font-weight:600;
+  padding:8px 12px; border-radius:9px; outline:none;
+  transition:border-color .2s, box-shadow .2s;
+  min-width:0;
+}
+.config-input:focus {
+  border-color:var(--mc);
+  box-shadow: 0 0 0 2px rgba(52,211,153,.12);
+}
+.config-input.input-err { border-color:#ef5350 !important; box-shadow:0 0 0 2px rgba(239,83,80,.12) !important; }
+select.config-input { cursor:pointer; }
+.n-select { width:100px; }
+
+.algo-checks { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.algo-check-item {
+  display:flex; align-items:center; gap:0;
+  cursor:pointer; user-select:none;
+}
+.algo-check-item input[type=checkbox] { display:none; }
+.algo-check-pill {
+  display:flex; align-items:center; gap:5px;
+  padding:6px 12px; border-radius:20px;
+  font-family:var(--mono); font-size:.63rem; font-weight:700; letter-spacing:.08em;
+  border:1px solid; transition:all .18s; cursor:pointer;
+}
+.algo-check-item input:checked + .algo-check-pill { opacity:1; }
+.algo-check-item input:not(:checked) + .algo-check-pill { opacity:.28; filter:grayscale(.6); }
+
+.pill-bt  { color:var(--bt);  border-color:rgba(249,115,22,.35); background:rgba(249,115,22,.08); }
+.pill-bfs { color:var(--bfs); border-color:rgba(56,189,248,.35); background:rgba(56,189,248,.08); }
+.pill-dfs { color:var(--dfs); border-color:rgba(167,139,250,.35); background:rgba(167,139,250,.08); }
+.pill-mc  { color:var(--mc);  border-color:rgba(52,211,153,.35); background:rgba(52,211,153,.08); }
+.pill-ga  { color:var(--ga);  border-color:rgba(251,113,133,.35); background:rgba(251,113,133,.08); }
+.pill-sa  { color:var(--sa);  border-color:rgba(251,191,36,.35); background:rgba(251,191,36,.08); }
+.pill-hc  { color:var(--hc);  border-color:rgba(232,121,249,.35); background:rgba(232,121,249,.08); }
+
+.pill-check-icon { font-size:.55rem; }
+
+.speed-config-wrap { display:flex; gap:4px; align-items:center; }
+.speed-config-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.62rem; font-weight:600; padding:6px 10px;
+  border-radius:7px; cursor:pointer; transition:all .15s;
+}
+.speed-config-btn.active { color:var(--mc); border-color:rgba(52,211,153,.4); background:rgba(52,211,153,.07); }
+
+.cfg-run-btn {
+  background: linear-gradient(135deg, var(--mc), var(--bfs));
+  border:none; color:#06080e; font-family:var(--mono); font-size:.8rem; font-weight:800;
+  padding:10px 24px; border-radius:10px; cursor:pointer;
+  transition:opacity .15s, transform .1s; letter-spacing:.1em;
+  box-shadow: 0 2px 20px rgba(52,211,153,.35); white-space:nowrap;
+  display:flex; align-items:center; gap:7px; align-self:flex-end;
+}
+.cfg-run-btn:hover { opacity:.88; transform:translateY(-1px); }
+.cfg-run-btn:active { transform:translateY(0); }
+
+.cfg-hint {
+  font-family:var(--mono); font-size:.55rem; color:#ef5350;
+  margin-top:3px; min-height:14px;
+}
+
+/* ╔══════════ CONTROLS ══════════╗ */
+.ctrl-bar{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  background:var(--bg1);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px 16px;margin-bottom:14px;
+}
+.ctrl-label{font-family:var(--mono);font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;}
+.lvl-select{
+  background:var(--bg3);border:1px solid var(--line2);color:var(--text);
+  font-family:var(--mono);font-size:.76rem;font-weight:500;
+  padding:8px 14px;border-radius:9px;cursor:pointer;outline:none;transition:border-color .2s;flex:1;min-width:0;
+}
+.lvl-select:focus{border-color:var(--mc);}
+.lvl-select option{background:#101524;}
+.speed-wrap{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.speed-btn{
+  background:var(--bg3);border:1px solid var(--line);color:var(--text2);
+  font-family:var(--mono);font-size:.63rem;font-weight:600;padding:6px 10px;
+  border-radius:7px;cursor:pointer;transition:all .15s;
+}
+.speed-btn.active{color:var(--mc);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.07);}
+.run-btn{
+  background:linear-gradient(135deg,var(--mc),var(--bfs));
+  border:none;color:#06080e;font-family:var(--mono);font-size:.78rem;font-weight:700;
+  padding:8px 20px;border-radius:9px;cursor:pointer;
+  transition:opacity .15s,transform .1s;letter-spacing:.08em;
+  box-shadow:0 2px 18px rgba(52,211,153,.3);white-space:nowrap;
+}
+.run-btn:hover{opacity:.88;transform:translateY(-1px);}
+
+/* ╔══════════ PROBLEM INFO ROW ══════════╗ */
+.problem-row{display:flex;gap:10px;margin-bottom:14px;align-items:stretch;flex-wrap:wrap;}
+.prob-card{
+  background:var(--bg1);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.prob-card.board-card{border-color:rgba(52,211,153,.2);}
+.prob-card.goal-card {border-color:rgba(56,189,248,.2);}
+.prob-label{font-family:var(--mono);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;margin-bottom:4px;}
+.prob-label.pl-green{color:var(--mc);}
+.prob-label.pl-blue {color:var(--bfs);}
+.prob-state-val{font-family:var(--mono);font-size:.72rem;color:var(--text2);}
+.mini-board-wrap{flex-shrink:0;}
+
+.prob-stats{
+  flex:1;min-width:260px;
+  background:var(--bg1);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+}
+.ps-item{display:flex;flex-direction:column;gap:2px;}
+.ps-key{font-family:var(--mono);font-size:.52rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;}
+.ps-val{font-family:var(--mono);font-size:.82rem;font-weight:700;}
+.ps-val.vc-bt {color:var(--bt);}
+.ps-val.vc-bfs{color:var(--bfs);}
+.ps-val.vc-dfs{color:var(--dfs);}
+.ps-val.vc-mc {color:var(--mc);}
+.ps-val.vc-ga {color:var(--ga);}
+.ps-val.vc-sa {color:var(--sa);}
+.ps-val.vc-hc {color:var(--hc);}
+.ps-val.vc-gd {color:var(--gold);}
+
+/* ╔══════════ ALGO INSIGHT PANEL ══════════╗ */
+.insight-panel{
+  background:var(--bg1);border:1px solid var(--line2);
+  border-top:2px solid var(--gold);border-radius:var(--r);
+  padding:13px 16px;margin-bottom:14px;
+}
+.insight-title{
+  font-family:var(--mono);font-size:.62rem;font-weight:700;
+  color:var(--gold);text-transform:uppercase;letter-spacing:.13em;
+  margin-bottom:12px;display:flex;align-items:center;gap:7px;
+}
+.insight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
+.ins-col{
+  background:var(--bg2);border-radius:10px;padding:11px 12px;border:1px solid var(--line);
+}
+.ic-bt {border-color:rgba(249,115,22,.2);}
+.ic-bfs{border-color:rgba(56,189,248,.2);}
+.ic-dfs{border-color:rgba(167,139,250,.2);}
+.ic-mc {border-color:rgba(52,211,153,.2);}
+.ic-ga {border-color:rgba(251,113,133,.2);}
+.ic-sa {border-color:rgba(251,191,36,.2);}
+.ic-hc {border-color:rgba(232,121,249,.2);}
+
+.ins-head{font-family:var(--mono);font-size:.63rem;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+.ih-bt {color:var(--bt);}
+.ih-bfs{color:var(--bfs);}
+.ih-dfs{color:var(--dfs);}
+.ih-mc {color:var(--mc);}
+.ih-ga {color:var(--ga);}
+.ih-sa {color:var(--sa);}
+.ih-hc {color:var(--hc);}
+
+.ins-step{display:flex;align-items:flex-start;gap:7px;margin-bottom:8px;}
+.ins-num{
+  width:18px;height:18px;border-radius:4px;font-family:var(--mono);
+  font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#06080e;
+}
+.ic-bt  .ins-num{background:var(--bt);}
+.ic-bfs .ins-num{background:var(--bfs);}
+.ic-dfs .ins-num{background:var(--dfs);}
+.ic-mc  .ins-num{background:var(--mc);}
+.ic-ga  .ins-num{background:var(--ga);}
+.ic-sa  .ins-num{background:var(--sa);}
+.ic-hc  .ins-num{background:var(--hc);}
+
+.ins-inner{display:flex;flex-direction:column;gap:2px;}
+.ins-action{font-family:var(--mono);font-size:.67rem;font-weight:600;color:var(--text);}
+.ins-reason{font-size:.61rem;color:var(--text2);line-height:1.55;}
+.ins-result{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:.6rem;line-height:1.6;}
+.ins-res-label{font-family:var(--mono);font-size:.52rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+
+/* ╔══════════ SYNC BAR ══════════╗ */
+.sync-bar{
+  background:var(--bg1);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;
+}
+.sync-label{font-family:var(--mono);font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;}
+.sync-btn{
+  width:32px;height:32px;border-radius:7px;border:1px solid var(--line2);background:var(--bg3);
+  color:var(--text);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;font-weight:700;
+}
+.sync-btn:hover:not(:disabled){background:var(--bg4);}
+.sync-btn:disabled{opacity:.22;cursor:not-allowed;}
+.sync-counter{
+  font-family:var(--mono);font-size:.8rem;font-weight:700;
+  background:var(--bg3);padding:6px 18px;border-radius:22px;border:1px solid var(--line);min-width:96px;text-align:center;
+}
+.sync-auto-btn{
+  background:var(--bg3);border:1px solid var(--line);color:var(--text2);
+  font-family:var(--mono);font-size:.66rem;font-weight:700;padding:6px 13px;border-radius:8px;
+  cursor:pointer;transition:all .15s;letter-spacing:.06em;
+}
+.sync-auto-btn:hover{color:var(--mc);border-color:rgba(52,211,153,.35);}
+.sync-auto-btn.playing{color:var(--bt);border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07);}
+.fastest-tag{
+  margin-left:auto;font-family:var(--mono);font-size:.61rem;font-weight:700;
+  padding:5px 12px;border-radius:18px;
+  background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.28);color:var(--mc);
+}
+
+/* ╔══════════ ALGO PANELS GRID ══════════╗ */
+.algos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin-bottom:14px;}
+.algo-panel{
+  background:var(--bg1);border:1px solid var(--line);border-radius:16px;
+  overflow:hidden;display:flex;flex-direction:column;transition:border-color .3s,box-shadow .3s;
+}
+.ap-bt  {--ac:var(--bt);  --ag:var(--bt-d);}
+.ap-bfs {--ac:var(--bfs); --ag:var(--bfs-d);}
+.ap-dfs {--ac:var(--dfs); --ag:var(--dfs-d);}
+.ap-mc  {--ac:var(--mc);  --ag:var(--mc-d);}
+.ap-ga  {--ac:var(--ga);  --ag:var(--ga-d);}
+.ap-sa  {--ac:var(--sa);  --ag:var(--sa-d);}
+.ap-hc  {--ac:var(--hc);  --ag:var(--hc-d);}
+.algo-panel.done-panel{border-color:var(--ac);box-shadow:0 0 24px color-mix(in srgb,var(--ac) 14%,transparent);}
+
+.panel-header{
+  padding:10px 13px;background:var(--ag);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.ph-left{display:flex;align-items:center;gap:8px;}
+.ph-icon{
+  width:31px;height:31px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:800;font-family:var(--mono);color:#06080e;background:var(--ac);
+}
+.ph-name{font-family:var(--mono);font-size:.78rem;font-weight:700;color:var(--ac);}
+.ph-full{font-size:.57rem;color:var(--text2);margin-top:1px;}
+.ph-status{
+  font-family:var(--mono);font-size:.56rem;font-weight:700;padding:3px 9px;
+  border-radius:18px;border:1px solid var(--ac);color:var(--ac);background:var(--ag);white-space:nowrap;
+}
+.panel-board-wrap{
+  background:var(--bg2);padding:9px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:center;align-items:center;min-height:160px;position:relative;
+}
+.panel-board-wrap canvas{display:block;border-radius:6px;max-width:100%;}
+.board-overlay-label{
+  position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:.54rem;font-weight:700;
+  padding:2px 9px;border-radius:9px;pointer-events:none;white-space:nowrap;
+}
+.bol-bt  {background:rgba(249,115,22,.14); color:var(--bt);  border:1px solid rgba(249,115,22,.28);}
+.bol-bfs {background:rgba(56,189,248,.14); color:var(--bfs); border:1px solid rgba(56,189,248,.28);}
+.bol-dfs {background:rgba(167,139,250,.14);color:var(--dfs); border:1px solid rgba(167,139,250,.28);}
+.bol-mc  {background:rgba(52,211,153,.14); color:var(--mc);  border:1px solid rgba(52,211,153,.28);}
+.bol-ga  {background:rgba(251,113,133,.14);color:var(--ga);  border:1px solid rgba(251,113,133,.28);}
+.bol-sa  {background:rgba(251,191,36,.14); color:var(--sa);  border:1px solid rgba(251,191,36,.28);}
+.bol-hc  {background:rgba(232,121,249,.14);color:var(--hc);  border:1px solid rgba(232,121,249,.28);}
+
+.panel-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line);}
+.metric{padding:6px 9px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;}
+.metric:last-child{border-right:none;}
+.m-key{font-family:var(--mono);font-size:.5rem;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;}
+.m-val{font-family:var(--mono);font-size:.8rem;font-weight:700;color:var(--ac);}
+
+.panel-progress{padding:7px 10px;border-bottom:1px solid var(--line);}
+.pp-row{display:flex;justify-content:space-between;margin-bottom:4px;}
+.pp-label{font-family:var(--mono);font-size:.5rem;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;}
+.pp-val  {font-family:var(--mono);font-size:.5rem;color:var(--ac);font-weight:600;}
+.pp-track{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.pp-fill {height:100%;border-radius:2px;transition:width .4s ease;background:var(--ac);}
+
+.panel-nav{
+  padding:6px 9px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);
+}
+.pnav-btn{
+  width:24px;height:24px;border-radius:5px;border:1px solid var(--line2);
+  background:var(--bg3);color:var(--text2);font-size:.85rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;font-weight:700;
+}
+.pnav-btn:hover:not(:disabled){background:var(--ac);color:#06080e;border-color:var(--ac);}
+.pnav-btn:disabled{opacity:.18;cursor:not-allowed;}
+.pnav-count{
+  font-family:var(--mono);font-size:.67rem;font-weight:600;
+  background:var(--bg3);padding:3px 10px;border-radius:18px;min-width:68px;text-align:center;border:1px solid var(--line);
+}
+.pnav-auto{
+  margin-left:auto;background:var(--bg3);border:1px solid var(--line);color:var(--text2);
+  font-family:var(--mono);font-size:.59rem;font-weight:700;padding:3px 9px;border-radius:6px;cursor:pointer;
+}
+.pnav-auto:hover{color:var(--ac);border-color:var(--ac);}
+.pnav-auto.playing{color:var(--bt);border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07);}
+
+.panel-log{flex:1;overflow-y:auto;max-height:130px;padding:6px 9px;scrollbar-width:thin;}
+.log-item{
+  display:flex;align-items:flex-start;gap:5px;padding:3px 5px;border-radius:5px;
+  font-size:.62rem;color:var(--text2);cursor:pointer;transition:all .12s;margin-bottom:1px;
+}
+.log-item:hover{background:var(--bg3);color:var(--text);}
+.log-item.active-log{background:var(--ag);color:var(--ac);border-left:2px solid var(--ac);padding-left:3px;}
+.log-idx{font-family:var(--mono);color:var(--text3);min-width:16px;font-size:.54rem;}
+.log-type{
+  font-family:var(--mono);font-size:.52rem;font-weight:700;padding:1px 5px;border-radius:3px;
+  margin-right:2px;flex-shrink:0;
+}
+.lt-place{background:rgba(52,211,153,.15);color:var(--mc);}
+.lt-conf {background:rgba(248,113,113,.15);color:#f87171;}
+.lt-back {background:rgba(249,115,22,.15);color:var(--bt);}
+.lt-try  {background:rgba(56,189,248,.15);color:var(--bfs);}
+.lt-iter {background:rgba(251,191,36,.15);color:var(--sa);}
+.lt-mut  {background:rgba(251,113,133,.15);color:var(--ga);}
+.lt-sol  {background:rgba(52,211,153,.2);color:var(--mc);font-weight:700;}
+
+.algo-desc{
+  padding:8px 11px;border-top:1px solid var(--line);
+  font-size:.61rem;line-height:1.65;color:var(--text2);
+}
+.algo-desc strong{color:var(--ac);font-family:var(--mono);font-weight:600;}
+
+/* ╔══════════ COMPARISON TABLE ══════════╗ */
+.cmp-wrap{
+  background:var(--bg1);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:14px;overflow-x:auto;
+}
+.cmp-title{
+  font-family:var(--mono);font-size:.64rem;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px;
+}
+.cmp-title::before{content:'';width:3px;height:12px;border-radius:2px;background:linear-gradient(var(--mc),var(--bfs));display:inline-block;margin-right:8px;vertical-align:middle;}
+.cmp-table{width:100%;border-collapse:collapse;}
+.cmp-table th{
+  font-family:var(--mono);font-size:.55rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--text3);padding:6px 11px;border-bottom:1px solid var(--line2);text-align:left;
+}
+.cmp-table td{font-family:var(--mono);font-size:.67rem;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.03);}
+.cmp-table tbody tr:hover{background:var(--bg3);}
+.cmp-table tr:last-child td{border-bottom:none;}
+.cmp-table .an{font-weight:700;}
+.r-bt  .an{color:var(--bt);}
+.r-bfs .an{color:var(--bfs);}
+.r-dfs .an{color:var(--dfs);}
+.r-mc  .an{color:var(--mc);}
+.r-ga  .an{color:var(--ga);}
+.r-sa  .an{color:var(--sa);}
+.r-hc  .an{color:var(--hc);}
+.cx-best {color:#34d399;font-weight:700;}
+.cx-good {color:#7fff4f;}
+.cx-mid  {color:var(--text2);}
+.cx-warn {color:var(--gold);font-weight:600;}
+.cx-bad  {color:#f87171;}
+.cmp-note{margin-top:9px;font-size:.57rem;color:var(--text3);font-family:var(--mono);line-height:1.9;}
+
+.loading-ov{
+  position:fixed;inset:0;background:rgba(6,8,14,.92);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;z-index:9000;
+}
+.loading-box{
+  background:var(--bg1);border:1px solid var(--line2);border-radius:18px;padding:30px 46px;text-align:center;
+}
+.loading-box h3{font-family:var(--mono);font-size:.98rem;margin-bottom:6px;}
+.loading-box p{color:var(--text2);font-size:.73rem;margin-bottom:18px;}
+.loading-algos{display:flex;gap:12px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+.l-algo{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--mono);font-size:.6rem;font-weight:700;}
+.l-algo-bar{width:42px;height:3px;border-radius:2px;animation:loadBar 1.2s ease-in-out infinite;}
+@keyframes loadBar{0%,100%{transform:scaleX(.25);opacity:.3}50%{transform:scaleX(1);opacity:1}}
+.spinner{width:28px;height:28px;border:2px solid var(--bg4);border-top-color:var(--mc);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="logo-box">♛</div>
+      <div>
+        <div class="hdr-title">N-QUEENS // CONSTRAINT SATISFACTION AI</div>
+        <div class="hdr-sub">Backtracking · BFS · DFS · Min-Conflicts · Genetic · Sim. Annealing · Hill Climbing — 6 levels</div>
+      </div>
+    </div>
+    <div class="algo-badges">
+      <div class="algo-badge b-bt"><span class="badge-dot"></span>BACKTRACK</div>
+      <div class="algo-badge b-bfs"><span class="badge-dot"></span>BFS</div>
+      <div class="algo-badge b-dfs"><span class="badge-dot"></span>DFS</div>
+      <div class="algo-badge b-mc"><span class="badge-dot"></span>MIN-CONF</div>
+      <div class="algo-badge b-ga"><span class="badge-dot"></span>GENETIC</div>
+      <div class="algo-badge b-sa"><span class="badge-dot"></span>SIM.ANNEAL</div>
+      <div class="algo-badge b-hc"><span class="badge-dot"></span>HILL CLIMB</div>
+    </div>
+  </div>
+
+  <!-- ══ CUSTOM CONFIG PANEL ══ -->
+  <div class="config-panel">
+    <div class="config-title">⚙ Custom Configuration</div>
+    <div class="config-row">
+      <!-- N selector -->
+      <div class="config-field">
+        <span class="config-label"><span class="cfg-icon">♕</span> N (Queens)</span>
+        <select class="config-input n-select" id="cfgN">
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8" selected>8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="12">12</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+        <div class="cfg-hint" id="hintN"></div>
+      </div>
+
+      <!-- Algorithms -->
+      <div class="config-field">
+        <span class="config-label">Algorithms</span>
+        <div class="algo-checks">
+          <label class="algo-check-item"><input type="checkbox" id="chkBT" checked><span class="algo-check-pill pill-bt"><span class="pill-check-icon">✓</span> BACKTRACK</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkBFS" checked><span class="algo-check-pill pill-bfs"><span class="pill-check-icon">✓</span> BFS</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkDFS" checked><span class="algo-check-pill pill-dfs"><span class="pill-check-icon">✓</span> DFS</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkMC" checked><span class="algo-check-pill pill-mc"><span class="pill-check-icon">✓</span> MIN-CONF</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkGA" checked><span class="algo-check-pill pill-ga"><span class="pill-check-icon">✓</span> GENETIC</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkSA" checked><span class="algo-check-pill pill-sa"><span class="pill-check-icon">✓</span> SIM.ANNEAL</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkHC" checked><span class="algo-check-pill pill-hc"><span class="pill-check-icon">✓</span> HILL CLIMB</span></label>
+        </div>
+      </div>
+
+      <!-- Speed -->
+      <div class="config-field">
+        <span class="config-label">⏵ Playback (ms)</span>
+        <div class="speed-config-wrap">
+          <button class="speed-config-btn" data-ms="1800">0.5×</button>
+          <button class="speed-config-btn active" data-ms="900">1×</button>
+          <button class="speed-config-btn" data-ms="420">2×</button>
+          <button class="speed-config-btn" data-ms="150">4×</button>
+        </div>
+      </div>
+
+      <!-- Run -->
+      <button class="cfg-run-btn" id="cfgRunBtn">▶ RUN CUSTOM</button>
+    </div>
+  </div>
+
+  <!-- PRESET LEVELS CONTROLS -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">Preset Level</span>
+    <select class="lvl-select" id="levelSelect">
+      <option value="0">LVL 01 · 4-Queens  — Very Easy   · Backtracking vs BFS</option>
+      <option value="1" selected>LVL 02 · 5-Queens  — Medium     · Backtracking vs DFS</option>
+      <option value="2">LVL 03 · 8-Queens  — Classic AI  · Backtrack + Min-Conflicts + Genetic</option>
+      <option value="3">LVL 04 · 12-Queens — Hard        · Backtrack + Min-Conflicts + Sim.Ann.</option>
+      <option value="4">LVL 05 · 20-Queens — Very Hard   · Min-Conflicts vs Hill Climbing</option>
+      <option value="5">LVL 06 · 100-Queens — Research   · Min-Conflicts vs Genetic vs Sim.Ann.</option>
+    </select>
+    <div class="speed-wrap">
+      <span class="ctrl-label">Speed</span>
+      <button class="speed-btn" data-ms="1800">0.5×</button>
+      <button class="speed-btn active" data-ms="900">1×</button>
+      <button class="speed-btn" data-ms="420">2×</button>
+      <button class="speed-btn" data-ms="150">4×</button>
+    </div>
+    <button class="run-btn" id="runBtn">▶ RUN PRESET LEVEL</button>
+  </div>
+
+  <!-- PROBLEM INFO -->
+  <div class="problem-row">
+    <div class="prob-card board-card">
+      <div>
+        <div class="prob-label pl-green">♛ N-Queens Board</div>
+        <div class="prob-state-val" id="probBoardDesc">—</div>
+      </div>
+      <div class="mini-board-wrap"><canvas id="miniBoard" width="110" height="110"></canvas></div>
+    </div>
+    <div class="prob-card goal-card">
+      <div>
+        <div class="prob-label pl-blue">◆ Example Solution</div>
+        <div class="prob-state-val" id="probGoalDesc">—</div>
+      </div>
+      <div class="mini-board-wrap"><canvas id="miniGoal" width="110" height="110"></canvas></div>
+    </div>
+    <div class="prob-stats" id="probStats"></div>
+  </div>
+
+  <!-- ALGORITHM INSIGHT PANEL (hidden for custom runs) -->
+  <div class="insight-panel" id="insightPanel">
+    <div class="insight-title">🔬 Algorithm Behavior — How Each Approach Tackles This N-Queens Instance</div>
+    <div class="insight-grid" id="insightGrid"></div>
+  </div>
+
+  <!-- SYNC BAR -->
+  <div class="sync-bar">
+    <span class="sync-label">Sync All</span>
+    <button class="sync-btn" id="syncPrev" disabled>‹</button>
+    <div class="sync-counter" id="syncCounter">0 / 0</div>
+    <button class="sync-btn" id="syncNext" disabled>›</button>
+    <button class="sync-auto-btn" id="syncAuto">▶ AUTO PLAY ALL</button>
+    <div class="fastest-tag" id="fastestTag" style="display:none">⚡ FEWEST NODES</div>
+  </div>
+
+  <!-- ALGORITHM PANELS (dynamic) -->
+  <div class="algos-grid" id="algosGrid"></div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="cmp-wrap">
+    <div class="cmp-title">Algorithm Comparison — CSP Solving Strategies</div>
+    <table class="cmp-table">
+      <thead><tr><th>Algorithm</th><th>Type</th><th>Completeness</th><th>Optimality</th><th>Time Complexity</th><th>Space</th><th>Works for N=100+?</th><th>Key Trait</th></tr></thead>
+      <tbody>
+        <tr class="r-bt"><td class="an">Backtracking</td><td class="cx-mid">Systematic</td><td class="cx-best">✓ Complete</td><td class="cx-best">✓ Yes</td><td class="cx-bad">O(n!)</td><td class="cx-best">O(n)</td><td class="cx-bad">✗ Too slow</td><td class="cx-mid">Prune-and-search</td></tr>
+        <tr class="r-bfs"><td class="an">BFS</td><td class="cx-mid">Uninformed</td><td class="cx-best">✓ Complete</td><td class="cx-best">✓ Yes</td><td class="cx-bad">O(b^d)</td><td class="cx-bad">O(b^d)</td><td class="cx-bad">✗ Memory</td><td class="cx-mid">Exhaustive, memory heavy</td></tr>
+        <tr class="r-dfs"><td class="an">DFS</td><td class="cx-mid">Uninformed</td><td class="cx-mid">With limit</td><td class="cx-bad">✗ No</td><td class="cx-bad">O(b^m)</td><td class="cx-best">O(bm)</td><td class="cx-bad">✗ Too slow</td><td class="cx-mid">Low memory, no pruning</td></tr>
+        <tr class="r-mc"><td class="an">Min-Conflicts</td><td class="cx-best">Local Search</td><td class="cx-warn">Incomplete*</td><td class="cx-bad">✗ No</td><td class="cx-best">O(k·n)</td><td class="cx-best">O(n)</td><td class="cx-best">✓ Excellent</td><td class="cx-best">Iterative conflict reduction</td></tr>
+        <tr class="r-ga"><td class="an">Genetic Algorithm</td><td class="cx-good">Evolutionary</td><td class="cx-warn">Incomplete*</td><td class="cx-bad">✗ No</td><td class="cx-warn">O(g·p·n)</td><td class="cx-warn">O(p·n)</td><td class="cx-best">✓ Good</td><td class="cx-warn">Population evolution</td></tr>
+        <tr class="r-sa"><td class="an">Simulated Annealing</td><td class="cx-good">Probabilistic</td><td class="cx-warn">Incomplete*</td><td class="cx-bad">✗ No</td><td class="cx-warn">O(t·n)</td><td class="cx-best">O(n)</td><td class="cx-best">✓ Good</td><td class="cx-warn">Escapes local optima</td></tr>
+        <tr class="r-hc"><td class="an">Hill Climbing</td><td class="cx-mid">Local Search</td><td class="cx-bad">✗ Incomplete</td><td class="cx-bad">✗ No</td><td class="cx-best">O(k·n)</td><td class="cx-best">O(n)</td><td class="cx-warn">⚠ Gets stuck</td><td class="cx-bad">Greedy local, traps</td></tr>
+      </tbody>
+    </table>
+    <div class="cmp-note">* Probabilistically complete for large N given enough iterations. &nbsp;|&nbsp; Backtracking with pruning works up to N≈30.</div>
+  </div>
+
+</div>
+<script>
+(function(){
+'use strict';
+
+// ===========================================================
+//  LEVEL DEFINITIONS (same as original, extended to 6 levels)
+// ===========================================================
+const LEVELS = [
+  { n:4, label:'4-QUEENS', diff:'VERY EASY', targetMoves:8, algos:['bt','bfs'], exampleSolution:[1,3,0,2],
+    statsKeys:[
+      {key:'piTarget',label:'Min Queens',val:'4',cls:'vc-gd'},
+      {key:'piBt',label:'BT nodes',val:'--',cls:'vc-bt'},
+      {key:'piBfs',label:'BFS nodes',val:'--',cls:'vc-bfs'},
+    ],
+    insight:[
+      {id:'bt', label:'BACKTRACKING', abbr:'BT', steps:[{action:'Place Q(0,0)','reason':'Start row 0, try leftmost column.'},{action:'Place Q(1,2)','reason':'Cols 0 & 1 conflict, first safe is col 2.'},{action:'Backtrack from row 2','reason':'Row 2: all cols conflict. Backtrack, try Q(1,3).'},{action:'Q(2,1)->Q(3,3) -> SOLVED','reason':'After backtrack: Q[1,3,0,2] has zero conflicts.'}], result:'Nodes explored: ~8. Prunes invalid subtrees.', cls:'ic-bt', hcls:'ih-bt'},
+      {id:'bfs', label:'BFS', abbr:'BF', steps:[{action:'Enqueue all col-0 placements','reason':'BFS starts: queue all 4 ways to place row-0 queen.'},{action:'Expand each level uniformly','reason':'Layer by layer: after row 0 -> try all 4 cols in row 1, etc.'},{action:'No pruning of conflicts','reason':'BFS enqueues conflicting states too -- wastes ~60 nodes.'},{action:'First complete solution found','reason':'When all 4 rows filled with no attack, solution reported.'}], result:'Nodes explored: ~60. Finds optimal but explores many invalid states.', cls:'ic-bfs', hcls:'ih-bfs'},
+    ],
+  },
+  { n:5, label:'5-QUEENS', diff:'MEDIUM', targetMoves:10, algos:['bt','dfs'], exampleSolution:[0,2,4,1,3],
+    statsKeys:[
+      {key:'piTarget',label:'Min Queens',val:'5',cls:'vc-gd'},
+      {key:'piBt',label:'BT nodes',val:'--',cls:'vc-bt'},
+      {key:'piDfs',label:'DFS nodes',val:'--',cls:'vc-dfs'},
+    ],
+    insight:[
+      {id:'bt', label:'BACKTRACKING', abbr:'BT', steps:[{action:'Place Q(0,0), Q(1,2)','reason':'Forward checking: after each placement, prune future domain.'},{action:'Row 2: only col 4 survives','reason':'Constraint propagation eliminates cols 0,1,2,3 for row 2.'},{action:'Row 3 fails -> backtrack','reason':'After Q[0,2,4]: row 3 has no safe columns. Backtrack to row 2.'},{action:'Explore Q(1,3) branch','reason':'Try new assignment. Continue depth-first with pruning.'}], result:'Nodes: ~15-90. Constraint propagation makes this dramatically faster.', cls:'ic-bt', hcls:'ih-bt'},
+      {id:'dfs', label:'DEPTH-FIRST', abbr:'DF', steps:[{action:'Dive deep: Q(0,0),Q(1,0)...','reason':'DFS has no constraint checking.'},{action:'Reach row 4 with conflicts','reason':'DFS reaches leaf nodes with invalid configurations.'},{action:'Explore many conflict paths','reason':'Without constraint pruning, DFS explores ~300 nodes.'},{action:'Eventually stumbles to solution','reason':'Finds solution but far less efficient than backtracking.'}], result:'Nodes: ~300. No constraint pruning.', cls:'ic-dfs', hcls:'ih-dfs'},
+    ],
+  },
+  { n:8, label:'8-QUEENS', diff:'CLASSIC AI', targetMoves:15, algos:['bt','mc','ga'], exampleSolution:[0,4,7,5,2,6,1,3],
+    statsKeys:[
+      {key:'piTarget',label:'Solutions',val:'92',cls:'vc-gd'},
+      {key:'piBt',label:'BT nodes',val:'--',cls:'vc-bt'},
+      {key:'piMc',label:'MC steps',val:'--',cls:'vc-mc'},
+      {key:'piGa',label:'GA iters',val:'--',cls:'vc-ga'},
+    ],
+    insight:[
+      {id:'bt', label:'BACKTRACKING', abbr:'BT', steps:[{action:'Systematic row-by-row placement','reason':'Try each column 0-7 for row 0, propagate constraints.'},{action:'15,720 nodes explored','reason':'8-Queens has 8^8 = 16M raw states. BT reduces to ~15K.'},{action:'First solution at node ~876','reason':'Q[0,4,7,5,2,6,1,3] found after extensive search.'}], result:'Nodes: ~15,720. Classic benchmark.', cls:'ic-bt', hcls:'ih-bt'},
+      {id:'mc', label:'MIN-CONFLICTS', abbr:'MC', steps:[{action:'Random initial placement','reason':'Place one queen per column randomly.'},{action:'Count conflicts per queen','reason':'For each queen, count attacks. Pick worst queen.'},{action:'Move to minimum-conflict row','reason':'Reposition selected queen to the row with fewest attacks.'},{action:'Repeat until 0 conflicts','reason':'Each iteration reduces conflict count. Typically solves in <200 steps.'}], result:'Steps: ~160. Orders of magnitude faster than BT.', cls:'ic-mc', hcls:'ih-mc'},
+      {id:'ga', label:'GENETIC ALGO', abbr:'GA', steps:[{action:'Initialize population of 100','reason':'Each individual = permutation of [0..7] (one queen per col).'},{action:'Fitness = non-attacking pairs','reason':'Score each permutation by how many queen pairs don\'t attack diagonally.'},{action:'Selection + Crossover','reason':'Tournament select best, combine segments from two parents.'},{action:'Mutate & evaluate','reason':'Randomly swap two positions. Iterate until fitness = 28.'}], result:'Iterations: ~430. Population diversity avoids local optima.', cls:'ic-ga', hcls:'ih-ga'},
+    ],
+  },
+  { n:12, label:'12-QUEENS', diff:'HARD', targetMoves:20, algos:['bt','mc','sa'], exampleSolution:[0,2,4,7,9,11,5,10,1,6,8,3],
+    statsKeys:[
+      {key:'piTarget',label:'Min Queens',val:'12',cls:'vc-gd'},
+      {key:'piBt',label:'BT nodes',val:'--',cls:'vc-bt'},
+      {key:'piMc',label:'MC steps',val:'--',cls:'vc-mc'},
+      {key:'piSa',label:'SA steps',val:'--',cls:'vc-sa'},
+    ],
+    insight:[
+      {id:'bt', label:'BACKTRACKING', abbr:'BT', steps:[{action:'500K+ nodes to first solution','reason':'12-Queens search tree is enormous.'},{action:'Constraint propagation helps but...','reason':'Forward checking prunes many branches, yet the tree is still deep.'},{action:'Impractical for real-time use','reason':'Milliseconds vs seconds -- backtracking is losing ground.'}], result:'Nodes: ~500,000. Exponential growth makes BT impractical.', cls:'ic-bt', hcls:'ih-bt'},
+      {id:'mc', label:'MIN-CONFLICTS', abbr:'MC', steps:[{action:'Random placement + conflict map','reason':'Place 12 queens randomly one per column. Compute attack counts.'},{action:'Greedy conflict minimization','reason':'Scan for queen with most conflicts; move to min-conflict row.'},{action:'Plateau detection + restart','reason':'If stuck, restart with new random state.'}], result:'Steps: ~100. Local search shines here.', cls:'ic-mc', hcls:'ih-mc'},
+      {id:'sa', label:'SIM. ANNEALING', abbr:'SA', steps:[{action:'Start with random permutation','reason':'High temperature T: accept any move.'},{action:'Swap two queens, evaluate','reason':'Propose swapping two queens\' positions. Accept if better; accept worse with P=e^(-delta/T).'},{action:'Cool temperature gradually','reason':'As T->0, SA becomes greedy.'},{action:'T reaches near-0: solution found','reason':'By cooling schedule end, SA has settled into zero-conflict.'}], result:'Steps: ~200. Better than Hill Climbing.', cls:'ic-sa', hcls:'ih-sa'},
+    ],
+  },
+  { n:20, label:'20-QUEENS', diff:'VERY HARD', targetMoves:25, algos:['mc','hc'], exampleSolution:Array.from({length:20},(_,i)=>i%20),
+    statsKeys:[
+      {key:'piTarget',label:'Min Queens',val:'20',cls:'vc-gd'},
+      {key:'piMc',label:'MC steps',val:'--',cls:'vc-mc'},
+      {key:'piHc',label:'HC iters',val:'--',cls:'vc-hc'},
+    ],
+    insight:[
+      {id:'mc', label:'MIN-CONFLICTS', abbr:'MC', steps:[{action:'Place 20 queens (1/col, random rows)','reason':'Initialize: one queen per column at random row.'},{action:'Iterate: pick most-conflicted queen','reason':'Find queen involved in most attack pairs.'},{action:'Move to row minimizing its conflicts','reason':'Scan all 20 rows for selected queen.'},{action:'Repeat max 1000 iterations','reason':'Usually converges in <200 moves.'}], result:'Steps: ~200. Min-Conflicts excels here.', cls:'ic-mc', hcls:'ih-mc'},
+      {id:'hc', label:'HILL CLIMBING', abbr:'HC', steps:[{action:'Start at random state','reason':'All 20 queens placed randomly one per column.'},{action:'Find best neighboring swap','reason':'For each queen, try moving to each row. Pick move that reduces conflicts most.'},{action:'Get stuck at local minimum','reason':'After some steps, no single move reduces conflicts.'},{action:'Random restart required','reason':'HC must restart many times (~50) to find solution.'}], result:'Iters: ~1000 (with restarts). Demonstrates local optima problem.', cls:'ic-hc', hcls:'ih-hc'},
+    ],
+  },
+  { n:100, label:'100-QUEENS', diff:'RESEARCH', targetMoves:30, algos:['mc','ga','sa'], exampleSolution:Array.from({length:100},(_,i)=>i%100),
+    statsKeys:[
+      {key:'piTarget',label:'Min Queens',val:'100',cls:'vc-gd'},
+      {key:'piMc',label:'MC steps',val:'--',cls:'vc-mc'},
+      {key:'piGa',label:'GA iters',val:'--',cls:'vc-ga'},
+      {key:'piSa',label:'SA steps',val:'--',cls:'vc-sa'},
+    ],
+    insight:[
+      {id:'mc', label:'MIN-CONFLICTS', abbr:'MC', steps:[{action:'Initialize 100 queens (1/col)','reason':'All 100 columns occupied. Conflict count is ~hundreds initially.'},{action:'Heuristic iteration: pick max-conflict','reason':'Randomly sample from most-conflicted queens; move to min-conflict row.'},{action:'~150 moves to zero conflicts','reason':'Despite 100 queens, conflict landscape is smooth.'}], result:'Steps: ~150. Remarkably efficient.', cls:'ic-mc', hcls:'ih-mc'},
+      {id:'ga', label:'GENETIC ALGO', abbr:'GA', steps:[{action:'Population: 200 permutations','reason':'Each individual is a valid permutation (no row conflicts).'},{action:'Diagonal-conflict fitness','reason':'Count diagonal attacks. Population pressure selects fewer-conflict individuals.'},{action:'Ordered crossover + mutation','reason':'OX crossover preserves permutation structure. Mutation swaps two positions.'},{action:'Converges in ~400 generations','reason':'With population diversity, GA rarely gets permanently stuck.'}], result:'Iterations: ~400. Parallelizable across population.', cls:'ic-ga', hcls:'ih-ga'},
+      {id:'sa', label:'SIM. ANNEALING', abbr:'SA', steps:[{action:'High-T phase: random exploration','reason':'Accept all moves including conflict increases.'},{action:'Gradual cooling over 1000 steps','reason':'Cooling schedule: T_0=10, alpha=0.99.'},{action:'Low-T phase: hill climbing','reason':'As T->0.01, essentially only improvements accepted.'},{action:'Verify zero conflicts on termination','reason':'Usually finds 0-conflict state. If not, restart.'}], result:'Steps: ~300. SA avoids local optima HC falls into.', cls:'ic-sa', hcls:'ih-sa'},
+    ],
+  },
+];
+
+// ===========================================================
+//  ALGORITHM SOLVERS (unchanged)
+// ===========================================================
+function queens_conflicts(board,n){
+  let c=0;
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+    if(board[i]===board[j])c++;
+    if(Math.abs(board[i]-board[j])===Math.abs(i-j))c++;
+  }
+  return c;
+}
+function queen_conf_row(board,n,row,col){
+  let c=0;
+  for(let i=0;i<n;i++){
+    if(i===row)continue;
+    if(board[i]===col)c++;
+    if(Math.abs(board[i]-col)===Math.abs(i-row))c++;
+  }
+  return c;
+}
+function is_safe(board,row,col){
+  for(let i=0;i<row;i++){
+    if(board[i]===col)return false;
+    if(Math.abs(board[i]-col)===Math.abs(i-row))return false;
+  }
+  return true;
+}
+
+function solveBacktrack(n){
+  const steps=[]; const board=Array(n).fill(-1); let nodes=0;
+  function bt(row){
+    if(row===n){
+      steps.push({type:'sol',board:[...board],note:`Solution found! Q=[${board}]`,nodes}); return true;
+    }
+    for(let col=0;col<n;col++){
+      nodes++;
+      if(is_safe(board,row,col)){
+        board[row]=col;
+        steps.push({type:'place',board:[...board],row,col,note:`Place Q(row ${row}, col ${col})`,nodes});
+        if(bt(row+1)) return true;
+        board[row]=-1;
+        steps.push({type:'back',board:[...board],row,col,note:`Backtrack from row ${row} col ${col}`,nodes});
+      } else {
+        if(steps.length<800) steps.push({type:'conf',board:[...board],row,col,note:`Conflict: Q(${row},${col}) -- skip`,nodes});
+      }
+    }
+    return false;
+  }
+  bt(0);
+  return {steps, nodes, solution:steps.find(s=>s.type==='sol')?.board||null};
+}
+function solveBFS(n){
+  const steps=[]; const goal_test=(b)=>b.length===n&&!b.some((c,r)=>{for(let i=0;i<r;i++){if(b[i]===c||Math.abs(b[i]-c)===Math.abs(i-r))return true;}return false;});
+  const queue=[{board:[],depth:0}]; let nodes=0, solution=null;
+  while(queue.length&&nodes<3000){
+    const{board,depth}=queue.shift(); nodes++;
+    if(goal_test(board)){
+      solution=board; steps.push({type:'sol',board:[...board],note:`BFS Solution: [${board}]`,nodes}); break;
+    }
+    if(depth<n){
+      for(let col=0;col<n;col++){
+        const nb=[...board,col];
+        steps.push({type:'try',board:nb,row:depth,col,note:`BFS try Q(${depth},${col})`,nodes});
+        queue.push({board:nb,depth:depth+1});
+      }
+    }
+  }
+  return{steps,nodes,solution};
+}
+function solveDFS(n){
+  const steps=[]; const stack=[{board:[],depth:0}]; let nodes=0, solution=null;
+  while(stack.length&&nodes<3500){
+    const{board,depth}=stack.pop(); nodes++;
+    if(depth===n){
+      const valid=!board.some((c,r)=>{for(let i=0;i<r;i++){if(board[i]===c||Math.abs(board[i]-c)===Math.abs(i-r))return true;}return false;});
+      if(valid){solution=board; steps.push({type:'sol',board:[...board],note:`DFS Solution: [${board}]`,nodes}); break;}
+      continue;
+    }
+    for(let col=n-1;col>=0;col--){
+      const nb=[...board,col];
+      steps.push({type:'try',board:nb,row:depth,col,note:`DFS try Q(${depth},${col})`,nodes});
+      stack.push({board:nb,depth:depth+1});
+    }
+  }
+  return{steps,nodes,solution};
+}
+function solveMinConflicts(n,maxIter=1500){
+  const steps=[]; const board=Array.from({length:n},()=>Math.floor(Math.random()*n));
+  let c=queens_conflicts(board,n);
+  steps.push({type:'place',board:[...board],note:`Init: ${c} conflicts`,nodes:0});
+  for(let iter=0;iter<maxIter;iter++){
+    c=queens_conflicts(board,n);
+    if(c===0){steps.push({type:'sol',board:[...board],note:`MC Solved in ${iter} steps`,nodes:iter}); break;}
+    const conflicts=board.map((col,row)=>queen_conf_row(board,n,row,col));
+    let maxC=0; const candidates=[]; conflicts.forEach((v,i)=>{if(v>maxC)maxC=v;});
+    conflicts.forEach((v,i)=>{if(v===maxC)candidates.push(i);});
+    const row=candidates[Math.floor(Math.random()*candidates.length)];
+    const rowConfs=Array.from({length:n},(_,col)=>queen_conf_row(board,n,row,col));
+    const minC2=Math.min(...rowConfs);
+    const bestCols=rowConfs.map((v,i)=>v===minC2?i:-1).filter(x=>x>=0);
+    const newCol=bestCols[Math.floor(Math.random()*bestCols.length)];
+    const oldCol=board[row];
+    board[row]=newCol;
+    const newConf=queens_conflicts(board,n);
+    if(iter%Math.max(1,Math.floor(maxIter/40))===0||iter<6)
+      steps.push({type:'iter',board:[...board],row,col:newCol,note:`Step ${iter+1}: move Q${row} col${oldCol}->${newCol} | conflicts: ${newConf}`,nodes:iter+1});
+    if(newConf===0){steps.push({type:'sol',board:[...board],note:`MC Solved in ${iter+1} steps!`,nodes:iter+1}); break;}
+  }
+  return{steps,nodes:steps[steps.length-1]?.nodes||maxIter,solution:steps.find(s=>s.type==='sol')?.board||null};
+}
+function solveGenetic(n,popSize=80,maxGen=600){
+  const steps=[]; function fitness(p){const max_pairs=n*(n-1)/2;let attacks=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(Math.abs(p[i]-p[j])===Math.abs(i-j))attacks++;return max_pairs-attacks;}
+  function randPerm(){const a=Array.from({length:n},(_,i)=>i);for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function oxcross(a,b){const s=Math.floor(Math.random()*n),e=s+Math.floor(Math.random()*(n-s))+1;const c=Array(n).fill(-1);for(let i=s;i<e;i++)c[i]=a[i];let bi=0;for(let i=0;i<n;i++){if(c.includes(b[bi]))bi++;if(bi>=n)break;const fi=c.indexOf(-1);if(fi===-1)break;c[fi]=b[bi++];}return c.map(x=>x===-1?0:x);}
+  function mutate(p){const a=[...p],i=Math.floor(Math.random()*n),j=Math.floor(Math.random()*n);[a[i],a[j]]=[a[j],a[i]];return a;}
+  const maxFit=n*(n-1)/2; let pop=Array.from({length:popSize},randPerm); let solution=null;
+  for(let gen=0;gen<maxGen;gen++){
+    const scored=pop.map(p=>({p,f:fitness(p)})).sort((a,b)=>b.f-a.f);
+    if(scored[0].f===maxFit){solution=scored[0].p; steps.push({type:'sol',board:solution,note:`GA solved in ${gen} generations`,nodes:gen}); break;}
+    if(gen%15===0||gen<4) steps.push({type:'iter',board:scored[0].p,note:`Gen ${gen}: best fitness=${scored[0].f}/${maxFit}`,nodes:gen});
+    const elite=scored.slice(0,Math.floor(popSize*.2)).map(x=>x.p);
+    const newPop=[...elite];
+    while(newPop.length<popSize){
+      const p1=scored[Math.floor(Math.random()*Math.floor(popSize*.4))].p;
+      const p2=scored[Math.floor(Math.random()*Math.floor(popSize*.4))].p;
+      let child=oxcross(p1,p2); if(Math.random()<.15) child=mutate(child);
+      newPop.push(child);
+    }
+    pop=newPop;
+  }
+  return{steps,nodes:steps[steps.length-1]?.nodes||maxGen,solution};
+}
+function solveSimAnneal(n,T0=10,alpha=0.995,maxSteps=3000){
+  const steps=[]; const board=Array.from({length:n},()=>Math.floor(Math.random()*n));
+  let cost=queens_conflicts(board,n), T=T0, solution=null;
+  steps.push({type:'iter',board:[...board],note:`SA Init: T=${T0}, conflicts=${cost}`,nodes:0});
+  for(let s=0;s<maxSteps;s++){
+    if(cost===0){solution=[...board]; steps.push({type:'sol',board:[...board],note:`SA Solved in ${s} steps`,nodes:s}); break;}
+    const r1=Math.floor(Math.random()*n), r2=Math.floor(Math.random()*n);
+    const old1=board[r1]; board[r1]=Math.floor(Math.random()*n);
+    const newCost=queens_conflicts(board,n); const delta=newCost-cost;
+    if(delta<=0||Math.random()<Math.exp(-delta/T)){cost=newCost;} else{board[r1]=old1;}
+    T*=alpha;
+    if(s%Math.max(1,Math.floor(maxSteps/35))===0) steps.push({type:'iter',board:[...board],note:`Step ${s}: T=${T.toFixed(3)}, conflicts=${cost}`,nodes:s});
+  }
+  if(!solution&&cost===0){solution=[...board]; steps.push({type:'sol',board:[...board],note:'SA Solved',nodes:maxSteps});}
+  return{steps,nodes:steps[steps.length-1]?.nodes||maxSteps,solution};
+}
+function solveHillClimbing(n,maxRestarts=30){
+  const steps=[]; let totalIter=0,solution=null;
+  outer:for(let restart=0;restart<maxRestarts;restart++){
+    const board=Array.from({length:n},()=>Math.floor(Math.random()*n));
+    let cost=queens_conflicts(board,n);
+    if(restart<3) steps.push({type:'try',board:[...board],note:`HC Restart ${restart+1}: conflicts=${cost}`,nodes:totalIter});
+    for(let iter=0;iter<200;iter++){
+      totalIter++;
+      if(cost===0){solution=[...board]; steps.push({type:'sol',board:[...board],note:`HC Solved: restart ${restart+1}, iter ${iter}`,nodes:totalIter}); break outer;}
+      let bestCost=cost,bestR=-1,bestC=-1;
+      for(let r=0;r<n;r++){for(let c=0;c<n;c++){const old=board[r]; board[r]=c; const nc=queens_conflicts(board,n); if(nc<bestCost){bestCost=nc; bestR=r; bestC=c;} board[r]=old;}}
+      if(bestR===-1) break;
+      board[bestR]=bestC; cost=bestCost;
+      if(iter%15===0&&restart<2) steps.push({type:'iter',board:[...board],note:`HC iter ${iter}: conflicts=${cost}`,nodes:totalIter});
+    }
+  }
+  return{steps,nodes:totalIter,solution};
+}
+
+function runAlgo(id,n){
+  switch(id){
+    case'bt': return solveBacktrack(n);
+    case'bfs': return solveBFS(n);
+    case'dfs': return solveDFS(n);
+    case'mc': return solveMinConflicts(n);
+    case'ga': return solveGenetic(n);
+    case'sa': return solveSimAnneal(n);
+    case'hc': return solveHillClimbing(n);
+    default: return{steps:[],nodes:0,solution:null};
+  }
+}
+
+// ===========================================================
+//  DRAWING (unchanged)
+// ===========================================================
+const ALGO_COLORS={bt:'#f97316',bfs:'#38bdf8',dfs:'#a78bfa',mc:'#34d399',ga:'#fb7185',sa:'#fbbf24',hc:'#e879f9'};
+
+function drawBoard(canvas,board,n,highlightConflicts=true,accentColor='#34d399',showHeatmap=false){
+  const ctx=canvas.getContext('2d'); const W=canvas.width,H=canvas.height;
+  const cellW=Math.floor(W/n),cellH=Math.floor(H/n);
+  const offX=Math.floor((W-cellW*n)/2),offY=Math.floor((H-cellH*n)/2);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#0b0f1a'; ctx.fillRect(0,0,W,H);
+  const conf=new Set();
+  if(highlightConflicts&&board){
+    for(let i=0;i<board.length;i++){
+      if(board[i]<0) continue;
+      for(let j=i+1;j<board.length;j++){
+        if(board[j]<0) continue;
+        if(board[i]===board[j]||Math.abs(board[i]-board[j])===Math.abs(i-j)){conf.add(i); conf.add(j);}
+      }
+    }
+  }
+  let heatmap=null;
+  if(showHeatmap&&board&&n>15){
+    heatmap=Array.from({length:n},()=>Array(n).fill(0));
+    if(board) board.forEach((col,row)=>{if(col<0) return; for(let r=0;r<n;r++){for(let c=0;c<n;c++){if(r===row&&c===col)continue;if(r===row||c===col||Math.abs(r-row)===Math.abs(c-col)) heatmap[r][c]++;}}});
+  }
+  for(let r=0;r<n;r++){
+    for(let c=0;c<n;c++){
+      const x=offX+c*cellW, y=offY+r*cellH;
+      const isLight=(r+c)%2===0;
+      let fill=isLight?'#1e2a42':'#141c2e';
+      if(showHeatmap&&heatmap){
+        const h=heatmap[r][c]; const maxH=n*4; const t=Math.min(1,h/maxH);
+        const r_=Math.floor(20+t*228), g_=Math.floor(42-t*10), b_=Math.floor(66-t*20);
+        fill=`rgb(${r_},${g_},${b_})`;
+      }
+      ctx.fillStyle=fill; ctx.fillRect(x,y,cellW,cellH);
+      if(board&&r<board.length&&board[r]===c){
+        const isConflicted=conf.has(r);
+        const qColor=isConflicted?'#f87171':accentColor;
+        ctx.fillStyle='rgba(0,0,0,.5)'; const pad=Math.max(2,Math.floor(cellW*.13));
+        ctx.beginPath(); ctx.arc(x+cellW/2+1,y+cellH/2+2,cellW/2-pad,0,Math.PI*2); ctx.fill();
+        if(isConflicted){ctx.shadowColor='#f87171'; ctx.shadowBlur=cellW*.7;}
+        else{ctx.shadowColor=accentColor; ctx.shadowBlur=cellW*.5;}
+        ctx.fillStyle=qColor; ctx.beginPath(); ctx.arc(x+cellW/2,y+cellH/2,cellW/2-pad,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+        if(cellW>=10){ ctx.font=`bold ${Math.max(7,Math.floor(cellW*.58))}px serif`; ctx.fillStyle='rgba(0,0,0,.7)'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('\u265B',x+cellW/2+.5,y+cellH/2+1.5); ctx.fillStyle='rgba(255,255,255,.88)'; ctx.fillText('\u265B',x+cellW/2,y+cellH/2); }
+        ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      }
+      if(board&&r<board.length&&board[r]===c&&highlightConflicts&&conf.has(r)&&n<=12){
+        ctx.strokeStyle='rgba(248,113,113,.4)'; ctx.lineWidth=1; ctx.strokeRect(x+.5,y+.5,cellW-1,cellH-1);
+      }
+    }
+  }
+  if(n<=20){
+    ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=.5;
+    for(let r=0;r<=n;r++){ctx.beginPath(); ctx.moveTo(offX,offY+r*cellH); ctx.lineTo(offX+n*cellW,offY+r*cellH); ctx.stroke();}
+    for(let c=0;c<=n;c++){ctx.beginPath(); ctx.moveTo(offX+c*cellW,offY); ctx.lineTo(offX+c*cellW,offY+n*cellH); ctx.stroke();}
+  }
+  ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1; ctx.strokeRect(offX,offY,n*cellW,n*cellH);
+}
+
+function getBoardSize(n){
+  if(n<=5) return[220,220];
+  if(n<=8) return[260,260];
+  if(n<=12)return[280,280];
+  if(n<=20)return[290,290];
+  return[300,300];
+}
+function getMiniSize(n){ return[110,110]; }
+
+// ===========================================================
+//  UI STATE (shared with original)
+// ===========================================================
+let curLevel=1, stepMs=900, syncStep=0, syncMax=0, syncTimer=null;
+const plans={}; const panelSteps={}; const panelTimers={};
+
+const ALGO_META={
+  bt: {label:'BACKTRACKING',full:'Systematic search with constraint pruning',abbr:'BT',cls:'ap-bt',bolcls:'bol-bt'},
+  bfs:{label:'BREADTH-FIRST',full:'Uninformed * FIFO Queue * No pruning',abbr:'BF',cls:'ap-bfs',bolcls:'bol-bfs'},
+  dfs:{label:'DEPTH-FIRST',full:'Uninformed * LIFO Stack * No constraint check',abbr:'DF',cls:'ap-dfs',bolcls:'bol-dfs'},
+  mc: {label:'MIN-CONFLICTS',full:'Local search * iterative conflict reduction',abbr:'MC',cls:'ap-mc',bolcls:'bol-mc'},
+  ga: {label:'GENETIC ALGO',full:'Evolutionary * population-based search',abbr:'GA',cls:'ap-ga',bolcls:'bol-ga'},
+  sa: {label:'SIM. ANNEALING',full:'Probabilistic * temperature-based acceptance',abbr:'SA',cls:'ap-sa',bolcls:'bol-sa'},
+  hc: {label:'HILL CLIMBING',full:'Greedy local search * gets stuck in local minima',abbr:'HC',cls:'ap-hc',bolcls:'bol-hc'},
+};
+const ALGO_DESCS={
+  bt:'<strong>Backtracking</strong> places queens row-by-row with <strong>constraint propagation</strong>. Prunes entire subtrees when conflicts detected. Complete and optimal but exponential time.',
+  bfs:'<strong>BFS</strong> explores all partial placements level-by-level. <strong>Complete and optimal</strong> but memory O(b^d) explodes -- stores entire frontier. Only practical for tiny N.',
+  dfs:'<strong>DFS</strong> dives deep without constraint checking. Low memory O(bm) but <strong>explores 3x more nodes</strong> than backtracking -- no pruning means dead-end paths are followed fully.',
+  mc:'<strong>Min-Conflicts</strong> starts with all queens placed and iteratively moves the most-conflicted queen to its minimum-conflict row. <strong>O(k*n)</strong> -- designed exactly for CSPs like N-Queens.',
+  ga:'<strong>Genetic Algorithm</strong> maintains a <strong>population of permutations</strong>. Fitness = non-attacking pairs. Crossover + mutation drives evolution toward zero-conflict solutions.',
+  sa:'<strong>Simulated Annealing</strong> accepts worse moves with probability e^(-delta/T). High temperature = random exploration; low T = hill climbing. <strong>Escapes local optima</strong> that trap HC.',
+  hc:'<strong>Hill Climbing</strong> greedily moves to the neighbor with fewest conflicts. Fast per iteration but <strong>gets trapped in local minima</strong> -- requires many restarts to find a solution.',
+};
+
+function CM(id){ return ALGO_COLORS[id]||'#888'; }
+
+function buildPanels(algos, n){
+  const grid=document.getElementById('algosGrid'); grid.innerHTML='';
+  algos.forEach(id=>{
+    const meta=ALGO_META[id];
+    const [bw,bh]=getBoardSize(n);
+    const showHm=n>15;
+    const hasProgress=['mc','sa','ga','hc'].includes(id);
+    const div=document.createElement('div');
+    div.className=`algo-panel ${meta.cls}`; div.id=`panel-${id}`;
+    div.innerHTML=`
+      <div class="panel-header">
+        <div class="ph-left">
+          <div class="ph-icon">${meta.abbr}</div>
+          <div><div class="ph-name">${meta.label}</div><div class="ph-full">${meta.full}</div></div>
+        </div>
+        <div class="ph-status" id="status-${id}">READY</div>
+      </div>
+      <div class="panel-board-wrap">
+        <canvas id="canvas-${id}" width="${bw}" height="${bh}"></canvas>
+        <div class="board-overlay-label ${meta.bolcls}" id="sfloat-${id}">START</div>
+      </div>
+      <div class="panel-metrics">
+        <div class="metric"><span class="m-key">Nodes/Steps</span><span class="m-val" id="nodes-${id}">--</span></div>
+        <div class="metric"><span class="m-key">Path Len</span><span class="m-val" id="path-${id}">--</span></div>
+        <div class="metric"><span class="m-key">Solved?</span><span class="m-val" id="solved-${id}">--</span></div>
+      </div>
+      ${hasProgress?`
+      <div class="panel-progress">
+        <div class="pp-row"><span class="pp-label" id="pp-label-${id}">progress</span><span class="pp-val" id="pp-val-${id}">--</span></div>
+        <div class="pp-track"><div class="pp-fill" id="pp-fill-${id}" style="width:0%"></div></div>
+      </div>`:''}
+      <div class="panel-nav">
+        <button class="pnav-btn" id="prev-${id}" disabled>&lsaquo;</button>
+        <div class="pnav-count" id="count-${id}">0 / 0</div>
+        <button class="pnav-btn" id="next-${id}" disabled>&rsaquo;</button>
+        <button class="pnav-auto" id="auto-${id}">&#9654; Play</button>
+      </div>
+      <div class="panel-log" id="log-${id}"></div>
+      <div class="algo-desc">${ALGO_DESCS[id]}</div>
+    `;
+    grid.appendChild(div);
+    panelSteps[id]=0; plans[id]=null;
+    document.getElementById(`prev-${id}`).addEventListener('click',()=>{stopAuto(id); goTo(id,panelSteps[id]-1);});
+    document.getElementById(`next-${id}`).addEventListener('click',()=>{stopAuto(id); goTo(id,panelSteps[id]+1);});
+    document.getElementById(`auto-${id}`).addEventListener('click',()=>{if(panelTimers[id]) stopAuto(id); else startAuto(id);});
+  });
+}
+
+function buildInsight(lv){
+  const grid=document.getElementById('insightGrid'); grid.innerHTML='';
+  lv.insight.forEach(ins=>{
+    const col=document.createElement('div'); col.className=`ins-col ${ins.cls}`;
+    const stepsHtml=ins.steps.map((s,k)=>`<div class="ins-step"><span class="ins-num">${k+1}</span><div class="ins-inner"><div class="ins-action">${s.action}</div><div class="ins-reason">${s.reason}</div></div></div>`).join('');
+    col.innerHTML=`<div class="ins-head ${ins.hcls}">${ins.id==='bt'?'[BT]':ins.id==='bfs'?'[BFS]':ins.id==='dfs'?'[DFS]':ins.id==='mc'?'[MC]':ins.id==='ga'?'[GA]':ins.id==='sa'?'[SA]':'[HC]'} ${ins.label}</div>${stepsHtml}<div class="ins-result"><div class="ins-res-label">Result</div><div style="color:var(--text2);font-size:.61rem">${ins.result}</div></div>`;
+    grid.appendChild(col);
+  });
+}
+
+function buildProbStats(lv){
+  const el=document.getElementById('probStats'); el.innerHTML='';
+  lv.statsKeys.forEach(sk=>{
+    const item=document.createElement('div'); item.className='ps-item';
+    item.innerHTML=`<span class="ps-key">${sk.label}</span><span class="ps-val ${sk.cls}" id="${sk.key}">${sk.val}</span>`;
+    el.appendChild(item);
+  });
+}
+
+function setStatus(id,text,color){
+  const el=document.getElementById('status-'+id); if(!el) return;
+  el.textContent=text;
+  if(color){el.style.color=color; el.style.borderColor=color+'55'; el.style.background=color+'14';}
+  else{el.style.color=''; el.style.borderColor=''; el.style.background='';}
+}
+function updateFloat(id,step,total,type){
+  const el=document.getElementById('sfloat-'+id); if(!el) return;
+  if(step===0) el.textContent='START';
+  else if(type==='sol') el.textContent='SOLVED!';
+  else el.textContent=`STEP ${step}/${total}`;
+}
+function renderLog(id){
+  const el=document.getElementById('log-'+id), plan=plans[id]; if(!plan){if(el)el.innerHTML=''; return;}
+  const step=panelSteps[id]; el.innerHTML='';
+  const TYPE_HTML={place:'<span class="log-type lt-place">PLACE</span>',conf:'<span class="log-type lt-conf">CONF</span>',back:'<span class="log-type lt-back">BACK</span>',try:'<span class="log-type lt-try">TRY</span>',iter:'<span class="log-type lt-iter">ITER</span>',mut:'<span class="log-type lt-mut">MUT</span>',sol:'<span class="log-type lt-sol">SOLVED</span>'};
+  plan.steps.forEach((s,i)=>{
+    const div=document.createElement('div'); div.className='log-item'+(i+1===step?' active-log':'');
+    div.innerHTML=`<span class="log-idx">${String(i+1).padStart(2,'0')}</span>${TYPE_HTML[s.type]||''}<span>${s.note}</span>`;
+    div.addEventListener('click',()=>goTo(id,i+1)); el.appendChild(div);
+  });
+  const act=el.querySelector('.active-log'); if(act) act.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function updateProgress(id,step,total){
+  const fill=document.getElementById('pp-fill-'+id), val=document.getElementById('pp-val-'+id);
+  if(!fill) return; const pct=total>0?Math.round(step/total*100):0; fill.style.width=pct+'%'; if(val) val.textContent=`${step}/${total}`;
+}
+function goTo(id,idx){
+  const plan=plans[id]; if(!plan) return;
+  idx=Math.max(0,Math.min(idx,plan.steps.length)); panelSteps[id]=idx;
+  const step=idx>0?plan.steps[idx-1]:null; const isS=idx===0, isG=step&&step.type==='sol';
+  const board=step?step.board:null;
+  const n=document.getElementById('cfgN').value; // use current N for drawing dimensions
+  const accentColor=CM(id); const cv=document.getElementById('canvas-'+id);
+  if(cv){
+    const emptyBoard=Array(parseInt(n)).fill(-1);
+    drawBoard(cv,board||emptyBoard,parseInt(n),isG?false:true,accentColor,parseInt(n)>15);
+    if(isG&&board){
+      const ctx=cv.getContext('2d'); ctx.save(); ctx.strokeStyle=accentColor; ctx.lineWidth=3; ctx.shadowColor=accentColor; ctx.shadowBlur=18; ctx.globalAlpha=0.85; ctx.strokeRect(2,2,cv.width-4,cv.height-4); ctx.restore();
+    }
+  }
+  setStatus(id,isG?'SOLVED!':isS?'START':`STEP ${idx}`,isG?accentColor:isS?accentColor:null);
+  const total=plan.steps.length; const cnt=document.getElementById('count-'+id); if(cnt) cnt.textContent=`${idx} / ${total}`;
+  const prev=document.getElementById('prev-'+id); if(prev) prev.disabled=idx===0;
+  const next=document.getElementById('next-'+id); if(next) next.disabled=idx>=total;
+  renderLog(id); updateFloat(id,idx,total,step?.type); updateProgress(id,idx,total);
+  document.getElementById('panel-'+id)?.classList.toggle('done-panel',!!isG);
+}
+function startAuto(id){
+  if(panelTimers[id]) return;
+  const btn=document.getElementById('auto-'+id); if(btn){btn.textContent='&#9208; Pause'; btn.classList.add('playing');}
+  function tick(){ const plan=plans[id]; if(!plan||panelSteps[id]>=plan.steps.length){stopAuto(id); return;} goTo(id,panelSteps[id]+1); panelTimers[id]=setTimeout(tick,stepMs); }
+  panelTimers[id]=setTimeout(tick,250);
+}
+function stopAuto(id){
+  if(panelTimers[id]){clearTimeout(panelTimers[id]); panelTimers[id]=null;}
+  const btn=document.getElementById('auto-'+id); if(btn){btn.textContent='&#9654; Play'; btn.classList.remove('playing');}
+}
+function syncGoTo(idx){
+  idx=Math.max(0,Math.min(idx,syncMax)); syncStep=idx;
+  const activeAlgos=Array.from(document.querySelectorAll('.algo-panel')).map(p=>p.id.replace('panel-',''));
+  activeAlgos.forEach(id=>{ const p=plans[id]; if(p) goTo(id,Math.min(idx,p.steps.length)); });
+  document.getElementById('syncCounter').textContent=`${idx} / ${syncMax}`;
+  document.getElementById('syncPrev').disabled=idx===0;
+  document.getElementById('syncNext').disabled=idx>=syncMax;
+}
+function stopAllSync(){ if(syncTimer){clearInterval(syncTimer); syncTimer=null;} const btn=document.getElementById('syncAuto'); btn.textContent='&#9654; AUTO PLAY ALL'; btn.classList.remove('playing'); }
+document.getElementById('syncPrev').addEventListener('click',()=>{stopAllSync(); syncGoTo(syncStep-1);});
+document.getElementById('syncNext').addEventListener('click',()=>{stopAllSync(); syncGoTo(syncStep+1);});
+document.getElementById('syncAuto').addEventListener('click',()=>{ const btn=document.getElementById('syncAuto'); if(syncTimer){stopAllSync(); return;} btn.textContent='&#9208; PAUSE ALL'; btn.classList.add('playing'); syncTimer=setInterval(()=>{if(syncStep>=syncMax){stopAllSync(); return;} syncGoTo(syncStep+1);},stepMs); });
+document.querySelectorAll('.speed-btn, .speed-config-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{ document.querySelectorAll('.speed-btn, .speed-config-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); stepMs=parseInt(btn.dataset.ms); });
+});
+
+function showLoading(algos, n){
+  let ov=document.getElementById('loadOv');
+  const bars=algos.map(id=>{return`<div class="l-algo"><div class="l-algo-bar" style="background:${CM(id)}"></div><span style="color:${CM(id)}">${ALGO_META[id].abbr}</span></div>`;}).join('');
+  if(!ov){ov=document.createElement('div'); ov.id='loadOv'; ov.className='loading-ov'; document.body.appendChild(ov);}
+  ov.innerHTML=`<div class="loading-box"><h3>Computing ${n}-Queens</h3><p>${algos.map(id=>ALGO_META[id].label).join(' · ')} running...</p><div class="loading-algos">${bars}</div><div class="spinner"></div></div>`;
+  ov.style.display='flex';
+}
+function hideLoading(){ const o=document.getElementById('loadOv'); if(o) o.style.display='none'; }
+
+// Core function to run any set of algorithms on a given N
+function runCustom(n, algos, isPresetLevel=false, levelData=null){
+  // Stop ongoing animations
+  Object.keys(panelTimers).forEach(id=>stopAuto(id));
+  stopAllSync();
+
+  // Build panels for selected algos
+  buildPanels(algos, n);
+
+  // Update problem info
+  document.getElementById('probBoardDesc').textContent=`${n}x${n} board`;
+  const exampleSol = levelData ? levelData.exampleSolution : Array.from({length:n},(_,i)=>i%n);
+  document.getElementById('probGoalDesc').textContent=`[${exampleSol.slice(0,6).join(',')}${n>6?'...]':']'}`;
+  const [mw,mh]=getMiniSize(n);
+  const mbCanvas=document.getElementById('miniBoard'); const mgCanvas=document.getElementById('miniGoal');
+  mbCanvas.width=mw; mbCanvas.height=mh; mgCanvas.width=mw; mgCanvas.height=mh;
+  drawBoard(mbCanvas,Array(n).fill(-1),n,false,'rgba(52,211,153,.6)',n>20);
+  drawBoard(mgCanvas,exampleSol,n,false,'rgba(56,189,248,.7)',n>20);
+
+  // Update stats panel dynamically for this run
+  const statsDiv=document.getElementById('probStats'); statsDiv.innerHTML='';
+  algos.forEach(id=>{
+    const item=document.createElement('div'); item.className='ps-item';
+    item.innerHTML=`<span class="ps-key">${ALGO_META[id].abbr} steps</span><span class="ps-val ${id==='bt'?'vc-bt':id==='bfs'?'vc-bfs':id==='dfs'?'vc-dfs':id==='mc'?'vc-mc':id==='ga'?'vc-ga':id==='sa'?'vc-sa':'vc-hc'}" id="stat-${id}">--</span>`;
+    statsDiv.appendChild(item);
+  });
+
+  // Show or hide insight panel (only for preset levels)
+  const insightPanel = document.getElementById('insightPanel');
+  if(isPresetLevel && levelData){
+    insightPanel.style.display='block';
+    buildInsight(levelData);
+  } else {
+    insightPanel.style.display='none';
+  }
+
+  showLoading(algos, n);
+  setTimeout(()=>{
+    const resultPlans={};
+    algos.forEach(id=>{ resultPlans[id] = runAlgo(id,n); });
+    hideLoading();
+
+    algos.forEach(id=>{
+      const plan=resultPlans[id]; plans[id]=plan; panelSteps[id]=0;
+      const statEl=document.getElementById(`stat-${id}`); if(statEl) statEl.textContent=plan.nodes;
+      const nel=document.getElementById(`nodes-${id}`); if(nel) nel.textContent=plan.nodes;
+      const pel=document.getElementById(`path-${id}`); if(pel) pel.textContent=plan.steps.length;
+      const sel=document.getElementById(`solved-${id}`); if(sel) sel.textContent=plan.solution?'YES':'NO';
+      const cv=document.getElementById(`canvas-${id}`); if(cv) drawBoard(cv,Array(n).fill(-1),n,false,CM(id),n>15);
+      setStatus(id,'READY',CM(id));
+      const cnt=document.getElementById(`count-${id}`); if(cnt) cnt.textContent=`0 / ${plan.steps.length}`;
+      const prev=document.getElementById(`prev-${id}`); if(prev) prev.disabled=true;
+      const next=document.getElementById(`next-${id}`); if(next) next.disabled=plan.steps.length===0;
+    });
+
+    // Sync bar
+    syncMax=Math.max(...algos.map(id=>plans[id]?plans[id].steps.length:0));
+    syncStep=0;
+    document.getElementById('syncCounter').textContent=`0 / ${syncMax}`;
+    document.getElementById('syncPrev').disabled=true;
+    document.getElementById('syncNext').disabled=syncMax===0;
+
+    // Fastest tag
+    const tag=document.getElementById('fastestTag');
+    const allPlans=algos.map(id=>({id,p:plans[id]})).filter(x=>x.p&&x.p.solution);
+    if(allPlans.length>=2){
+      const minN=Math.min(...allPlans.map(x=>x.p.nodes));
+      const win=allPlans.find(x=>x.p.nodes===minN);
+      if(win){
+        tag.style.display='flex';
+        tag.textContent=`⚡ ${ALGO_META[win.id].label} FEWEST NODES`;
+        tag.style.color=CM(win.id);
+        tag.style.borderColor=CM(win.id)+'44';
+        tag.style.background=CM(win.id)+'11';
+      }
+    } else tag.style.display='none';
+  }, 80);
+}
+
+// Preset level loader
+function loadLevel(idx){
+  curLevel=idx;
+  const lv=LEVELS[idx];
+  // Update config panel to match this level
+  document.getElementById('cfgN').value=lv.n;
+  const checkMap={bt:'chkBT', bfs:'chkBFS', dfs:'chkDFS', mc:'chkMC', ga:'chkGA', sa:'chkSA', hc:'chkHC'};
+  // Uncheck all then check level's algos
+  Object.values(checkMap).forEach(id=>{ document.getElementById(id).checked=false; });
+  lv.algos.forEach(id=>{ document.getElementById(checkMap[id]).checked=true; });
+  runCustom(lv.n, lv.algos, true, lv);
+}
+
+// Custom run from config panel
+function runCustomFromConfig(){
+  const n = parseInt(document.getElementById('cfgN').value);
+  if(isNaN(n) || n<4 || n>100){
+    document.getElementById('hintN').textContent='N must be between 4 and 100';
+    return;
+  }
+  document.getElementById('hintN').textContent='';
+  const algos=[];
+  if(document.getElementById('chkBT').checked) algos.push('bt');
+  if(document.getElementById('chkBFS').checked) algos.push('bfs');
+  if(document.getElementById('chkDFS').checked) algos.push('dfs');
+  if(document.getElementById('chkMC').checked) algos.push('mc');
+  if(document.getElementById('chkGA').checked) algos.push('ga');
+  if(document.getElementById('chkSA').checked) algos.push('sa');
+  if(document.getElementById('chkHC').checked) algos.push('hc');
+  if(algos.length===0){ alert('Select at least one algorithm.'); return; }
+  runCustom(n, algos, false, null);
+}
+
+// Event listeners
+document.getElementById('levelSelect').addEventListener('change',e=>loadLevel(parseInt(e.target.value)));
+document.getElementById('runBtn').addEventListener('click',()=>loadLevel(curLevel));
+document.getElementById('cfgRunBtn').addEventListener('click',runCustomFromConfig);
+
+// Ensure speed buttons from config and preset stay in sync
+document.querySelectorAll('.speed-config-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.speed-config-btn,.speed-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); stepMs=parseInt(btn.dataset.ms);
+  });
+});
+
+// Load initial level (5-Queens as default)
+loadLevel(1);
+})();
+</script>
+</body>
+</html>

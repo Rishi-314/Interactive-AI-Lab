@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROUTE FINDING</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #050810;
+  --bg1:   #090d18;
+  --bg2:   #0d1220;
+  --bg3:   #121828;
+  --bg4:   #192030;
+  --line:  rgba(255,255,255,.05);
+  --line2: rgba(255,255,255,.10);
+
+  --bfs:  #22d3ee;   --bfs-d: rgba(34,211,238,.09);
+  --dfs:  #f97316;   --dfs-d: rgba(249,115,22,.09);
+  --ucs:  #a78bfa;   --ucs-d: rgba(167,139,250,.09);
+  --ast:  #4ade80;   --ast-d: rgba(74,222,128,.09);
+  --gbfs: #fb923c;   --gbfs-d: rgba(251,146,60,.09);
+  --bi:   #f472b6;   --bi-d:  rgba(244,114,182,.09);
+
+  --gold: #fbbf24;
+  --text:  #cdd8f0;
+  --text2: #48607e;
+  --text3: #273347;
+
+  --mono: 'Fira Code', monospace;
+  --sans: 'Syne', sans-serif;
+  --r: 14px;
+}
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); overflow-x:hidden; }
+
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image: radial-gradient(rgba(34,211,238,.014) 1px, transparent 1px);
+  background-size:32px 32px; pointer-events:none; z-index:0;
+}
+body::after {
+  content:''; position:fixed; inset:0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.018) 3px,rgba(0,0,0,.018) 4px);
+  pointer-events:none; z-index:9999;
+}
+.app { position:relative; z-index:1; max-width:1840px; margin:0 auto; padding:18px 14px 70px; }
+
+/* HEADER */
+.hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; margin-bottom:14px;
+  background:var(--bg1); border:1px solid var(--line2); border-radius:18px;
+  position:relative; overflow:hidden; flex-wrap:wrap; gap:10px;
+}
+.hdr::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--bfs) 15%,var(--ast) 40%,var(--ucs) 65%,var(--dfs) 85%,transparent);
+  opacity:.8;
+}
+.hdr-left { display:flex; align-items:center; gap:12px; }
+.logo-box {
+  width:44px; height:44px; border-radius:11px;
+  background:linear-gradient(135deg,var(--bfs),var(--ast));
+  display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;
+  box-shadow:0 0 28px rgba(34,211,238,.3);
+}
+.hdr-title {
+  font-family:var(--mono); font-size:1.15rem; font-weight:700; letter-spacing:.02em;
+  background:linear-gradient(90deg,var(--bfs) 0%,var(--ucs) 30%,var(--ast) 60%,#fff 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hdr-sub { font-size:.62rem; color:var(--text2); margin-top:2px; letter-spacing:.09em; text-transform:uppercase; }
+.algo-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.algo-badge {
+  display:flex; align-items:center; gap:5px; padding:4px 10px;
+  border-radius:22px; font-family:var(--mono); font-size:.59rem; font-weight:600; letter-spacing:.09em; border:1px solid;
+}
+.b-bfs  { color:var(--bfs);  border-color:rgba(34,211,238,.3);  background:rgba(34,211,238,.07); }
+.b-dfs  { color:var(--dfs);  border-color:rgba(249,115,22,.3);  background:rgba(249,115,22,.07); }
+.b-ucs  { color:var(--ucs);  border-color:rgba(167,139,250,.3); background:rgba(167,139,250,.07); }
+.b-ast  { color:var(--ast);  border-color:rgba(74,222,128,.3);  background:rgba(74,222,128,.07); }
+.b-gbfs { color:var(--gbfs); border-color:rgba(251,146,60,.3);  background:rgba(251,146,60,.07); }
+.b-bi   { color:var(--bi);   border-color:rgba(244,114,182,.3); background:rgba(244,114,182,.07); }
+.badge-dot { width:5px; height:5px; border-radius:50%; animation:pulse 2.2s ease-in-out infinite; }
+.b-bfs  .badge-dot { background:var(--bfs); }
+.b-dfs  .badge-dot { background:var(--dfs); }
+.b-ucs  .badge-dot { background:var(--ucs); }
+.b-ast  .badge-dot { background:var(--ast); }
+.b-gbfs .badge-dot { background:var(--gbfs); }
+.b-bi   .badge-dot { background:var(--bi); }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(1.7)} }
+
+/* CUSTOM CONFIG PANEL */
+.config-panel {
+  background:var(--bg1);
+  border:1px solid var(--line2);
+  border-top: 2px solid var(--bfs);
+  border-radius:var(--r);
+  padding:14px 18px;
+  margin-bottom:10px;
+  position:relative;
+  overflow:hidden;
+}
+.config-panel::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, var(--bfs), var(--ast), var(--ucs));
+  opacity:.5;
+}
+.config-title {
+  font-family:var(--mono); font-size:.6rem; font-weight:700;
+  color:var(--bfs); text-transform:uppercase; letter-spacing:.15em;
+  margin-bottom:12px; display:flex; align-items:center; gap:7px;
+}
+.config-title::after {
+  content:''; flex:1; height:1px; background:var(--line);
+}
+.config-row {
+  display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;
+}
+.config-field {
+  display:flex; flex-direction:column; gap:5px;
+}
+.config-label {
+  font-family:var(--mono); font-size:.55rem; font-weight:600;
+  color:var(--text3); text-transform:uppercase; letter-spacing:.12em;
+  display:flex; align-items:center; gap:4px;
+}
+.config-label .cfg-icon { font-size:.7rem; }
+.config-input {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.8rem; font-weight:600;
+  padding:8px 12px; border-radius:9px; outline:none;
+  transition:border-color .2s, box-shadow .2s;
+  min-width:0;
+}
+.config-input:focus {
+  border-color:var(--bfs);
+  box-shadow: 0 0 0 2px rgba(34,211,238,.12);
+}
+select.config-input { cursor:pointer; }
+.node-select { width:110px; }
+
+.algo-checks { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.algo-check-item {
+  display:flex; align-items:center; gap:0;
+  cursor:pointer; user-select:none;
+}
+.algo-check-item input[type=checkbox] { display:none; }
+.algo-check-pill {
+  display:flex; align-items:center; gap:5px;
+  padding:6px 12px; border-radius:20px;
+  font-family:var(--mono); font-size:.63rem; font-weight:700; letter-spacing:.08em;
+  border:1px solid; transition:all .18s; cursor:pointer;
+}
+.algo-check-item input:checked + .algo-check-pill { opacity:1; }
+.algo-check-item input:not(:checked) + .algo-check-pill { opacity:.28; filter:grayscale(.6); }
+
+.pill-bfs  { color:var(--bfs);  border-color:rgba(34,211,238,.35); background:rgba(34,211,238,.08); }
+.pill-dfs  { color:var(--dfs);  border-color:rgba(249,115,22,.35); background:rgba(249,115,22,.08); }
+.pill-ucs  { color:var(--ucs);  border-color:rgba(167,139,250,.35); background:rgba(167,139,250,.08); }
+.pill-ast  { color:var(--ast);  border-color:rgba(74,222,128,.35); background:rgba(74,222,128,.08); }
+.pill-gbfs { color:var(--gbfs); border-color:rgba(251,146,60,.35); background:rgba(251,146,60,.08); }
+.pill-bi   { color:var(--bi);   border-color:rgba(244,114,182,.35); background:rgba(244,114,182,.08); }
+
+.pill-check-icon { font-size:.55rem; }
+
+.speed-config-wrap { display:flex; gap:4px; align-items:center; }
+.speed-config-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.62rem; font-weight:600; padding:6px 10px;
+  border-radius:7px; cursor:pointer; transition:all .15s;
+}
+.speed-config-btn.active { color:var(--bfs); border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.07); }
+
+.cfg-run-btn {
+  background: linear-gradient(135deg, var(--bfs), var(--ast));
+  border:none; color:#050810; font-family:var(--mono); font-size:.8rem; font-weight:800;
+  padding:10px 24px; border-radius:10px; cursor:pointer;
+  transition:opacity .15s, transform .1s; letter-spacing:.1em;
+  box-shadow: 0 2px 20px rgba(34,211,238,.35); white-space:nowrap;
+  display:flex; align-items:center; gap:7px; align-self:flex-end;
+}
+.cfg-run-btn:hover { opacity:.88; transform:translateY(-1px); }
+.cfg-run-btn:active { transform:translateY(0); }
+
+/* CONTROLS (presets) */
+.ctrl-bar {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; margin-bottom:14px;
+}
+.ctrl-label { font-family:var(--mono); font-size:.6rem; color:var(--text3); text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; }
+.lvl-select {
+  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
+  font-family:var(--mono); font-size:.75rem; font-weight:500;
+  padding:8px 14px; border-radius:9px; cursor:pointer; outline:none; transition:border-color .2s; flex:1; min-width:0;
+}
+.lvl-select:focus { border-color:var(--bfs); }
+.lvl-select option { background:#0d1220; }
+.speed-wrap { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.speed-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.63rem; font-weight:600; padding:6px 10px;
+  border-radius:7px; cursor:pointer; transition:all .15s;
+}
+.speed-btn.active { color:var(--bfs); border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.07); }
+.run-btn {
+  background:linear-gradient(135deg,var(--bfs),var(--ast));
+  border:none; color:#050810; font-family:var(--mono); font-size:.78rem; font-weight:700;
+  padding:8px 20px; border-radius:9px; cursor:pointer;
+  transition:opacity .15s,transform .1s; letter-spacing:.08em;
+  box-shadow:0 2px 18px rgba(34,211,238,.3); white-space:nowrap;
+}
+.run-btn:hover { opacity:.88; transform:translateY(-1px); }
+
+/* PROBLEM ROW */
+.problem-row { display:flex; gap:10px; margin-bottom:14px; align-items:stretch; flex-wrap:wrap; }
+.prob-card {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 14px; display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.prob-card.start-card { border-color:rgba(34,211,238,.2); }
+.prob-card.goal-card  { border-color:rgba(74,222,128,.2); }
+.prob-label { font-family:var(--mono); font-size:.59rem; font-weight:700; text-transform:uppercase; letter-spacing:.13em; margin-bottom:3px; }
+.prob-label.pl-cyan  { color:var(--bfs); }
+.prob-label.pl-green { color:var(--ast); }
+.prob-state-val { font-family:var(--mono); font-size:.72rem; color:var(--text2); }
+.prob-stats {
+  flex:1; min-width:260px; background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 16px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+}
+.ps-item { display:flex; flex-direction:column; gap:2px; }
+.ps-key { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.ps-val { font-family:var(--mono); font-size:.82rem; font-weight:700; }
+.vc-bfs  { color:var(--bfs); } .vc-dfs { color:var(--dfs); }
+.vc-ucs  { color:var(--ucs); } .vc-ast { color:var(--ast); }
+.vc-gbfs { color:var(--gbfs);} .vc-bi  { color:var(--bi);  }
+.vc-gd   { color:var(--gold);}
+
+/* INSIGHT PANEL */
+.insight-panel {
+  background:var(--bg1); border:1px solid var(--line2);
+  border-top:2px solid var(--gold); border-radius:var(--r);
+  padding:13px 16px; margin-bottom:14px;
+}
+.insight-title {
+  font-family:var(--mono); font-size:.62rem; font-weight:700;
+  color:var(--gold); text-transform:uppercase; letter-spacing:.13em;
+  margin-bottom:12px; display:flex; align-items:center; gap:7px;
+}
+.insight-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+.ins-col {
+  background:var(--bg2); border-radius:10px; padding:11px 12px; border:1px solid var(--line);
+}
+.ic-bfs  { border-color:rgba(34,211,238,.2); }
+.ic-dfs  { border-color:rgba(249,115,22,.2); }
+.ic-ucs  { border-color:rgba(167,139,250,.2); }
+.ic-ast  { border-color:rgba(74,222,128,.2); }
+.ic-gbfs { border-color:rgba(251,146,60,.2); }
+.ic-bi   { border-color:rgba(244,114,182,.2); }
+.ins-head { font-family:var(--mono); font-size:.63rem; font-weight:700; margin-bottom:9px; }
+.ins-head.ih-bfs  { color:var(--bfs); } .ins-head.ih-dfs { color:var(--dfs); }
+.ins-head.ih-ucs  { color:var(--ucs); } .ins-head.ih-ast { color:var(--ast); }
+.ins-head.ih-gbfs { color:var(--gbfs);} .ins-head.ih-bi  { color:var(--bi);  }
+.ins-step { display:flex; align-items:flex-start; gap:7px; margin-bottom:8px; }
+.ins-num {
+  width:18px; height:18px; border-radius:4px; font-family:var(--mono);
+  font-size:.6rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; color:#050810;
+}
+.ic-bfs  .ins-num { background:var(--bfs); } .ic-dfs  .ins-num { background:var(--dfs); }
+.ic-ucs  .ins-num { background:var(--ucs); } .ic-ast  .ins-num { background:var(--ast); }
+.ic-gbfs .ins-num { background:var(--gbfs);} .ic-bi   .ins-num { background:var(--bi);  }
+.ins-inner { display:flex; flex-direction:column; gap:2px; }
+.ins-action { font-family:var(--mono); font-size:.67rem; font-weight:600; color:var(--text); }
+.ins-reason { font-size:.61rem; color:var(--text2); line-height:1.55; }
+.ins-result { margin-top:9px; padding-top:9px; border-top:1px solid var(--line); }
+.ins-res-label { font-family:var(--mono); font-size:.52rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; }
+.ins-res-val { font-size:.61rem; color:var(--text2); line-height:1.6; }
+
+/* SYNC BAR */
+.sync-bar {
+  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;
+}
+.sync-label { font-family:var(--mono); font-size:.59rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
+.sync-btn {
+  width:32px; height:32px; border-radius:7px; border:1px solid var(--line2); background:var(--bg3);
+  color:var(--text); font-size:.9rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; font-weight:700;
+}
+.sync-btn:hover:not(:disabled) { background:var(--bg4); }
+.sync-btn:disabled { opacity:.22; cursor:not-allowed; }
+.sync-counter {
+  font-family:var(--mono); font-size:.79rem; font-weight:700;
+  background:var(--bg3); padding:6px 18px; border-radius:22px; border:1px solid var(--line);
+  min-width:96px; text-align:center;
+}
+.sync-auto-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.65rem; font-weight:700; padding:6px 13px;
+  border-radius:8px; cursor:pointer; transition:all .15s; letter-spacing:.06em;
+}
+.sync-auto-btn:hover { color:var(--bfs); border-color:rgba(34,211,238,.35); }
+.sync-auto-btn.playing { color:var(--dfs); border-color:rgba(249,115,22,.4); background:rgba(249,115,22,.07); }
+.fastest-tag {
+  margin-left:auto; font-family:var(--mono); font-size:.61rem; font-weight:700;
+  padding:5px 12px; border-radius:18px;
+  background:rgba(74,222,128,.09); border:1px solid rgba(74,222,128,.28); color:var(--ast);
+}
+
+/* ALGO PANEL GRID */
+.algos-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:12px; margin-bottom:14px; }
+.algo-panel {
+  background:var(--bg1); border:1px solid var(--line); border-radius:16px;
+  overflow:hidden; display:flex; flex-direction:column; transition:border-color .3s,box-shadow .3s;
+}
+.ap-bfs  { --ac:var(--bfs);  --ag:var(--bfs-d); }
+.ap-dfs  { --ac:var(--dfs);  --ag:var(--dfs-d); }
+.ap-ucs  { --ac:var(--ucs);  --ag:var(--ucs-d); }
+.ap-ast  { --ac:var(--ast);  --ag:var(--ast-d); }
+.ap-gbfs { --ac:var(--gbfs); --ag:var(--gbfs-d);}
+.ap-bi   { --ac:var(--bi);   --ag:var(--bi-d);  }
+.algo-panel.done-panel { border-color:var(--ac); box-shadow:0 0 22px color-mix(in srgb,var(--ac) 14%,transparent); }
+.panel-header {
+  padding:10px 13px; background:var(--ag); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between;
+  position:relative; overflow:hidden;
+}
+.panel-header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:var(--ac); opacity:.4; }
+.ph-left { display:flex; align-items:center; gap:8px; }
+.ph-icon {
+  width:31px; height:31px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  font-size:.65rem; font-weight:800; font-family:var(--mono); color:#050810; flex-shrink:0; background:var(--ac);
+}
+.ph-name { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+.ph-full { font-size:.57rem; color:var(--text2); margin-top:1px; }
+.ph-status {
+  font-family:var(--mono); font-size:.56rem; font-weight:700; padding:3px 9px;
+  border-radius:18px; text-transform:uppercase; letter-spacing:.09em;
+  border:1px solid var(--ac); color:var(--ac); background:var(--ag); white-space:nowrap;
+}
+.panel-graph-wrap {
+  background:var(--bg2); padding:8px; border-bottom:1px solid var(--line);
+  display:flex; justify-content:center; align-items:center; min-height:200px; position:relative;
+}
+.panel-graph-wrap canvas { display:block; border-radius:6px; max-width:100%; }
+.graph-overlay-label {
+  position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:.54rem; font-weight:700;
+  padding:2px 9px; border-radius:9px; letter-spacing:.09em; text-transform:uppercase;
+  pointer-events:none; white-space:nowrap;
+}
+.gol-bfs  { background:rgba(34,211,238,.14);  color:var(--bfs);  border:1px solid rgba(34,211,238,.28); }
+.gol-dfs  { background:rgba(249,115,22,.14);  color:var(--dfs);  border:1px solid rgba(249,115,22,.28); }
+.gol-ucs  { background:rgba(167,139,250,.14); color:var(--ucs);  border:1px solid rgba(167,139,250,.28); }
+.gol-ast  { background:rgba(74,222,128,.14);  color:var(--ast);  border:1px solid rgba(74,222,128,.28); }
+.gol-gbfs { background:rgba(251,146,60,.14);  color:var(--gbfs); border:1px solid rgba(251,146,60,.28); }
+.gol-bi   { background:rgba(244,114,182,.14); color:var(--bi);   border:1px solid rgba(244,114,182,.28); }
+
+.panel-metrics { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; border-bottom:1px solid var(--line); }
+.metric { padding:6px 9px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:2px; }
+.metric:last-child { border-right:none; }
+.m-key { font-family:var(--mono); font-size:.49rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; }
+.m-val { font-family:var(--mono); font-size:.78rem; font-weight:700; color:var(--ac); }
+
+.panel-path {
+  padding:7px 10px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+}
+.path-label { font-family:var(--mono); font-size:.5rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; flex-shrink:0; }
+.path-nodes { display:flex; align-items:center; gap:3px; flex-wrap:wrap; }
+.path-node {
+  font-family:var(--mono); font-size:.62rem; font-weight:700; padding:2px 8px;
+  border-radius:5px; border:1px solid var(--ac); color:var(--ac); background:var(--ag);
+}
+.path-arrow { font-size:.6rem; color:var(--text3); }
+
+.panel-progress { padding:7px 10px; border-bottom:1px solid var(--line); }
+.pp-row { display:flex; justify-content:space-between; margin-bottom:4px; }
+.pp-label { font-family:var(--mono); font-size:.5rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; }
+.pp-val   { font-family:var(--mono); font-size:.5rem; color:var(--ac); font-weight:600; }
+.pp-track { height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; }
+.pp-fill  { height:100%; border-radius:2px; transition:width .4s ease; background:var(--ac); }
+
+.panel-nav { padding:6px 9px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--line); }
+.pnav-btn {
+  width:24px; height:24px; border-radius:5px; border:1px solid var(--line2);
+  background:var(--bg3); color:var(--text2); font-size:.85rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .15s; font-weight:700;
+}
+.pnav-btn:hover:not(:disabled) { background:var(--ac); color:#050810; border-color:var(--ac); }
+.pnav-btn:disabled { opacity:.18; cursor:not-allowed; }
+.pnav-count {
+  font-family:var(--mono); font-size:.67rem; font-weight:600;
+  background:var(--bg3); padding:3px 10px; border-radius:18px; min-width:68px; text-align:center; border:1px solid var(--line);
+}
+.pnav-auto {
+  margin-left:auto; background:var(--bg3); border:1px solid var(--line); color:var(--text2);
+  font-family:var(--mono); font-size:.59rem; font-weight:700; padding:3px 9px; border-radius:6px;
+  cursor:pointer; transition:all .15s; letter-spacing:.06em;
+}
+.pnav-auto:hover { color:var(--ac); border-color:var(--ac); }
+.pnav-auto.playing { color:var(--dfs); border-color:rgba(249,115,22,.4); background:rgba(249,115,22,.07); }
+
+.panel-log { flex:1; overflow-y:auto; max-height:120px; padding:6px 9px; scrollbar-width:thin; scrollbar-color:var(--bg4) transparent; }
+.log-item {
+  display:flex; align-items:flex-start; gap:5px; padding:3px 5px; border-radius:5px;
+  font-size:.61rem; color:var(--text2); cursor:pointer; transition:all .12s; margin-bottom:1px;
+}
+.log-item:hover { background:var(--bg3); color:var(--text); }
+.log-item.active-log { background:var(--ag); color:var(--ac); border-left:2px solid var(--ac); padding-left:3px; }
+.log-idx { font-family:var(--mono); color:var(--text3); min-width:16px; font-size:.54rem; }
+.log-type-tag {
+  font-family:var(--mono); font-size:.5rem; font-weight:700; padding:1px 5px;
+  border-radius:3px; margin-right:2px; flex-shrink:0;
+}
+.lt-visit   { background:rgba(34,211,238,.14); color:var(--bfs); }
+.lt-enqueue { background:rgba(74,222,128,.14); color:var(--ast); }
+.lt-path    { background:rgba(74,222,128,.2);  color:var(--ast); font-weight:800; }
+.lt-back    { background:rgba(249,115,22,.14); color:var(--dfs); }
+.lt-skip    { background:rgba(100,100,100,.15);color:var(--text3); }
+.lt-relax   { background:rgba(167,139,250,.14);color:var(--ucs); }
+
+.algo-desc { padding:8px 11px; border-top:1px solid var(--line); font-size:.61rem; line-height:1.65; color:var(--text2); }
+.algo-desc strong { color:var(--ac); font-family:var(--mono); font-weight:600; }
+
+/* COMPARISON TABLE */
+.cmp-wrap { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:14px; overflow-x:auto; }
+.cmp-title {
+  font-family:var(--mono); font-size:.64rem; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.12em; margin-bottom:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.cmp-title::before { content:''; width:3px; height:12px; border-radius:2px; background:linear-gradient(var(--bfs),var(--ast)); }
+.cmp-table { width:100%; border-collapse:collapse; }
+.cmp-table th {
+  font-family:var(--mono); font-size:.55rem; font-weight:600; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--text3); padding:6px 11px; border-bottom:1px solid var(--line2); text-align:left;
+}
+.cmp-table td { font-family:var(--mono); font-size:.67rem; padding:7px 11px; border-bottom:1px solid rgba(255,255,255,.03); }
+.cmp-table tbody tr { transition:background .12s; }
+.cmp-table tbody tr:hover { background:var(--bg3); }
+.cmp-table tr:last-child td { border-bottom:none; }
+.cmp-table .an { font-weight:700; }
+.r-bfs .an{color:var(--bfs);} .r-dfs .an{color:var(--dfs);} .r-ucs .an{color:var(--ucs);}
+.r-ast .an{color:var(--ast);} .r-gbfs .an{color:var(--gbfs);} .r-bi .an{color:var(--bi);}
+.cx-best{color:#4ade80;font-weight:700;} .cx-good{color:#86efac;} .cx-mid{color:var(--text2);}
+.cx-warn{color:var(--gold);font-weight:600;} .cx-bad{color:#f87171;}
+.cmp-note { margin-top:9px; font-size:.57rem; color:var(--text3); font-family:var(--mono); line-height:1.9; }
+
+/* LOADING */
+.loading-ov { position:fixed;inset:0;background:rgba(5,8,16,.92);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9000; }
+.loading-box { background:var(--bg1);border:1px solid var(--line2);border-radius:18px;padding:30px 46px;text-align:center; }
+.loading-box h3 { font-family:var(--mono);font-size:.98rem;margin-bottom:6px;font-weight:700; }
+.loading-box p  { color:var(--text2);font-size:.73rem;margin-bottom:18px; }
+.loading-algos  { display:flex;gap:12px;justify-content:center;margin-bottom:18px;flex-wrap:wrap; }
+.l-algo { display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--mono);font-size:.6rem;font-weight:700; }
+.l-algo-bar { width:42px;height:3px;border-radius:2px;animation:loadBar 1.2s ease-in-out infinite; }
+@keyframes loadBar { 0%,100%{transform:scaleX(.25);opacity:.3} 50%{transform:scaleX(1);opacity:1} }
+.spinner { width:28px;height:28px;border:2px solid var(--bg4);border-top-color:var(--bfs);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto; }
+@keyframes spin { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="logo-box">&#128507;</div>
+      <div>
+        <div class="hdr-title">ROUTE FINDING // AI GRAPH SEARCH</div>
+        <div class="hdr-sub">BFS · DFS · UCS · A* · Greedy Best-First · Bidirectional -- 5 levels · weighted graphs</div>
+      </div>
+    </div>
+    <div class="algo-badges">
+      <div class="algo-badge b-bfs"><span class="badge-dot"></span>BFS</div>
+      <div class="algo-badge b-dfs"><span class="badge-dot"></span>DFS</div>
+      <div class="algo-badge b-ucs"><span class="badge-dot"></span>UCS</div>
+      <div class="algo-badge b-ast"><span class="badge-dot"></span>A*</div>
+      <div class="algo-badge b-gbfs"><span class="badge-dot"></span>GREEDY</div>
+      <div class="algo-badge b-bi"><span class="badge-dot"></span>BIDIR</div>
+    </div>
+  </div>
+
+  <!-- ══ CUSTOM CONFIG PANEL ══ -->
+  <div class="config-panel">
+    <div class="config-title">⚙ Custom Configuration</div>
+    <div class="config-row">
+      <!-- Start node -->
+      <div class="config-field">
+        <span class="config-label"><span class="cfg-icon">🏁</span> Start Node</span>
+        <select class="config-input node-select" id="cfgStart"></select>
+      </div>
+      <!-- Goal node -->
+      <div class="config-field">
+        <span class="config-label"><span class="cfg-icon">🎯</span> Goal Node</span>
+        <select class="config-input node-select" id="cfgGoal"></select>
+      </div>
+
+      <!-- Algorithms -->
+      <div class="config-field">
+        <span class="config-label">Algorithms</span>
+        <div class="algo-checks">
+          <label class="algo-check-item"><input type="checkbox" id="chkBFS" checked><span class="algo-check-pill pill-bfs"><span class="pill-check-icon">✓</span> BFS</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkDFS" checked><span class="algo-check-pill pill-dfs"><span class="pill-check-icon">✓</span> DFS</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkUCS" checked><span class="algo-check-pill pill-ucs"><span class="pill-check-icon">✓</span> UCS</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkAST" checked><span class="algo-check-pill pill-ast"><span class="pill-check-icon">✓</span> A*</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkGBFS" checked><span class="algo-check-pill pill-gbfs"><span class="pill-check-icon">✓</span> GREEDY</span></label>
+          <label class="algo-check-item"><input type="checkbox" id="chkBI" checked><span class="algo-check-pill pill-bi"><span class="pill-check-icon">✓</span> BIDIR</span></label>
+        </div>
+      </div>
+
+      <!-- Playback speed -->
+      <div class="config-field">
+        <span class="config-label">⏵ Playback (ms)</span>
+        <div class="speed-config-wrap">
+          <button class="speed-config-btn" data-ms="1800">0.5×</button>
+          <button class="speed-config-btn active" data-ms="900">1×</button>
+          <button class="speed-config-btn" data-ms="400">2×</button>
+          <button class="speed-config-btn" data-ms="150">4×</button>
+        </div>
+      </div>
+
+      <!-- Run -->
+      <button class="cfg-run-btn" id="cfgRunBtn">▶ RUN CUSTOM</button>
+    </div>
+  </div>
+
+  <!-- PRESET LEVELS CONTROLS -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">Preset Level</span>
+    <select class="lvl-select" id="levelSelect">
+      <option value="0">LVL 01 · 5 nodes  -- Very Easy  · BFS vs DFS</option>
+      <option value="1" selected>LVL 02 · 7 nodes  -- Medium    · BFS vs DFS vs Greedy</option>
+      <option value="2">LVL 03 · 10 nodes -- Hard       · BFS + DFS + A*</option>
+      <option value="3">LVL 04 · 15 nodes -- Very Hard  · UCS + A* + Greedy</option>
+      <option value="4">LVL 05 · 25 nodes -- Expert     · BFS + A* + Bidirectional</option>
+    </select>
+    <div class="speed-wrap">
+      <span class="ctrl-label">Speed</span>
+      <button class="speed-btn" data-ms="1800">0.5x</button>
+      <button class="speed-btn active" data-ms="900">1x</button>
+      <button class="speed-btn" data-ms="400">2x</button>
+      <button class="speed-btn" data-ms="150">4x</button>
+    </div>
+    <button class="run-btn" id="runBtn">▶ RUN PRESET LEVEL</button>
+  </div>
+
+  <!-- PROBLEM INFO -->
+  <div class="problem-row">
+    <div class="prob-card start-card">
+      <div>
+        <div class="prob-label pl-cyan">&#9655; Start Node</div>
+        <div class="prob-state-val" id="probStart">--</div>
+      </div>
+    </div>
+    <div class="prob-card goal-card">
+      <div>
+        <div class="prob-label pl-green">&#9670; Goal Node</div>
+        <div class="prob-state-val" id="probGoal">--</div>
+      </div>
+    </div>
+    <div class="prob-stats" id="probStats"></div>
+  </div>
+
+  <!-- INSIGHT PANEL (visible only for preset levels) -->
+  <div class="insight-panel" id="insightPanel">
+    <div class="insight-title">⚡ Algorithm Divergence -- Why Each Search Takes a Different Route</div>
+    <div class="insight-grid" id="insightGrid"></div>
+  </div>
+
+  <!-- SYNC BAR -->
+  <div class="sync-bar">
+    <span class="sync-label">Sync All</span>
+    <button class="sync-btn" id="syncPrev" disabled>&#8249;</button>
+    <div class="sync-counter" id="syncCounter">0 / 0</div>
+    <button class="sync-btn" id="syncNext" disabled>&#8250;</button>
+    <button class="sync-auto-btn" id="syncAuto">▶ AUTO PLAY ALL</button>
+    <div class="fastest-tag" id="fastestTag" style="display:none">⚡ FEWEST NODES</div>
+  </div>
+
+  <!-- ALGO PANELS (dynamic) -->
+  <div class="algos-grid" id="algosGrid"></div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="cmp-wrap">
+    <div class="cmp-title">Algorithm Comparison -- Graph Search Strategies</div>
+    <table class="cmp-table">
+      <thead>
+        <tr><th>Algorithm</th><th>Strategy</th><th>Uses Weights?</th><th>Uses Heuristic?</th>
+          <th>Optimal?</th><th>Complete?</th><th>Time</th><th>Space</th><th>Best For</th>
+        </tr></thead>
+      <tbody>
+        <tr class="r-bfs"><td class="an">BFS</td><td class="cx-mid">Level-order</td>
+          <td class="cx-bad">No</td><td class="cx-bad">No</td>
+          <td class="cx-warn">Unweighted only</td><td class="cx-best">Yes</td>
+          <td class="cx-bad">O(b^d)</td><td class="cx-bad">O(b^d)</td>
+          <td class="cx-mid">Unweighted shortest path</td>
+        </tr>
+        <tr class="r-dfs"><td class="an">DFS</td><td class="cx-mid">Deep dive</td>
+          <td class="cx-bad">No</td><td class="cx-bad">No</td>
+          <td class="cx-bad">No</td><td class="cx-warn">With limit</td>
+          <td class="cx-bad">O(b^m)</td><td class="cx-best">O(bm)</td>
+          <td class="cx-mid">Memory-limited traversal</td>
+        </tr>
+        <tr class="r-ucs"><td class="an">UCS (Dijkstra)</td><td class="cx-mid">Cost-ordered</td>
+          <td class="cx-best">Yes</td><td class="cx-bad">No</td>
+          <td class="cx-best">Yes</td><td class="cx-best">Yes</td>
+          <td class="cx-warn">O((V+E)log V)</td><td class="cx-warn">O(V)</td>
+          <td class="cx-best">Weighted shortest path</td>
+        </tr>
+        <tr class="r-ast"><td class="an">A*</td><td class="cx-best">f=g+h guided</td>
+          <td class="cx-best">Yes</td><td class="cx-best">Yes</td>
+          <td class="cx-best">Yes (admissible h)</td><td class="cx-best">Yes</td>
+          <td class="cx-best">O(b^d) best case</td><td class="cx-warn">O(b^d)</td>
+          <td class="cx-best">Optimal + efficient with good h</td>
+        </tr>
+        <tr class="r-gbfs"><td class="an">Greedy BFS</td><td class="cx-warn">Heuristic only</td>
+          <td class="cx-bad">Ignores</td><td class="cx-best">Yes (h only)</td>
+          <td class="cx-bad">No</td><td class="cx-warn">With limit</td>
+          <td class="cx-warn">O(b^m)*</td><td class="cx-warn">O(b^m)</td>
+          <td class="cx-warn">Fast but suboptimal</td>
+        </tr>
+        <tr class="r-bi"><td class="an">Bidirectional BFS</td><td class="cx-best">Two frontiers</td>
+          <td class="cx-bad">No</td><td class="cx-bad">No</td>
+          <td class="cx-warn">Unweighted only</td><td class="cx-best">Yes</td>
+          <td class="cx-best">O(b^(d/2))</td><td class="cx-best">O(b^(d/2))</td>
+          <td class="cx-best">Large unweighted graphs</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cmp-note">
+      * Greedy BFS worst-case degrades if heuristic is misleading &nbsp;|&nbsp;
+      b=branching factor, d=solution depth, m=max depth, V=vertices, E=edges &nbsp;|&nbsp;
+      UCS = Uniform Cost Search (equivalent to Dijkstra's algorithm)
+    </div>
+  </div>
+
+</div>
+<script>
+(function(){
+'use strict';
+
+// =========================================================
+// LEVEL GRAPH DEFINITIONS (unchanged)
+// =========================================================
+var LEVELS = [
+{
+  label:'5-NODE GRAPH', diff:'VERY EASY', algos:['bfs','dfs'],
+  start:'A', goal:'E',
+  nodes:[{id:'A',x:80, y:100},{id:'B',x:220,y:60},{id:'C',x:220,y:160},{id:'D',x:360,y:60},{id:'E',x:360,y:160}],
+  edges:[{from:'A',to:'B',w:1},{from:'A',to:'C',w:1},{from:'B',to:'D',w:1},{from:'D',to:'E',w:1},{from:'C',to:'E',w:1}],
+  heuristic:{'A':4,'B':2,'C':1,'D':1,'E':0},
+  statsKeys:[{key:'piStart',label:'Start',val:'A',cls:'vc-bfs'},{key:'piGoal', label:'Goal', val:'E',cls:'vc-ast'},{key:'piBFS',  label:'BFS nodes', val:'--',cls:'vc-bfs'},{key:'piDFS',  label:'DFS nodes', val:'--',cls:'vc-dfs'}],
+  insight:[{id:'bfs',steps:[{action:'Enqueue A, visit neighbors','reason':'BFS starts at A. Adds B and C to frontier (level 1).'},{action:'Visit B: add D. Visit C: add E','reason':'Level 2 expansion. E found via C -- shortest hop path.'},{action:'Path: A -> C -> E','reason':'BFS guarantees minimum hops. C->E is length 2, same as B->D->E at 3 hops.'}],result:'Path A->C->E, 2 hops. Explored 4 nodes. Optimal for unweighted graphs.',cls:'ic-bfs',hcls:'ih-bfs'},
+  {id:'dfs',steps:[{action:'Push A, pop A -- explore B first','reason':'DFS goes deep: A->B since B is first neighbor in adjacency list.'},{action:'A->B->D, then D->E found','reason':'DFS dives: A->B->D->E. Path length 3 hops -- longer than BFS route.'},{action:'Path: A -> B -> D -> E','reason':'DFS finds A valid path but not shortest. It went deep-right before exploring C.'}],result:'Path A->B->D->E, 3 hops. Explored 4 nodes. Not optimal -- missed shorter A->C->E.',cls:'ic-dfs',hcls:'ih-dfs'}],
+},
+{
+  label:'7-NODE GRAPH', diff:'MEDIUM', algos:['bfs','dfs','gbfs'],
+  start:'A', goal:'G',
+  nodes:[{id:'A',x:60,y:100},{id:'B',x:200,y:60},{id:'C',x:200,y:160},{id:'D',x:330,y:60},{id:'E',x:330,y:160},{id:'F',x:330,y:260},{id:'G',x:460,y:60}],
+  edges:[{from:'A',to:'B',w:1},{from:'A',to:'C',w:1},{from:'B',to:'D',w:1},{from:'B',to:'E',w:1},{from:'E',to:'F',w:1},{from:'D',to:'G',w:1}],
+  heuristic:{'A':3,'B':2,'C':4,'D':1,'E':2,'F':3,'G':0},
+  statsKeys:[{key:'piStart',label:'Start',val:'A',cls:'vc-bfs'},{key:'piGoal', label:'Goal', val:'G',cls:'vc-ast'},{key:'piBFS',  label:'BFS nodes',val:'--',cls:'vc-bfs'},{key:'piDFS',  label:'DFS nodes',val:'--',cls:'vc-dfs'},{key:'piGBFS', label:'Greedy nodes',val:'--',cls:'vc-gbfs'}],
+  insight:[{id:'bfs',steps:[{action:'Level 1: visit A, enqueue B,C','reason':'BFS explores both branches equally at each depth level.'},{action:'Level 2: visit B (add D,E), visit C (dead end)','reason':'C has no unvisited neighbors. BFS wastes a visit but stays systematic.'},{action:'Level 3: visit D -> enqueue G. GOAL!','reason':'A->B->D->G found in 3 hops. BFS guarantees this is shortest.'}],result:'Path A->B->D->G, 3 hops, 6 nodes explored. Systematic but visits dead-end C.',cls:'ic-bfs',hcls:'ih-bfs'},
+  {id:'dfs',steps:[{action:'Push A -> pop A, push C then B (reversed)','reason':'DFS adjacency: B pushed last = popped first. Goes A->B.'},{action:'A->B->D->G -- straight to goal!','reason':'Lucky! DFS happened to go down the right branch immediately.'},{action:'Only 4 nodes visited -- faster than BFS here!','reason':'DFS got fortunate on this graph. Can be slower on others -- depends on branch order.'}],result:'Path A->B->D->G, 3 hops, 4 nodes. Got lucky -- DFS often wastes time on wrong branches.',cls:'ic-dfs',hcls:'ih-dfs'},
+  {id:'gbfs',steps:[{action:'At A: h(B)=2, h(C)=4 -- pick B','reason':'Greedy uses only heuristic. B looks closer to G (h=2 vs C h=4).'},{action:'At B: h(D)=1, h(E)=2 -- pick D','reason':'D has lowest h value, greedily chosen.'},{action:'At D: h(G)=0 -- GOAL reached!','reason':'Greedy finds A->B->D->G in 3 steps, only 3 nodes. Very efficient here.'}],result:'Path A->B->D->G, 3 hops, 3 nodes. Fastest here because heuristic is well-informed.',cls:'ic-gbfs',hcls:'ih-gbfs'}],
+},
+{
+  label:'10-NODE GRAPH', diff:'HARD', algos:['bfs','dfs','ast'],
+  start:'A', goal:'H',
+  nodes:[{id:'A',x:60,y:140},{id:'B',x:190,y:80},{id:'C',x:320,y:80},{id:'D',x:190,y:200},{id:'E',x:320,y:200},{id:'F',x:450,y:200},{id:'G',x:450,y:300},{id:'H',x:450,y:80},{id:'I',x:320,y:300},{id:'J',x:190,y:300}],
+  edges:[{from:'A',to:'B',w:1},{from:'A',to:'D',w:1},{from:'B',to:'C',w:1},{from:'C',to:'H',w:1},{from:'D',to:'E',w:1},{from:'E',to:'F',w:1},{from:'F',to:'G',w:1},{from:'D',to:'J',w:1},{from:'J',to:'I',w:1},{from:'I',to:'G',w:1}],
+  heuristic:{'A':3,'B':2,'C':1,'D':4,'E':3,'F':2,'G':5,'H':0,'I':4,'J':5},
+  statsKeys:[{key:'piStart',label:'Start',val:'A',cls:'vc-bfs'},{key:'piGoal', label:'Goal', val:'H',cls:'vc-ast'},{key:'piBFS',  label:'BFS nodes',val:'--',cls:'vc-bfs'},{key:'piDFS',  label:'DFS nodes',val:'--',cls:'vc-dfs'},{key:'piAST',  label:'A* nodes',  val:'--',cls:'vc-ast'}],
+  insight:[{id:'bfs',steps:[{action:'Level 1: B and D both enqueued','reason':'BFS expands both branches from A equally.'},{action:'Level 2: C,E,J expanded from B,D','reason':'BFS level-by-level -- finds C (one step from H) and wasteful D branch.'},{action:'Level 3: H found! Also F,I enqueued','reason':'H reached via A->B->C->H in 3 hops. BFS explored 8 nodes total.'}],result:'Path A->B->C->H, 3 hops, ~8 nodes. Optimal but explores entire bottom branch too.',cls:'ic-bfs',hcls:'ih-bfs'},
+  {id:'dfs',steps:[{action:'DFS goes A->D (second neighbor pushed first)','reason':'DFS dives into the D branch -- the misleading direction away from H.'},{action:'Explores D->E->F->G, then J->I -- all dead ends','reason':'DFS visits 7 nodes in the wrong subtree before backtracking.'},{action:'Backtracks to A, then A->B->C->H','reason':'Only after exhausting D branch does DFS find the correct route.'}],result:'Path A->B->C->H, 3 hops, ~10 nodes. Wastes 7 moves in wrong branch -- worst case for DFS.',cls:'ic-dfs',hcls:'ih-dfs'},
+  {id:'ast',steps:[{action:'At A: h(B)=2, h(D)=4 -- pick B (f=1+2=3)','reason':'A* uses f=g+h. B has lower f value -- points toward H side.'},{action:'At B: expand C (f=2+1=3). H in sight.','reason':'A* stays on the high-heuristic branch. Never enters the D subtree.'},{action:'C->H found! Only 3 nodes explored.','reason':'A* with good heuristic barely expands anything off the optimal path.'}],result:'Path A->B->C->H, 3 hops, 3 nodes. Dramatic win -- heuristic guides search directly to goal.',cls:'ic-ast',hcls:'ih-ast'}],
+},
+{
+  label:'15-NODE WEIGHTED', diff:'VERY HARD', algos:['ucs','ast','gbfs'],
+  start:'S', goal:'G',
+  nodes:[{id:'S',x:70,y:170},{id:'A',x:190,y:90},{id:'B',x:310,y:90},{id:'C',x:190,y:260},{id:'D',x:310,y:260},{id:'E',x:430,y:260},{id:'G',x:430,y:90},{id:'F',x:430,y:170},{id:'H',x:550,y:90},{id:'I',x:550,y:170},{id:'J',x:550,y:260},{id:'K',x:190,y:170},{id:'L',x:310,y:170},{id:'M',x:670,y:130},{id:'N',x:670,y:230}],
+  edges:[{from:'S',to:'A',w:3},{from:'S',to:'C',w:2},{from:'S',to:'K',w:5},{from:'A',to:'B',w:4},{from:'A',to:'K',w:2},{from:'B',to:'G',w:5},{from:'B',to:'F',w:3},{from:'C',to:'D',w:2},{from:'C',to:'K',w:4},{from:'D',to:'E',w:2},{from:'D',to:'L',w:3},{from:'E',to:'G',w:2},{from:'E',to:'J',w:4},{from:'K',to:'L',w:2},{from:'L',to:'F',w:3},{from:'F',to:'G',w:2},{from:'F',to:'I',w:3},{from:'G',to:'H',w:4},{from:'H',to:'M',w:2},{from:'I',to:'J',w:2},{from:'J',to:'N',w:3}],
+  heuristic:{'S':10,'A':8,'B':5,'C':9,'D':7,'E':3,'G':0,'F':2,'H':4,'I':3,'J':5,'K':7,'L':5,'M':6,'N':8},
+  statsKeys:[{key:'piStart',label:'Start',val:'S',cls:'vc-bfs'},{key:'piGoal', label:'Goal', val:'G',cls:'vc-ast'},{key:'piUCS',  label:'UCS nodes', val:'--',cls:'vc-ucs'},{key:'piAST',  label:'A* nodes',  val:'--',cls:'vc-ast'},{key:'piGBFS', label:'Greedy nodes',val:'--',cls:'vc-gbfs'}],
+  insight:[{id:'ucs',steps:[{action:'Priority queue ordered by g(n) (path cost)','reason':'UCS expands cheapest path first. S->C (cost 2) before S->A (cost 3).'},{action:'Expands S->C->D->E->G: total cost 8','reason':'UCS finds S->C(2)->D(4)->E(6)->G(8). Guaranteed optimal weighted path.'},{action:'Also evaluates S->A->K path -- cost 5 before pruning','reason':'UCS explores all cheaper paths before committing -- thorough but slower than A*.'}],result:'Path S->C->D->E->G cost=8. Optimal. Explores ~9 nodes. Ignores heuristic -- misses shortcut.',cls:'ic-ucs',hcls:'ih-ucs'},
+  {id:'ast',steps:[{action:'f=g+h guides away from dead ends immediately','reason':'At S: f(C)=2+9=11, f(A)=3+8=11, f(K)=5+7=12. Ties broken -- expands C first.'},{action:'A* prunes high-f paths early','reason':'After S->C->D: f(E)=4+3=7. E looks very promising -- A* focuses there.'},{action:'S->C->D->E->G found. Only 6 nodes explored!','reason':'Heuristic h acts as a beam -- A* barely wanders off the optimal path.'}],result:'Path S->C->D->E->G cost=8. Optimal. Only 6 nodes -- A* is ~33% more efficient than UCS here.',cls:'ic-ast',hcls:'ih-ast'},
+  {id:'gbfs',steps:[{action:'Greedy picks by h only: h(C)=9, h(A)=8','reason':'Greedy ignores g! Picks A first (h=8 < h(C)=9). Ignores cheap S->C=2 vs S->A=3.'},{action:'Goes S->A->B->G ignoring cost','reason':'Greedy finds A->B->G path (cost 3+4+5=12) which is NOT optimal.'},{action:'Path cost=12 vs optimal 8 -- 50% suboptimal!','reason':'Heuristic alone without path cost leads to significantly worse solutions on weighted graphs.'}],result:'Path S->A->B->G cost=12. SUBOPTIMAL (optimal is 8). Fast (4 nodes) but wrong cost -- greedy danger.',cls:'ic-gbfs',hcls:'ih-gbfs'}],
+},
+{
+  label:'25-NODE MAP', diff:'EXPERT', algos:['bfs','ast','bi'],
+  start:'S', goal:'Z',
+  nodes:[{id:'S',x:60,y:200},{id:'A',x:160,y:100},{id:'B',x:160,y:200},{id:'C',x:160,y:300},{id:'D',x:260,y:60},{id:'E',x:260,y:140},{id:'F',x:260,y:220},{id:'G',x:260,y:300},{id:'H',x:260,y:380},{id:'I',x:360,y:100},{id:'J',x:360,y:180},{id:'K',x:360,y:260},{id:'L',x:360,y:340},{id:'M',x:460,y:60},{id:'N',x:460,y:140},{id:'O',x:460,y:220},{id:'P',x:460,y:300},{id:'Q',x:460,y:380},{id:'R',x:560,y:100},{id:'T',x:560,y:200},{id:'U',x:560,y:300},{id:'V',x:640,y:140},{id:'W',x:640,y:240},{id:'X',x:700,y:190},{id:'Z',x:760,y:190}],
+  edges:[{from:'S',to:'A',w:2},{from:'S',to:'B',w:1},{from:'S',to:'C',w:3},{from:'A',to:'D',w:2},{from:'A',to:'E',w:3},{from:'B',to:'E',w:2},{from:'B',to:'F',w:1},{from:'C',to:'G',w:2},{from:'C',to:'H',w:4},{from:'D',to:'I',w:3},{from:'E',to:'I',w:2},{from:'E',to:'J',w:2},{from:'F',to:'J',w:1},{from:'F',to:'K',w:3},{from:'G',to:'K',w:2},{from:'G',to:'L',w:2},{from:'H',to:'L',w:3},{from:'I',to:'M',w:2},{from:'I',to:'N',w:1},{from:'J',to:'N',w:2},{from:'J',to:'O',w:1},{from:'K',to:'O',w:2},{from:'K',to:'P',w:2},{from:'L',to:'P',w:1},{from:'L',to:'Q',w:3},{from:'M',to:'R',w:3},{from:'N',to:'R',w:2},{from:'N',to:'T',w:2},{from:'O',to:'T',w:1},{from:'P',to:'U',w:2},{from:'Q',to:'U',w:3},{from:'R',to:'V',w:2},{from:'T',to:'V',w:1},{from:'T',to:'W',w:2},{from:'U',to:'W',w:2},{from:'V',to:'X',w:2},{from:'W',to:'X',w:1},{from:'X',to:'Z',w:1}],
+  heuristic:{'S':12,'A':10,'B':11,'C':12,'D':9,'E':9,'F':10,'G':11,'H':13,'I':7,'J':8,'K':9,'L':10,'M':6,'N':6,'O':7,'P':8,'Q':10,'R':4,'T':4,'U':6,'V':2,'W':3,'X':1,'Z':0},
+  statsKeys:[{key:'piStart',label:'Start',val:'S',cls:'vc-bfs'},{key:'piGoal', label:'Goal', val:'Z',cls:'vc-ast'},{key:'piBFS',  label:'BFS nodes',val:'--',cls:'vc-bfs'},{key:'piAST',  label:'A* nodes', val:'--',cls:'vc-ast'},{key:'piBI',   label:'BiDir nodes',val:'--',cls:'vc-bi'}],
+  insight:[{id:'bfs',steps:[{action:'BFS fans out in all directions','reason':'25-node graph: BFS expands 3 neighbors per level. Frontier grows as 3^d.'},{action:'By depth 4, almost entire graph enqueued','reason':'BFS explores 20+ nodes before reaching Z -- systematic but brutal on large graphs.'},{action:'Eventually finds path but explored ~22 nodes','reason':'BFS guarantees shortest hops but is very memory-intensive on larger graphs.'}],result:'Path found in ~7 hops, ~22 nodes explored. BFS becomes impractical at this scale.',cls:'ic-bfs',hcls:'ih-bfs'},
+  {id:'ast',steps:[{action:'Heuristic immediately points toward Z','reason':'A* at S: picks B (f=1+11=12) then F (f=2+10=12) -- straight corridor toward goal.'},{action:'Explores narrow band along optimal path','reason':'A* ignores side branches with high f values -- focuses search like a laser.'},{action:'Reaches Z after only ~8 nodes explored!','reason':'With 25 nodes, A* cuts exploration by ~63% compared to BFS.'}],result:'Optimal weighted path, ~8 nodes explored. A* advantage becomes dramatic on large graphs.',cls:'ic-ast',hcls:'ih-ast'},
+  {id:'bi',steps:[{action:'Forward BFS from S, backward BFS from Z','reason':'Bidirectional launches two simultaneous BFS searches -- one from each end.'},{action:'Each frontier grows at sqrt of full BFS cost','reason':'Instead of exploring 3^d nodes, BiDir explores 2 * 3^(d/2) -- exponentially fewer.'},{action:'Frontiers meet in the middle: path reconstructed!','reason':'When a node appears in both frontiers, path = forward-path + backward-path.'}],result:'Optimal path, ~10 nodes (5 from each end). Faster than full BFS -- classic speedup for large graphs.',cls:'ic-bi',hcls:'ih-bi'}],
+},
+];
+
+// =========================================================
+// UTILITIES
+// =========================================================
+function buildAdj(nodes,edges){
+  var adj={};
+  nodes.forEach(function(n){ adj[n.id]=[]; });
+  edges.forEach(function(e){
+    adj[e.from].push({id:e.to,w:e.w});
+    adj[e.to].push({id:e.from,w:e.w});
+  });
+  return adj;
+}
+
+function MinHeap(){this.d=[];}
+MinHeap.prototype.push=function(x){this.d.push(x);this._up(this.d.length-1);};
+MinHeap.prototype.pop=function(){var t=this.d[0],l=this.d.pop();if(this.d.length){this.d[0]=l;this._dn(0);}return t;};
+MinHeap.prototype._up=function(i){while(i>0){var p=(i-1)>>1;if(this.d[p].f<=this.d[i].f)break;var tmp=this.d[p];this.d[p]=this.d[i];this.d[i]=tmp;i=p;}};
+MinHeap.prototype._dn=function(i){var n=this.d.length;while(true){var s=i,l=2*i+1,r=2*i+2;if(l<n&&this.d[l].f<this.d[s].f)s=l;if(r<n&&this.d[r].f<this.d[s].f)s=r;if(s===i)break;var tmp=this.d[s];this.d[s]=this.d[i];this.d[i]=tmp;i=s;}};
+Object.defineProperty(MinHeap.prototype,'size',{get:function(){return this.d.length;}});
+
+function reconstruct(goal,parent,pathCost){
+  var path=[],cur=goal;
+  while(cur!==null){path.unshift(cur);cur=parent[cur];}
+  return {path:path,cost:pathCost};
+}
+
+// Heuristic using Euclidean distance between nodes (for custom runs)
+function makeEuclideanHeuristic(nodes, goal){
+  var goalNode = nodes.find(function(n){return n.id===goal;});
+  if(!goalNode) return function(){return 0;};
+  var map={};
+  nodes.forEach(function(n){map[n.id]=n;});
+  return function(nodeId){
+    var a=map[nodeId], b=goalNode;
+    if(!a||!b) return 0;
+    var dx=a.x-b.x, dy=a.y-b.y;
+    return Math.sqrt(dx*dx+dy*dy)/10; // scale down for readability
+  };
+}
+
+// =========================================================
+// ALGORITHM IMPLEMENTATIONS (modified to accept heuristic function)
+// =========================================================
+function runBFS(nodes,edges,start,goal){
+  var adj=buildAdj(nodes,edges), steps=[], visited=new Set(), parent={}, pathCost={};
+  parent[start]=null; pathCost[start]=0;
+  var queue=[start]; visited.add(start);
+  steps.push({type:'visit',node:start,visited:new Set(visited),frontier:new Set(queue),path:[],note:'Start at '+start+'. Add to frontier.',nodesExplored:1});
+  var count=1;
+  while(queue.length){
+    var cur=queue.shift();
+    if(cur===goal){
+      var r=reconstruct(goal,parent,pathCost[goal]);
+      steps.push({type:'path',node:cur,visited:new Set(visited),frontier:new Set(),path:r.path,note:'GOAL '+goal+' reached! Path: '+r.path.join('->'),nodesExplored:count,cost:r.cost});
+      return{steps:steps,path:r.path,cost:r.cost,nodesExplored:count};
+    }
+    var nbrs=adj[cur]||[];
+    nbrs.forEach(function(nb){
+      if(!visited.has(nb.id)){
+        visited.add(nb.id); parent[nb.id]=cur;
+        pathCost[nb.id]=(pathCost[cur]||0)+nb.w;
+        queue.push(nb.id); count++;
+        steps.push({type:'enqueue',node:nb.id,from:cur,visited:new Set(visited),frontier:new Set(queue),path:[],note:'Enqueue '+nb.id+' (from '+cur+')',nodesExplored:count});
+      } else {
+        steps.push({type:'skip',node:nb.id,from:cur,visited:new Set(visited),frontier:new Set(queue),path:[],note:'Skip '+nb.id+' (already visited)',nodesExplored:count});
+      }
+    });
+    steps.push({type:'visit',node:cur,visited:new Set(visited),frontier:new Set(queue),path:[],note:'Visit '+cur+', explore neighbors',nodesExplored:count});
+  }
+  return{steps:steps,path:null,cost:Infinity,nodesExplored:count};
+}
+
+function runDFS(nodes,edges,start,goal){
+  var adj=buildAdj(nodes,edges), steps=[], visited=new Set(), parent={}, pathCost={};
+  parent[start]=null; pathCost[start]=0;
+  var stack=[start]; var count=0;
+  while(stack.length){
+    var cur=stack.pop();
+    if(visited.has(cur)) continue;
+    visited.add(cur); count++;
+    steps.push({type:'visit',node:cur,visited:new Set(visited),frontier:new Set(stack),path:[],note:'DFS visit '+cur,nodesExplored:count});
+    if(cur===goal){
+      var r=reconstruct(goal,parent,pathCost[goal]);
+      steps.push({type:'path',node:cur,visited:new Set(visited),frontier:new Set(),path:r.path,note:'GOAL! Path: '+r.path.join('->'),nodesExplored:count,cost:r.cost});
+      return{steps:steps,path:r.path,cost:r.cost,nodesExplored:count};
+    }
+    var nbrs=(adj[cur]||[]).slice().reverse();
+    nbrs.forEach(function(nb){
+      if(!visited.has(nb.id)){
+        parent[nb.id]=cur;
+        pathCost[nb.id]=(pathCost[cur]||0)+nb.w;
+        stack.push(nb.id);
+        steps.push({type:'enqueue',node:nb.id,from:cur,visited:new Set(visited),frontier:new Set(stack),path:[],note:'Push '+nb.id+' onto stack',nodesExplored:count});
+      }
+    });
+  }
+  return{steps:steps,path:null,cost:Infinity,nodesExplored:count};
+}
+
+function runUCS(nodes,edges,start,goal){
+  var adj=buildAdj(nodes,edges), steps=[], closed=new Set(), parent={}, g={};
+  parent[start]=null; g[start]=0;
+  var heap=new MinHeap(); heap.push({id:start,f:0}); var count=0;
+  while(heap.size){
+    var cur=heap.pop();
+    if(closed.has(cur.id)) continue;
+    closed.add(cur.id); count++;
+    steps.push({type:'visit',node:cur.id,visited:new Set(closed),frontier:new Set(),path:[],note:'UCS expand '+cur.id+' g='+cur.f.toFixed(1),nodesExplored:count});
+    if(cur.id===goal){
+      var r=reconstruct(goal,parent,g[goal]);
+      steps.push({type:'path',node:cur.id,visited:new Set(closed),frontier:new Set(),path:r.path,note:'GOAL! Cost='+r.cost.toFixed(1)+' Path: '+r.path.join('->'),nodesExplored:count,cost:r.cost});
+      return{steps:steps,path:r.path,cost:r.cost,nodesExplored:count};
+    }
+    var nbrs=adj[cur.id]||[];
+    nbrs.forEach(function(nb){
+      var ng=g[cur.id]+nb.w;
+      if(!(nb.id in g)||ng<g[nb.id]){
+        g[nb.id]=ng; parent[nb.id]=cur.id;
+        heap.push({id:nb.id,f:ng}); count++;
+        steps.push({type:'relax',node:nb.id,from:cur.id,visited:new Set(closed),frontier:new Set(),path:[],note:'Relax '+nb.id+' new g='+ng.toFixed(1),nodesExplored:count});
+      }
+    });
+  }
+  return{steps:steps,path:null,cost:Infinity,nodesExplored:count};
+}
+
+function runAStar(nodes,edges,start,goal,heuristicFn){
+  var adj=buildAdj(nodes,edges), steps=[], closed=new Set(), parent={}, g={};
+  parent[start]=null; g[start]=0;
+  var heap=new MinHeap(); heap.push({id:start,f:heuristicFn(start)}); var count=0;
+  while(heap.size){
+    var cur=heap.pop();
+    if(closed.has(cur.id)) continue;
+    closed.add(cur.id); count++;
+    steps.push({type:'visit',node:cur.id,visited:new Set(closed),frontier:new Set(),path:[],note:'A* expand '+cur.id+' f='+cur.f.toFixed(1)+' g='+((g[cur.id]||0).toFixed(1))+' h='+heuristicFn(cur.id).toFixed(1),nodesExplored:count});
+    if(cur.id===goal){
+      var r=reconstruct(goal,parent,g[goal]);
+      steps.push({type:'path',node:cur.id,visited:new Set(closed),frontier:new Set(),path:r.path,note:'GOAL! Cost='+r.cost.toFixed(1)+' Path: '+r.path.join('->'),nodesExplored:count,cost:r.cost});
+      return{steps:steps,path:r.path,cost:r.cost,nodesExplored:count};
+    }
+    var nbrs=adj[cur.id]||[];
+    nbrs.forEach(function(nb){
+      var ng=(g[cur.id]||0)+nb.w;
+      if(!(nb.id in g)||ng<g[nb.id]){
+        g[nb.id]=ng; parent[nb.id]=cur.id;
+        heap.push({id:nb.id,f:ng+heuristicFn(nb.id)}); count++;
+        steps.push({type:'relax',node:nb.id,from:cur.id,visited:new Set(closed),frontier:new Set(),path:[],note:'A* relax '+nb.id+' f='+(ng+heuristicFn(nb.id)).toFixed(1),nodesExplored:count});
+      }
+    });
+  }
+  return{steps:steps,path:null,cost:Infinity,nodesExplored:count};
+}
+
+function runGBFS(nodes,edges,start,goal,heuristicFn){
+  var adj=buildAdj(nodes,edges), steps=[], closed=new Set(), parent={}, g={};
+  parent[start]=null; g[start]=0;
+  var heap=new MinHeap(); heap.push({id:start,f:heuristicFn(start)}); var count=0;
+  while(heap.size){
+    var cur=heap.pop();
+    if(closed.has(cur.id)) continue;
+    closed.add(cur.id); count++;
+    steps.push({type:'visit',node:cur.id,visited:new Set(closed),frontier:new Set(),path:[],note:'Greedy expand '+cur.id+' h='+heuristicFn(cur.id).toFixed(1),nodesExplored:count});
+    if(cur.id===goal){
+      var r=reconstruct(goal,parent,g[goal]);
+      steps.push({type:'path',node:cur.id,visited:new Set(closed),frontier:new Set(),path:r.path,note:'GOAL! Cost='+r.cost.toFixed(1)+' (may not be optimal)',nodesExplored:count,cost:r.cost});
+      return{steps:steps,path:r.path,cost:r.cost,nodesExplored:count};
+    }
+    var nbrs=adj[cur.id]||[];
+    nbrs.forEach(function(nb){
+      if(!closed.has(nb.id)){
+        if(!(nb.id in g)||((g[cur.id]||0)+nb.w)<g[nb.id]){
+          g[nb.id]=(g[cur.id]||0)+nb.w; parent[nb.id]=cur.id;
+        }
+        heap.push({id:nb.id,f:heuristicFn(nb.id)}); count++;
+        steps.push({type:'enqueue',node:nb.id,from:cur.id,visited:new Set(closed),frontier:new Set(),path:[],note:'Greedy enqueue '+nb.id+' h='+heuristicFn(nb.id).toFixed(1),nodesExplored:count});
+      }
+    });
+  }
+  return{steps:steps,path:null,cost:Infinity,nodesExplored:count};
+}
+
+function runBidirectional(nodes,edges,start,goal){
+  var adj=buildAdj(nodes,edges), steps=[], count=0;
+  var visitedF=new Set([start]), visitedB=new Set([goal]);
+  var parentF={}, parentB={};
+  parentF[start]=null; parentB[goal]=null;
+  var queueF=[start], queueB=[goal];
+  var meetNode=null;
+
+  function pathFrom(node,parent){
+    var p=[],c=node;
+    while(c!==null){p.unshift(c);c=parent[c];}
+    return p;
+  }
+
+  steps.push({type:'visit',node:start,visited:new Set(visitedF),frontier:new Set(queueF),path:[],note:'BiDir: start forward from '+start,nodesExplored:1,bidir:true,visitedF:new Set(visitedF),visitedB:new Set(visitedB)});
+  steps.push({type:'visit',node:goal, visited:new Set(visitedB),frontier:new Set(queueB),path:[],note:'BiDir: start backward from '+goal,nodesExplored:2,bidir:true,visitedF:new Set(visitedF),visitedB:new Set(visitedB)});
+  count=2;
+
+  while(queueF.length||queueB.length){
+    if(queueF.length){
+      var curF=queueF.shift();
+      (adj[curF]||[]).forEach(function(nb){
+        if(!visitedF.has(nb.id)){
+          visitedF.add(nb.id); parentF[nb.id]=curF; queueF.push(nb.id); count++;
+          steps.push({type:'enqueue',node:nb.id,from:curF,visited:new Set(visitedF),frontier:new Set(queueF),path:[],note:'Forward: enqueue '+nb.id,nodesExplored:count,bidir:true,visitedF:new Set(visitedF),visitedB:new Set(visitedB)});
+          if(visitedB.has(nb.id)){meetNode=nb.id; queueF=[]; queueB=[]; return;}
+        }
+      });
+    }
+    if(meetNode) break;
+    if(queueB.length){
+      var curB=queueB.shift();
+      (adj[curB]||[]).forEach(function(nb){
+        if(!visitedB.has(nb.id)){
+          visitedB.add(nb.id); parentB[nb.id]=curB; queueB.push(nb.id); count++;
+          steps.push({type:'enqueue',node:nb.id,from:curB,visited:new Set(visitedB),frontier:new Set(queueB),path:[],note:'Backward: enqueue '+nb.id,nodesExplored:count,bidir:true,visitedF:new Set(visitedF),visitedB:new Set(visitedB)});
+          if(visitedF.has(nb.id)){meetNode=nb.id; queueF=[]; queueB=[]; return;}
+        }
+      });
+    }
+    if(meetNode) break;
+  }
+  if(meetNode){
+    var pF=pathFrom(meetNode,parentF);
+    var pB=pathFrom(meetNode,parentB); pB.shift(); pB.reverse();
+    var fullPath=pF.concat(pB);
+    steps.push({type:'path',node:meetNode,visited:new Set(visitedF),frontier:new Set(),path:fullPath,note:'PATHS MET at '+meetNode+'! Full: '+fullPath.join('->'),nodesExplored:count,bidir:true,visitedF:new Set(visitedF),visitedB:new Set(visitedB),cost:fullPath.length-1});
+    return{steps:steps,path:fullPath,cost:fullPath.length-1,nodesExplored:count};
+  }
+  return{steps:steps,path:null,cost:Infinity,nodesExplored:count};
+}
+
+// =========================================================
+// GRAPH DRAWING (unchanged)
+// =========================================================
+var ACLR={bfs:'#22d3ee',dfs:'#f97316',ucs:'#a78bfa',ast:'#4ade80',gbfs:'#fb923c',bi:'#f472b6'};
+function getNodeMap(nodes){ var m={}; nodes.forEach(function(n){m[n.id]=n;}); return m; }
+function drawGraph(canvas,lv,stepData,accentColor,algoId){
+  var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0d1220';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.016)';
+  for(var gx=12;gx<W;gx+=20)for(var gy=12;gy<H;gy+=20){ctx.beginPath();ctx.arc(gx,gy,1,0,Math.PI*2);ctx.fill();}
+  var nm=getNodeMap(lv.nodes);
+  var visited=stepData?stepData.visited:new Set();
+  var frontier=stepData?stepData.frontier:new Set();
+  var path=stepData?stepData.path:[];
+  var pathSet=new Set(path);
+  var curNode=stepData?stepData.node:null;
+  var visitedF=stepData&&stepData.visitedF?stepData.visitedF:null;
+  var visitedB=stepData&&stepData.visitedB?stepData.visitedB:null;
+  var isSolved=stepData&&stepData.type==='path';
+  var allX=lv.nodes.map(function(n){return n.x;});
+  var allY=lv.nodes.map(function(n){return n.y;});
+  var minX=Math.min.apply(null,allX),maxX=Math.max.apply(null,allX);
+  var minY=Math.min.apply(null,allY),maxY=Math.max.apply(null,allY);
+  var pad=36;
+  var scaleX=(W-pad*2)/Math.max(maxX-minX,1);
+  var scaleY=(H-pad*2)/Math.max(maxY-minY,1);
+  var sc=Math.min(scaleX,scaleY,.95);
+  var offX=pad+(W-pad*2-(maxX-minX)*sc)/2;
+  var offY=pad+(H-pad*2-(maxY-minY)*sc)/2;
+  function nx(n){return offX+(n.x-minX)*sc;}
+  function ny(n){return offY+(n.y-minY)*sc;}
+  var nodeR=Math.max(10,Math.min(18,sc*14));
+  lv.edges.forEach(function(e){
+    var a=nm[e.from],b=nm[e.to];
+    var ax=nx(a),ay=ny(a),bx=nx(b),by=ny(b);
+    var inPath=path.length>1&&path.some(function(_,i){return i>0&&((path[i-1]===e.from&&path[i]===e.to)||(path[i-1]===e.to&&path[i]===e.from));});
+    ctx.save();
+    if(isSolved&&inPath){ ctx.strokeStyle=accentColor; ctx.lineWidth=3; ctx.shadowColor=accentColor; ctx.shadowBlur=8; }
+    else { ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1.5; }
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.restore();
+    if(e.w>1||lv.algos.indexOf('ucs')>=0||lv.algos.indexOf('ast')>=0||lv.algos.indexOf('gbfs')>=0){
+      var mx=(ax+bx)/2,my=(ay+by)/2;
+      ctx.font='bold '+(Math.max(8,Math.floor(nodeR*.7)))+'px "Fira Code",monospace';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(255,255,255,.3)';
+      ctx.fillText(e.w,mx,my);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    }
+  });
+  lv.nodes.forEach(function(n){
+    var x=nx(n),y=ny(n);
+    var isStart=n.id===lv.start,isGoal=n.id===lv.goal;
+    var isVisited=visited.has(n.id);
+    var isFrontier=frontier.has(n.id);
+    var isPath=pathSet.has(n.id);
+    var isCurrent=n.id===curNode;
+    var isVisitedF=visitedF&&visitedF.has(n.id);
+    var isVisitedB=visitedB&&visitedB.has(n.id);
+    var fillColor='#1a2540';
+    if(isStart)fillColor='#0d2840';
+    else if(isGoal)fillColor='#0d2a1a';
+    else if(isSolved&&isPath)fillColor='#1a3a20';
+    else if(algoId==='bi'&&visitedF&&visitedB){
+      if(isVisitedF&&isVisitedB)fillColor='#2a1a3a';
+      else if(isVisitedF)fillColor='rgba(34,211,238,.15)';
+      else if(isVisitedB)fillColor='rgba(244,114,182,.15)';
+    } else if(isVisited)fillColor='rgba(255,255,255,.07)';
+    if(isFrontier&&!isSolved)fillColor='rgba(255,255,255,.12)';
+    ctx.save();
+    if(isCurrent||isStart||isGoal||(isSolved&&isPath)){
+      var gc=isStart?'#22d3ee':isGoal?'#4ade80':isSolved&&isPath?accentColor:accentColor;
+      ctx.shadowColor=gc; ctx.shadowBlur=isCurrent?18:12;
+    }
+    ctx.beginPath();ctx.arc(x,y,nodeR,0,Math.PI*2);ctx.fillStyle=fillColor;ctx.fill();
+    var strokeClr= isCurrent?accentColor: (isSolved&&isPath)?accentColor: isStart?'#22d3ee':isGoal?'#4ade80': isVisited?'rgba(255,255,255,.25)':'rgba(255,255,255,.12)';
+    ctx.strokeStyle=strokeClr; ctx.lineWidth=isCurrent||(isSolved&&isPath)?2:1; ctx.stroke();
+    ctx.restore();
+    var fs=Math.max(8,Math.floor(nodeR*.78));
+    ctx.font='700 '+fs+'px "Fira Code",monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    var tc=(isSolved&&isPath)||isCurrent?'#fff':isStart?'#22d3ee':isGoal?'#4ade80':'rgba(255,255,255,.7)';
+    ctx.fillStyle=tc;
+    ctx.fillText(n.id,x,y);
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  });
+  if(isSolved){
+    ctx.save();ctx.strokeStyle=accentColor;ctx.lineWidth=2.5;
+    ctx.shadowColor=accentColor;ctx.shadowBlur=16;ctx.globalAlpha=.7;
+    ctx.strokeRect(2,2,W-4,H-4);ctx.restore();
+  }
+}
+
+// =========================================================
+// UI STATE
+// =========================================================
+var curLevel=1, stepMs=900, syncStep=0, syncMax=0, syncTimer=null;
+var plans={}, panelSteps={}, panelTimers={};
+
+var ALGO_META={
+  bfs: {label:'BREADTH-FIRST',full:'Uninformed * FIFO Queue * Level-order',abbr:'BFS',cls:'ap-bfs',golcls:'gol-bfs'},
+  dfs: {label:'DEPTH-FIRST',  full:'Uninformed * LIFO Stack * Deep dive',  abbr:'DFS',cls:'ap-dfs',golcls:'gol-dfs'},
+  ucs: {label:'UNIFORM COST', full:'Dijkstra * Priority Queue by g(n)',    abbr:'UCS',cls:'ap-ucs',golcls:'gol-ucs'},
+  ast: {label:'A* SEARCH',    full:'Informed * f=g+h * Priority Queue',    abbr:'A*', cls:'ap-ast',golcls:'gol-ast'},
+  gbfs:{label:'GREEDY BFS',   full:'Informed * h(n) only * Priority Queue',abbr:'GBF',cls:'ap-gbfs',golcls:'gol-gbfs'},
+  bi:  {label:'BIDIRECTIONAL',full:'Two BFS frontiers meeting in the middle',abbr:'BI',cls:'ap-bi',golcls:'gol-bi'},
+};
+var ALGO_DESCS={
+  bfs:'<strong>BFS</strong> expands nodes level-by-level using a <strong>FIFO queue</strong>. Guarantees <strong>fewest hops</strong> but ignores edge weights -- not optimal on weighted graphs.',
+  dfs:'<strong>DFS</strong> dives deep via <strong>LIFO stack</strong>. Memory-efficient O(bd) but finds <strong>suboptimal paths</strong> -- can explore entire wrong subtrees before finding goal.',
+  ucs:'<strong>UCS (Dijkstra)</strong> expands by cumulative path cost g(n). <strong>Optimal for weighted graphs</strong>. Like BFS but priority-ordered -- ignores heuristic direction.',
+  ast:'<strong>A*</strong> combines path cost g(n) and heuristic h(n): <strong>f=g+h</strong>. Optimal with admissible h. Best of UCS + Greedy -- directed toward goal while respecting costs.',
+  gbfs:'<strong>Greedy BFS</strong> expands by h(n) only, ignoring path cost. <strong>Fast but suboptimal</strong> on weighted graphs -- can find a short-looking path that has high actual cost.',
+  bi:'<strong>Bidirectional BFS</strong> launches two simultaneous searches from start and goal. Meets in the middle -- explores O(b^(d/2)) instead of O(b^d). <strong>Massive speedup</strong> on large graphs.',
+};
+
+function CM(id){return ACLR[id]||'#888';}
+function getCanvasSize(n){ if(n<=5) return[340,220]; if(n<=7) return[360,240]; if(n<=10)return[400,270]; if(n<=15)return[430,290]; return[480,320]; }
+
+function buildPanels(algos, lv){
+  var grid=document.getElementById('algosGrid'); grid.innerHTML='';
+  algos.forEach(function(id){
+    var meta=ALGO_META[id];
+    var sz=getCanvasSize(lv.nodes.length);
+    var div=document.createElement('div');
+    div.className='algo-panel '+meta.cls; div.id='panel-'+id;
+    div.innerHTML=
+      '<div class="panel-header"><div class="ph-left"><div class="ph-icon">'+meta.abbr+'</div><div><div class="ph-name">'+meta.label+'</div><div class="ph-full">'+meta.full+'</div></div></div><div class="ph-status" id="status-'+id+'">READY</div></div>'+
+      '<div class="panel-graph-wrap"><canvas id="canvas-'+id+'" width="'+sz[0]+'" height="'+sz[1]+'"></canvas><div class="graph-overlay-label '+meta.golcls+'" id="sfloat-'+id+'">START</div></div>'+
+      '<div class="panel-metrics"><div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-'+id+'">--</span></div><div class="metric"><span class="m-key">Path Len</span><span class="m-val" id="path-'+id+'">--</span></div><div class="metric"><span class="m-key">Cost</span><span class="m-val" id="cost-'+id+'">--</span></div><div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-'+id+'">--</span></div></div>'+
+      '<div class="panel-path"><span class="path-label">PATH:</span><div class="path-nodes" id="pathvis-'+id+'"></div></div>'+
+      '<div class="panel-nav"><button class="pnav-btn" id="prev-'+id+'" disabled>&#8249;</button><div class="pnav-count" id="count-'+id+'">0 / 0</div><button class="pnav-btn" id="next-'+id+'" disabled>&#8250;</button><button class="pnav-auto" id="auto-'+id+'">&#9654; Play</button></div>'+
+      '<div class="panel-log" id="log-'+id+'"></div><div class="algo-desc">'+ALGO_DESCS[id]+'</div>';
+    grid.appendChild(div);
+    panelSteps[id]=0; plans[id]=null;
+    document.getElementById('prev-'+id).addEventListener('click',function(){stopAuto(id);goTo(id,panelSteps[id]-1);});
+    document.getElementById('next-'+id).addEventListener('click',function(){stopAuto(id);goTo(id,panelSteps[id]+1);});
+    document.getElementById('auto-'+id).addEventListener('click',function(){if(panelTimers[id])stopAuto(id);else startAuto(id);});
+  });
+}
+
+function buildInsight(lv){
+  if(!lv.insight) return;
+  var grid=document.getElementById('insightGrid'); grid.innerHTML='';
+  lv.insight.forEach(function(ins){
+    var col=document.createElement('div'); col.className='ins-col '+ins.cls;
+    var stepsHtml=ins.steps.map(function(s,k){return '<div class="ins-step"><span class="ins-num">'+(k+1)+'</span><div class="ins-inner"><div class="ins-action">'+s.action+'</div><div class="ins-reason">'+s.reason+'</div></div></div>';}).join('');
+    col.innerHTML='<div class="ins-head '+ins.hcls+'">'+ins.id.toUpperCase()+' -- '+ALGO_META[ins.id].label+'</div>'+stepsHtml+'<div class="ins-result"><div class="ins-res-label">Result</div><div class="ins-res-val">'+ins.result+'</div></div>';
+    grid.appendChild(col);
+  });
+}
+
+function buildProbStats(lv){
+  var el=document.getElementById('probStats'); el.innerHTML='';
+  document.getElementById('probStart').textContent=lv.start;
+  document.getElementById('probGoal').textContent=lv.goal;
+  lv.statsKeys.forEach(function(sk){
+    var item=document.createElement('div'); item.className='ps-item';
+    item.innerHTML='<span class="ps-key">'+sk.label+'</span><span class="ps-val '+sk.cls+'" id="'+sk.key+'">'+sk.val+'</span>';
+    el.appendChild(item);
+  });
+}
+
+function setStatus(id,text,color){ var el=document.getElementById('status-'+id); if(!el) return; el.textContent=text; if(color){el.style.color=color;el.style.borderColor=color+'55';el.style.background=color+'14';} else{el.style.color='';el.style.borderColor='';el.style.background='';} }
+function updateFloat(id,step,total,type){ var el=document.getElementById('sfloat-'+id); if(!el) return; if(step===0)el.textContent='START'; else if(type==='path')el.textContent='SOLVED!'; else el.textContent='STEP '+step+'/'+total; }
+function updatePathVis(id,path){ var el=document.getElementById('pathvis-'+id); if(!el) return; if(!path||path.length===0){el.innerHTML='<span style="color:var(--text3);font-family:var(--mono);font-size:.6rem">--</span>';return;} el.innerHTML=path.map(function(n,i){return (i>0?'<span class="path-arrow">-></span>':'')+'<span class="path-node">'+n+'</span>';}).join(''); }
+function renderLog(id){ var el=document.getElementById('log-'+id),plan=plans[id]; if(!plan){if(el)el.innerHTML='';return;} var step=panelSteps[id]; el.innerHTML=''; var TAG={'visit':'<span class="log-type-tag lt-visit">VISIT</span>','enqueue':'<span class="log-type-tag lt-enqueue">QUEUE</span>','path':'<span class="log-type-tag lt-path">PATH!</span>','back':'<span class="log-type-tag lt-back">BACK</span>','skip':'<span class="log-type-tag lt-skip">SKIP</span>','relax':'<span class="log-type-tag lt-relax">RELAX</span>'}; plan.steps.forEach(function(s,i){ var div=document.createElement('div'); div.className='log-item'+(i+1===step?' active-log':''); div.innerHTML='<span class="log-idx">'+String(i+1).padStart(2,'0')+'</span>'+(TAG[s.type]||'')+'<span>'+s.note+'</span>'; div.addEventListener('click',function(){goTo(id,i+1);}); el.appendChild(div); }); var act=el.querySelector('.active-log'); if(act)act.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+function goTo(id,idx){ var plan=plans[id]; if(!plan) return; idx=Math.max(0,Math.min(idx,plan.steps.length)); panelSteps[id]=idx; var step=idx>0?plan.steps[idx-1]:null; var isSolved=step&&step.type==='path'; var lv=LEVELS[curLevel]; var cv=document.getElementById('canvas-'+id); if(cv) drawGraph(cv,lv,step,CM(id),id); setStatus(id,isSolved?'SOLVED!':idx===0?'START':'STEP '+idx,isSolved?CM(id):idx===0?CM(id):null); var total=plan.steps.length; var cnt=document.getElementById('count-'+id); if(cnt)cnt.textContent=idx+' / '+total; var prev=document.getElementById('prev-'+id); if(prev)prev.disabled=idx===0; var next=document.getElementById('next-'+id); if(next)next.disabled=idx>=total; renderLog(id); updateFloat(id,idx,total,step?step.type:null); updatePathVis(id,step&&step.path&&step.path.length?step.path:plan.path||[]); document.getElementById('panel-'+id).classList.toggle('done-panel',!!isSolved); }
+function startAuto(id){ if(panelTimers[id])return; var btn=document.getElementById('auto-'+id); if(btn){btn.textContent='&#9208; Pause';btn.classList.add('playing');} function tick(){ var plan=plans[id]; if(!plan||panelSteps[id]>=plan.steps.length){stopAuto(id);return;} goTo(id,panelSteps[id]+1); panelTimers[id]=setTimeout(tick,stepMs); } panelTimers[id]=setTimeout(tick,250); }
+function stopAuto(id){ if(panelTimers[id]){clearTimeout(panelTimers[id]); panelTimers[id]=null;} var btn=document.getElementById('auto-'+id); if(btn){btn.textContent='&#9654; Play';btn.classList.remove('playing');} }
+function syncGoTo(idx){ idx=Math.max(0,Math.min(idx,syncMax)); syncStep=idx; var lv=LEVELS[curLevel]; lv.algos.forEach(function(id){var p=plans[id];if(p)goTo(id,Math.min(idx,p.steps.length));}); document.getElementById('syncCounter').textContent=idx+' / '+syncMax; document.getElementById('syncPrev').disabled=idx===0; document.getElementById('syncNext').disabled=idx>=syncMax; }
+function stopAllSync(){ if(syncTimer){clearInterval(syncTimer); syncTimer=null;} var btn=document.getElementById('syncAuto'); btn.textContent='&#9654; AUTO PLAY ALL'; btn.classList.remove('playing'); }
+
+// Sync bar listeners
+document.getElementById('syncPrev').addEventListener('click',function(){stopAllSync();syncGoTo(syncStep-1);});
+document.getElementById('syncNext').addEventListener('click',function(){stopAllSync();syncGoTo(syncStep+1);});
+document.getElementById('syncAuto').addEventListener('click',function(){ var btn=document.getElementById('syncAuto'); if(syncTimer){stopAllSync(); return;} btn.textContent='&#9208; PAUSE ALL'; btn.classList.add('playing'); syncTimer=setInterval(function(){if(syncStep>=syncMax){stopAllSync();return;}syncGoTo(syncStep+1);},stepMs); });
+document.querySelectorAll('.speed-btn, .speed-config-btn').forEach(function(btn){ btn.addEventListener('click',function(){ document.querySelectorAll('.speed-btn, .speed-config-btn').forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); stepMs=parseInt(btn.dataset.ms); }); });
+
+function showLoading(algos, lv){ var ov=document.getElementById('loadOv'); var bars=algos.map(function(id){ return '<div class="l-algo"><div class="l-algo-bar" style="background:'+CM(id)+'"></div><span style="color:'+CM(id)+'">'+ALGO_META[id].abbr+'</span></div>'; }).join(''); if(!ov){ov=document.createElement('div'); ov.id='loadOv'; ov.className='loading-ov'; document.body.appendChild(ov);} ov.innerHTML='<div class="loading-box"><h3>Computing '+lv.label+'</h3><p>'+algos.map(function(id){return ALGO_META[id].label;}).join(' · ')+'</p><div class="loading-algos">'+bars+'</div><div class="spinner"></div></div>'; ov.style.display='flex'; }
+function hideLoading(){ var o=document.getElementById('loadOv'); if(o) o.style.display='none'; }
+
+// Core execution
+function runWithParams(nodes, edges, start, goal, algos, isPreset, presetLevelData){
+  var lv = { nodes:nodes, edges:edges, start:start, goal:goal, label:isPreset?presetLevelData.label:'Custom', heuristic:presetLevelData?presetLevelData.heuristic:null, statsKeys:presetLevelData?presetLevelData.statsKeys:[] };
+  // For custom we compute Euclidean heuristic on the fly
+  var heuristicFn = null;
+  if(!isPreset){
+    heuristicFn = makeEuclideanHeuristic(nodes, goal);
+  } else {
+    // use level's static heuristic for informed algos
+    heuristicFn = function(node){ return lv.heuristic[node]||0; };
+  }
+
+  buildPanels(algos, lv);
+  // Update stats panel for custom (clear and show only selected algos)
+  var statsDiv=document.getElementById('probStats'); statsDiv.innerHTML='';
+  document.getElementById('probStart').textContent=start;
+  document.getElementById('probGoal').textContent=goal;
+  algos.forEach(function(id){
+    var item=document.createElement('div'); item.className='ps-item';
+    var colorClass = 'vc-'+id;
+    item.innerHTML='<span class="ps-key">'+ALGO_META[id].abbr+' nodes</span><span class="ps-val '+colorClass+'" id="stat-'+id+'">--</span>';
+    statsDiv.appendChild(item);
+  });
+  // Show/hide insight panel based on preset
+  var insightPanel = document.getElementById('insightPanel');
+  if(isPreset && presetLevelData && presetLevelData.insight){
+    insightPanel.style.display='block';
+    buildInsight(presetLevelData);
+  } else {
+    insightPanel.style.display='none';
+  }
+
+  showLoading(algos, lv);
+  setTimeout(function(){
+    var resultPlans={};
+    algos.forEach(function(id){
+      if(id==='bfs') resultPlans[id]=runBFS(nodes,edges,start,goal);
+      else if(id==='dfs') resultPlans[id]=runDFS(nodes,edges,start,goal);
+      else if(id==='ucs') resultPlans[id]=runUCS(nodes,edges,start,goal);
+      else if(id==='ast') resultPlans[id]=runAStar(nodes,edges,start,goal,heuristicFn);
+      else if(id==='gbfs') resultPlans[id]=runGBFS(nodes,edges,start,goal,heuristicFn);
+      else if(id==='bi') resultPlans[id]=runBidirectional(nodes,edges,start,goal);
+    });
+    hideLoading();
+
+    algos.forEach(function(id){
+      var plan=resultPlans[id]; plans[id]=plan; panelSteps[id]=0;
+      var statEl=document.getElementById('stat-'+id); if(statEl) statEl.textContent=plan.nodesExplored;
+      document.getElementById('nodes-'+id).textContent=plan.nodesExplored;
+      document.getElementById('path-'+id).textContent=plan.path?plan.path.length-1:'--';
+      document.getElementById('cost-'+id).textContent=plan.cost===Infinity?'--':plan.cost.toFixed?plan.cost.toFixed(1):plan.cost;
+      var optEl=document.getElementById('opt-'+id);
+      if(optEl) optEl.textContent=(id==='bfs'||id==='ucs'||id==='ast'||id==='bi')?'YES':'~';
+      var cv=document.getElementById('canvas-'+id);
+      if(cv) drawGraph(cv,lv,null,CM(id),id);
+      setStatus(id,'READY',CM(id));
+      document.getElementById('count-'+id).textContent='0 / '+plan.steps.length;
+      document.getElementById('prev-'+id).disabled=true;
+      document.getElementById('next-'+id).disabled=plan.steps.length===0;
+      updatePathVis(id,plan.path||[]);
+    });
+
+    syncMax=Math.max.apply(null,algos.map(function(id){return plans[id]?plans[id].steps.length:0;}));
+    syncStep=0;
+    document.getElementById('syncCounter').textContent='0 / '+syncMax;
+    document.getElementById('syncPrev').disabled=true;
+    document.getElementById('syncNext').disabled=syncMax===0;
+
+    var tag=document.getElementById('fastestTag');
+    var allP=algos.map(function(id){return{id:id,p:plans[id]};}).filter(function(x){return x.p&&x.p.path;});
+    if(allP.length>=2){
+      var minN=Math.min.apply(null,allP.map(function(x){return x.p.nodesExplored;}));
+      var win=allP.find(function(x){return x.p.nodesExplored===minN;});
+      if(win){
+        tag.style.display='flex';
+        tag.textContent=ALGO_META[win.id].label+' -- FEWEST NODES ('+minN+')';
+        tag.style.color=CM(win.id);
+        tag.style.borderColor=CM(win.id)+'44';
+        tag.style.background=CM(win.id)+'11';
+      }
+    } else tag.style.display='none';
+  }, 80);
+}
+
+function loadLevel(idx){
+  curLevel=idx;
+  var lv=LEVELS[idx];
+  // Update config panel start/goal selectors
+  var nodesList = lv.nodes.map(function(n){return n.id;}).sort();
+  var startSel=document.getElementById('cfgStart'); var goalSel=document.getElementById('cfgGoal');
+  startSel.innerHTML=''; goalSel.innerHTML='';
+  nodesList.forEach(function(nid){
+    var opt1=document.createElement('option'); opt1.value=nid; opt1.textContent=nid;
+    var opt2=document.createElement('option'); opt2.value=nid; opt2.textContent=nid;
+    startSel.appendChild(opt1); goalSel.appendChild(opt2);
+  });
+  startSel.value=lv.start; goalSel.value=lv.goal;
+  // sync checkboxes with level's algos
+  var checkMap={bfs:'chkBFS', dfs:'chkDFS', ucs:'chkUCS', ast:'chkAST', gbfs:'chkGBFS', bi:'chkBI'};
+  Object.keys(checkMap).forEach(function(id){ document.getElementById(checkMap[id]).checked=false; });
+  lv.algos.forEach(function(id){ document.getElementById(checkMap[id]).checked=true; });
+  runWithParams(lv.nodes, lv.edges, lv.start, lv.goal, lv.algos, true, lv);
+}
+
+function runCustom(){
+  var lv=LEVELS[curLevel]; // use current level's graph
+  var start=document.getElementById('cfgStart').value;
+  var goal=document.getElementById('cfgGoal').value;
+  if(start===goal){ alert('Start and goal must be different.'); return; }
+  var algos=[];
+  if(document.getElementById('chkBFS').checked) algos.push('bfs');
+  if(document.getElementById('chkDFS').checked) algos.push('dfs');
+  if(document.getElementById('chkUCS').checked) algos.push('ucs');
+  if(document.getElementById('chkAST').checked) algos.push('ast');
+  if(document.getElementById('chkGBFS').checked) algos.push('gbfs');
+  if(document.getElementById('chkBI').checked) algos.push('bi');
+  if(algos.length===0){ alert('Select at least one algorithm.'); return; }
+  runWithParams(lv.nodes, lv.edges, start, goal, algos, false, null);
+}
+
+// Event listeners
+document.getElementById('levelSelect').addEventListener('change',function(e){loadLevel(parseInt(e.target.value));});
+document.getElementById('runBtn').addEventListener('click',function(){loadLevel(curLevel);});
+document.getElementById('cfgRunBtn').addEventListener('click',runCustom);
+
+// initial load
+loadLevel(1);
+})();
+</script>
+</body>
+</html>
