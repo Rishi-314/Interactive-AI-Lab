@@ -1,1727 +1,2986 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BLOCK WORLD Problem</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg:    #07090f;
-  --bg1:   #0d1119;
-  --bg2:   #111720;
-  --bg3:   #171f2e;
-  --bg4:   #1d2638;
-  --line:  rgba(255,255,255,.055);
-  --line2: rgba(255,255,255,.10);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLOCK WORLD Problem</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090f;
+      --bg1: #0d1119;
+      --bg2: #111720;
+      --bg3: #171f2e;
+      --bg4: #1d2638;
+      --line: rgba(255, 255, 255, .055);
+      --line2: rgba(255, 255, 255, .10);
 
-  --bfs:  #29c4ef;  --bfs-dim:  rgba(41,196,239,.08);
-  --dfs:  #ff7043;  --dfs-dim:  rgba(255,112,67,.08);
-  --gbfs: #d966f5;  --gbfs-dim: rgba(217,102,245,.08);
-  --ast:  #7fff4f;  --ast-dim:  rgba(127,255,79,.08);
-  --gold: #ffc94d;
+      --bfs: #29c4ef;
+      --bfs-dim: rgba(41, 196, 239, .08);
+      --dfs: #ff7043;
+      --dfs-dim: rgba(255, 112, 67, .08);
+      --gbfs: #d966f5;
+      --gbfs-dim: rgba(217, 102, 245, .08);
+      --ast: #7fff4f;
+      --ast-dim: rgba(127, 255, 79, .08);
+      --gold: #ffc94d;
 
-  --text:  #dce8f5;
-  --text2: #5a7090;
-  --text3: #2e3f58;
+      --text: #dce8f5;
+      --text2: #5a7090;
+      --text3: #2e3f58;
 
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'DM Sans', sans-serif;
-  --r: 14px;
-}
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+      --r: 14px;
+    }
 
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); overflow-x:hidden; }
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-body::before {
-  content:'';
-  position:fixed; inset:0;
-  background-image: radial-gradient(circle, rgba(255,255,255,.028) 1px, transparent 1px);
-  background-size: 28px 28px;
-  pointer-events:none; z-index:0;
-}
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+    }
 
-.app { position:relative; z-index:1; max-width:1820px; margin:0 auto; padding:18px 14px 60px; }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, .028) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
 
-body::after {
-  content:'';
-  position:fixed; inset:0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.025) 3px, rgba(0,0,0,.025) 4px);
-  pointer-events:none; z-index:9999;
-}
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1820px;
+      margin: 0 auto;
+      padding: 18px 14px 60px;
+    }
 
-.hdr {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 20px; margin-bottom:14px;
-  background:var(--bg1);
-  border:1px solid var(--line2); border-radius:18px;
-  position:relative; overflow:hidden; flex-wrap:wrap; gap:10px;
-}
-.hdr::before {
-  content:'';
-  position:absolute; top:0; left:0; right:0; height:2px;
-  background: linear-gradient(90deg, transparent 0%, var(--bfs) 20%, var(--gbfs) 45%, var(--ast) 70%, var(--dfs) 90%, transparent 100%);
-  opacity:.7;
-}
-.hdr-left { display:flex; align-items:center; gap:12px; }
-.logo-box {
-  width:42px; height:42px; border-radius:10px;
-  background: linear-gradient(135deg, var(--bfs), var(--gbfs));
-  display:flex; align-items:center; justify-content:center;
-  font-size:1.25rem; flex-shrink:0;
-  box-shadow: 0 0 24px rgba(41,196,239,.25);
-}
-.hdr-title {
-  font-family:var(--mono); font-size:1.15rem; font-weight:700; letter-spacing:.02em;
-  background: linear-gradient(90deg, var(--bfs) 0%, var(--gbfs) 40%, var(--ast) 72%, #fff 100%);
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-}
-.hdr-sub { font-size:.65rem; color:var(--text2); margin-top:2px; letter-spacing:.09em; text-transform:uppercase; }
-.algo-badges { display:flex; gap:6px; flex-wrap:wrap; }
-.algo-badge {
-  display:flex; align-items:center; gap:5px; padding:4px 11px;
-  border-radius:24px; font-family:var(--mono); font-size:.62rem; font-weight:600; letter-spacing:.1em;
-  border:1px solid;
-}
-.badge-bfs  { color:var(--bfs);  border-color:rgba(41,196,239,.3);  background:rgba(41,196,239,.07); }
-.badge-dfs  { color:var(--dfs);  border-color:rgba(255,112,67,.3);  background:rgba(255,112,67,.07); }
-.badge-gbfs { color:var(--gbfs); border-color:rgba(217,102,245,.3); background:rgba(217,102,245,.07); }
-.badge-ast  { color:var(--ast);  border-color:rgba(127,255,79,.3);  background:rgba(127,255,79,.07); }
-.badge-dot { width:5px; height:5px; border-radius:50%; animation: pulse 2.2s ease-in-out infinite; }
-.badge-bfs  .badge-dot { background:var(--bfs); }
-.badge-dfs  .badge-dot { background:var(--dfs); }
-.badge-gbfs .badge-dot { background:var(--gbfs); }
-.badge-ast  .badge-dot { background:var(--ast); }
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.6)} }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, .025) 3px, rgba(0, 0, 0, .025) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
 
-/* ── CUSTOM CONFIG PANEL ── */
-.config-panel {
-  background:var(--bg1);
-  border:1px solid var(--line2);
-  border-top: 2px solid var(--bfs);
-  border-radius:var(--r);
-  padding:14px 18px;
-  margin-bottom:10px;
-  position:relative;
-  overflow:hidden;
-}
-.config-panel::before {
-  content:'';
-  position:absolute; top:0; left:0; right:0; height:1px;
-  background: linear-gradient(90deg, var(--bfs), var(--gbfs), var(--ast));
-  opacity:.5;
-}
-.config-title {
-  font-family:var(--mono); font-size:.6rem; font-weight:700;
-  color:var(--bfs); text-transform:uppercase; letter-spacing:.15em;
-  margin-bottom:12px; display:flex; align-items:center; gap:7px;
-}
-.config-title::after {
-  content:''; flex:1; height:1px; background:var(--line);
-}
-.config-row {
-  display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;
-}
-.config-field {
-  display:flex; flex-direction:column; gap:5px;
-}
-.config-label {
-  font-family:var(--mono); font-size:.55rem; font-weight:600;
-  color:var(--text3); text-transform:uppercase; letter-spacing:.12em;
-  display:flex; align-items:center; gap:4px;
-}
-.config-label .cfg-icon { font-size:.7rem; }
-.config-input {
-  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
-  font-family:var(--mono); font-size:.8rem; font-weight:600;
-  padding:8px 12px; border-radius:9px; outline:none;
-  transition:border-color .2s, box-shadow .2s;
-  min-width:0;
-}
-.config-input:focus {
-  border-color:var(--bfs);
-  box-shadow: 0 0 0 2px rgba(41,196,239,.12);
-}
-.config-input.input-start:focus { border-color:var(--bfs); box-shadow:0 0 0 2px rgba(41,196,239,.12); }
-.config-input.input-goal:focus  { border-color:var(--ast); box-shadow:0 0 0 2px rgba(127,255,79,.12); }
-.config-input.input-err { border-color:#ef5350 !important; box-shadow:0 0 0 2px rgba(239,83,80,.12) !important; }
+    .hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      margin-bottom: 14px;
+      background: var(--bg1);
+      border: 1px solid var(--line2);
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
 
-select.config-input { cursor:pointer; }
-select.config-input option { background:#111720; }
+    .hdr::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--bfs) 20%, var(--gbfs) 45%, var(--ast) 70%, var(--dfs) 90%, transparent 100%);
+      opacity: .7;
+    }
 
-.blocks-select { width:80px; }
-.state-input   { width:140px; letter-spacing:.08em; text-transform:uppercase; }
+    .hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-/* ── ALGO CHECKBOXES ── */
-.algo-checks { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
-.algo-check-item {
-  display:flex; align-items:center; gap:0;
-  cursor:pointer; user-select:none;
-}
-.algo-check-item input[type=checkbox] { display:none; }
-.algo-check-pill {
-  display:flex; align-items:center; gap:5px;
-  padding:6px 12px; border-radius:20px;
-  font-family:var(--mono); font-size:.63rem; font-weight:700; letter-spacing:.08em;
-  border:1px solid; transition:all .18s; cursor:pointer;
-}
-.algo-check-item input:checked + .algo-check-pill { opacity:1; }
-.algo-check-item input:not(:checked) + .algo-check-pill { opacity:.28; filter:grayscale(.6); }
+    .logo-box {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--bfs), var(--gbfs));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      box-shadow: 0 0 24px rgba(41, 196, 239, .25);
+    }
 
-.pill-bfs  { color:var(--bfs);  border-color:rgba(41,196,239,.35);  background:rgba(41,196,239,.08); }
-.pill-dfs  { color:var(--dfs);  border-color:rgba(255,112,67,.35);  background:rgba(255,112,67,.08); }
-.pill-gbfs { color:var(--gbfs); border-color:rgba(217,102,245,.35); background:rgba(217,102,245,.08); }
-.pill-ast  { color:var(--ast);  border-color:rgba(127,255,79,.35);  background:rgba(127,255,79,.08); }
+    .hdr-title {
+      font-family: var(--mono);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+      background: linear-gradient(90deg, var(--bfs) 0%, var(--gbfs) 40%, var(--ast) 72%, #fff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
-.pill-check-icon { font-size:.55rem; }
+    .hdr-sub {
+      font-size: .65rem;
+      color: var(--text2);
+      margin-top: 2px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
 
-/* ── PLAYBACK SPEED IN CONFIG ── */
-.speed-config-wrap { display:flex; gap:4px; align-items:center; }
-.speed-config-btn {
-  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
-  font-family:var(--mono); font-size:.62rem; font-weight:600; padding:6px 10px;
-  border-radius:7px; cursor:pointer; transition:all .15s;
-}
-.speed-config-btn.active { color:var(--bfs); border-color:rgba(41,196,239,.4); background:rgba(41,196,239,.07); }
+    .algo-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
 
-/* ── RUN BUTTON in config ── */
-.cfg-run-btn {
-  background: linear-gradient(135deg, var(--bfs), var(--gbfs));
-  border:none; color:#060910; font-family:var(--mono); font-size:.8rem; font-weight:800;
-  padding:10px 24px; border-radius:10px; cursor:pointer;
-  transition:opacity .15s, transform .1s; letter-spacing:.1em;
-  box-shadow: 0 2px 20px rgba(217,102,245,.35); white-space:nowrap;
-  display:flex; align-items:center; gap:7px; align-self:flex-end;
-}
-.cfg-run-btn:hover { opacity:.88; transform:translateY(-1px); }
-.cfg-run-btn:active { transform:translateY(0); }
+    .algo-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      border-radius: 24px;
+      font-family: var(--mono);
+      font-size: .62rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      border: 1px solid;
+    }
 
-/* ── VALIDATION TOOLTIP ── */
-.cfg-hint {
-  font-family:var(--mono); font-size:.55rem; color:#ef5350;
-  margin-top:3px; min-height:14px;
-}
+    .badge-bfs {
+      color: var(--bfs);
+      border-color: rgba(41, 196, 239, .3);
+      background: rgba(41, 196, 239, .07);
+    }
 
-/* ── CTRL BAR (existing, keep) ── */
-.ctrl-bar {
-  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
-  padding:10px 16px; margin-bottom:14px;
-}
-.ctrl-label { font-family:var(--mono); font-size:.6rem; color:var(--text3); text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; }
-.lvl-select {
-  background:var(--bg3); border:1px solid var(--line2); color:var(--text);
-  font-family:var(--mono); font-size:.76rem; font-weight:500;
-  padding:8px 14px; border-radius:9px; cursor:pointer; outline:none;
-  transition:border-color .2s; flex:1; min-width:0;
-}
-.lvl-select:focus { border-color:var(--bfs); }
-.lvl-select option { background:#111720; }
-.speed-wrap { display:flex; align-items:center; gap:5px; flex-shrink:0; }
-.speed-btn {
-  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
-  font-family:var(--mono); font-size:.65rem; font-weight:600; padding:6px 10px;
-  border-radius:7px; cursor:pointer; transition:all .15s;
-}
-.speed-btn.active { color:var(--bfs); border-color:rgba(41,196,239,.4); background:rgba(41,196,239,.07); }
-.run-btn {
-  background: linear-gradient(135deg, var(--bfs), var(--gbfs));
-  border:none; color:#060910; font-family:var(--mono); font-size:.78rem; font-weight:700;
-  padding:8px 20px; border-radius:9px; cursor:pointer;
-  transition:opacity .15s, transform .1s; letter-spacing:.08em;
-  box-shadow: 0 2px 18px rgba(217,102,245,.3); white-space:nowrap;
-}
-.run-btn:hover { opacity:.88; transform:translateY(-1px); }
+    .badge-dfs {
+      color: var(--dfs);
+      border-color: rgba(255, 112, 67, .3);
+      background: rgba(255, 112, 67, .07);
+    }
 
-.sg-row { display:flex; gap:10px; margin-bottom:14px; align-items:stretch; flex-wrap:wrap; }
-.sg-card {
-  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
-  padding:11px 14px; display:flex; align-items:center; gap:10px;
-}
-.sg-card.start-card { border-color:rgba(41,196,239,.2); }
-.sg-card.goal-card  { border-color:rgba(127,255,79,.2); }
-.sg-label { font-family:var(--mono); font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.13em; margin-bottom:3px; }
-.sg-label.sl { color:var(--bfs); }
-.sg-label.gl { color:var(--ast); }
-.sg-state-val { font-family:var(--mono); font-size:.72rem; color:var(--text2); margin-top:1px; letter-spacing:.05em; }
-.sg-mini { border-radius:7px; overflow:hidden; flex-shrink:0; }
-.problem-info {
-  flex:1; min-width:260px;
-  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
-  padding:11px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-}
-.pi-item { display:flex; flex-direction:column; gap:2px; }
-.pi-key { font-family:var(--mono); font-size:.53rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
-.pi-val { font-family:var(--mono); font-size:.82rem; font-weight:700; }
-.pi-val.gc     { color:var(--gold); }
-.pi-val.bfs-c  { color:var(--bfs); }
-.pi-val.dfs-c  { color:var(--dfs); }
-.pi-val.gbfs-c { color:var(--gbfs); }
-.pi-val.ast-c  { color:var(--ast); }
+    .badge-gbfs {
+      color: var(--gbfs);
+      border-color: rgba(217, 102, 245, .3);
+      background: rgba(217, 102, 245, .07);
+    }
 
-.section-divider {
-  display:flex; align-items:center; gap:10px;
-  font-family:var(--mono); font-size:.58rem; font-weight:600;
-  color:var(--text3); letter-spacing:.12em; text-transform:uppercase;
-  margin-bottom:10px;
-}
-.section-divider::before, .section-divider::after {
-  content:''; flex:1; height:1px; background:var(--line);
-}
+    .badge-ast {
+      color: var(--ast);
+      border-color: rgba(127, 255, 79, .3);
+      background: rgba(127, 255, 79, .07);
+    }
 
-.diverge-panel {
-  background:var(--bg1); border:1px solid var(--line2);
-  border-top:2px solid var(--gold); border-radius:var(--r);
-  padding:14px 16px; margin-bottom:14px;
-}
-.diverge-title {
-  font-family:var(--mono); font-size:.62rem; font-weight:700;
-  color:var(--gold); text-transform:uppercase; letter-spacing:.13em;
-  margin-bottom:12px; display:flex; align-items:center; gap:7px;
-}
-.diverge-grid {
-  display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px;
-}
-.dv-col.dv-hidden { display:none !important; }
-.diverge-grid[data-active="1"] { grid-template-columns:1fr; max-width:480px; }
-.diverge-grid[data-active="2"] { grid-template-columns:1fr 1fr; }
-.diverge-grid[data-active="3"] { grid-template-columns:1fr 1fr 1fr; }
-@media(max-width:1100px){ .diverge-grid[data-active="3"],.diverge-grid[data-active="4"] { grid-template-columns:1fr 1fr; } }
-@media(max-width:600px)  { .diverge-grid { grid-template-columns:1fr !important; } }
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      animation: pulse 2.2s ease-in-out infinite;
+    }
 
-.dv-col {
-  background:var(--bg2); border-radius:10px; padding:11px 12px;
-  border:1px solid var(--line);
-}
-.dv-col.bfs-dv  { border-color:rgba(41,196,239,.18); }
-.dv-col.dfs-dv  { border-color:rgba(255,112,67,.18); }
-.dv-col.gbfs-dv { border-color:rgba(217,102,245,.18); }
-.dv-col.ast-dv  { border-color:rgba(127,255,79,.18); }
+    .badge-bfs .badge-dot {
+      background: var(--bfs);
+    }
 
-.dv-head { font-family:var(--mono); font-size:.63rem; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:5px; }
-.dv-head.bfs-h  { color:var(--bfs); }
-.dv-head.dfs-h  { color:var(--dfs); }
-.dv-head.gbfs-h { color:var(--gbfs); }
-.dv-head.ast-h  { color:var(--ast); }
+    .badge-dfs .badge-dot {
+      background: var(--dfs);
+    }
 
-.dv-step { display:flex; align-items:flex-start; gap:7px; margin-bottom:9px; }
-.dv-num {
-  font-family:var(--mono); font-weight:700; min-width:14px;
-  font-size:.58rem; flex-shrink:0; margin-top:1px;
-  width:18px; height:18px; border-radius:4px;
-  display:flex; align-items:center; justify-content:center; font-size:.6rem;
-}
-.dv-num.bfs-n  { color:var(--bg); background:var(--bfs); }
-.dv-num.dfs-n  { color:var(--bg); background:var(--dfs); }
-.dv-num.gbfs-n { color:var(--bg); background:var(--gbfs); }
-.dv-num.ast-n  { color:var(--bg); background:var(--ast); }
+    .badge-gbfs .badge-dot {
+      background: var(--gbfs);
+    }
 
-.dv-inner { display:flex; flex-direction:column; gap:2px; }
-.dv-move { font-family:var(--mono); font-size:.68rem; font-weight:600; color:var(--text); }
-.dv-why  { font-size:.62rem; color:var(--text2); line-height:1.55; }
+    .badge-ast .badge-dot {
+      background: var(--ast);
+    }
 
-.sol-preview { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
-.sol-head { font-family:var(--mono); font-size:.54rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; margin-bottom:5px; }
-.sol-chips { display:flex; flex-wrap:wrap; gap:3px; }
-.sol-chip {
-  font-family:var(--mono); font-size:.55rem; padding:2px 7px;
-  border-radius:4px; border:1px solid; white-space:nowrap;
-}
-.bfs-dv  .sol-chip { color:var(--bfs);  border-color:rgba(41,196,239,.22);  background:rgba(41,196,239,.06); }
-.dfs-dv  .sol-chip { color:var(--dfs);  border-color:rgba(255,112,67,.22);  background:rgba(255,112,67,.06); }
-.gbfs-dv .sol-chip { color:var(--gbfs); border-color:rgba(217,102,245,.22); background:rgba(217,102,245,.06); }
-.ast-dv  .sol-chip { color:var(--ast);  border-color:rgba(127,255,79,.22);  background:rgba(127,255,79,.06); }
+    @keyframes pulse {
 
-.sol-note { font-size:.58rem; color:var(--text3); margin-top:5px; font-style:italic; line-height:1.5; }
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
 
-.sync-bar {
-  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
-  padding:10px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;
-}
-.sync-label { font-family:var(--mono); font-size:.6rem; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; }
-.sync-btn {
-  width:32px; height:32px; border-radius:8px;
-  border:1px solid var(--line2); background:var(--bg3); color:var(--text);
-  font-size:.95rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
-  transition:all .15s; font-weight:700;
-}
-.sync-btn:hover:not(:disabled) { background:var(--bg4); border-color:var(--line2); }
-.sync-btn:disabled { opacity:.22; cursor:not-allowed; }
-.sync-counter {
-  font-family:var(--mono); font-size:.8rem; font-weight:700;
-  background:var(--bg3); padding:6px 18px; border-radius:24px;
-  border:1px solid var(--line); min-width:96px; text-align:center;
-}
-.sync-auto-btn {
-  background:var(--bg3); border:1px solid var(--line); color:var(--text2);
-  font-family:var(--mono); font-size:.67rem; font-weight:700;
-  padding:6px 14px; border-radius:8px; cursor:pointer; transition:all .15s; letter-spacing:.06em;
-}
-.sync-auto-btn:hover { color:var(--gbfs); border-color:rgba(217,102,245,.35); }
-.sync-auto-btn.playing { color:var(--dfs); border-color:rgba(255,112,67,.4); background:rgba(255,112,67,.07); }
-.fastest-tag {
-  margin-left:auto; font-family:var(--mono); font-size:.62rem; font-weight:700;
-  padding:5px 12px; border-radius:18px;
-  background:rgba(127,255,79,.09); border:1px solid rgba(127,255,79,.28); color:var(--ast);
-}
+      50% {
+        opacity: .4;
+        transform: scale(1.6)
+      }
+    }
 
-.algos-grid {
-  display:grid; grid-template-columns:1fr 1fr 1fr 1fr;
-  gap:11px; margin-bottom:14px;
-}
-@media(max-width:1200px){ .algos-grid { grid-template-columns:1fr 1fr; } }
-@media(max-width:680px)  { .algos-grid { grid-template-columns:1fr; } }
+    /* ── CUSTOM CONFIG PANEL ── */
+    .config-panel {
+      background: var(--bg1);
+      border: 1px solid var(--line2);
+      border-top: 2px solid var(--bfs);
+      border-radius: var(--r);
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+    }
 
-.algo-panel {
-  background:var(--bg1); border:1px solid var(--line); border-radius:16px;
-  overflow:hidden; display:flex; flex-direction:column;
-  transition:border-color .3s, box-shadow .3s;
-}
-.algo-panel.bfs-panel  { --ac:var(--bfs);  --ag:var(--bfs-dim); }
-.algo-panel.dfs-panel  { --ac:var(--dfs);  --ag:var(--dfs-dim); }
-.algo-panel.gbfs-panel { --ac:var(--gbfs); --ag:var(--gbfs-dim); }
-.algo-panel.ast-panel  { --ac:var(--ast);  --ag:var(--ast-dim); }
-.algo-panel.done-panel {
-  border-color:var(--ac);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--ac) 14%, transparent);
-}
-.algo-panel.panel-hidden { display:none !important; }
+    .config-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--bfs), var(--gbfs), var(--ast));
+      opacity: .5;
+    }
 
-/* Dynamic grid columns based on visible panels */
-.algos-grid[data-active="1"] { grid-template-columns: 1fr; max-width:560px; margin-left:auto; margin-right:auto; }
-.algos-grid[data-active="2"] { grid-template-columns: 1fr 1fr; }
-.algos-grid[data-active="3"] { grid-template-columns: 1fr 1fr 1fr; }
-.algos-grid[data-active="4"] { grid-template-columns: 1fr 1fr 1fr 1fr; }
-@media(max-width:1200px){
-  .algos-grid[data-active="3"],.algos-grid[data-active="4"] { grid-template-columns:1fr 1fr; }
-}
-@media(max-width:680px){
-  .algos-grid { grid-template-columns:1fr !important; max-width:100% !important; }
-}
+    .config-title {
+      font-family: var(--mono);
+      font-size: .6rem;
+      font-weight: 700;
+      color: var(--bfs);
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
 
-.panel-header {
-  padding:11px 14px; background:var(--ag); border-bottom:1px solid var(--line);
-  display:flex; align-items:center; justify-content:space-between;
-  position:relative; overflow:hidden;
-}
-.panel-header::after {
-  content:''; position:absolute; bottom:0; left:0; right:0;
-  height:1px; background:var(--ac); opacity:.4;
-}
-.ph-left { display:flex; align-items:center; gap:9px; }
-.ph-icon {
-  width:32px; height:32px; border-radius:7px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:.72rem; font-weight:800; font-family:var(--mono);
-  color:#06090f; flex-shrink:0; letter-spacing:-.02em;
-}
-.bfs-panel  .ph-icon { background:var(--bfs); }
-.dfs-panel  .ph-icon { background:var(--dfs); }
-.gbfs-panel .ph-icon { background:var(--gbfs); }
-.ast-panel  .ph-icon { background:var(--ast); }
-.ph-name { font-family:var(--mono); font-size:.8rem; font-weight:700; color:var(--ac); letter-spacing:.02em; }
-.ph-full { font-size:.58rem; color:var(--text2); margin-top:1px; }
-.ph-status {
-  font-family:var(--mono); font-size:.57rem; font-weight:700;
-  padding:3px 9px; border-radius:18px; text-transform:uppercase; letter-spacing:.09em;
-  border:1px solid var(--ac); color:var(--ac); background:var(--ag);
-  transition:all .3s; white-space:nowrap;
-}
+    .config-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
 
-.panel-canvas-wrap {
-  background:var(--bg2); padding:9px; border-bottom:1px solid var(--line);
-  display:flex; justify-content:center; min-height:136px; align-items:center; position:relative;
-}
-.panel-canvas-wrap canvas { display:block; border-radius:6px; max-width:100%; }
-.step-float {
-  position:absolute; top:6px; left:50%; transform:translateX(-50%);
-  font-family:var(--mono); font-size:.54rem; font-weight:700;
-  padding:2px 9px; border-radius:9px; letter-spacing:.09em; text-transform:uppercase;
-  pointer-events:none; white-space:nowrap;
-}
-.sf-bfs  { background:rgba(41,196,239,.14);  color:var(--bfs);  border:1px solid rgba(41,196,239,.28); }
-.sf-dfs  { background:rgba(255,112,67,.14);  color:var(--dfs);  border:1px solid rgba(255,112,67,.28); }
-.sf-gbfs { background:rgba(217,102,245,.14); color:var(--gbfs); border:1px solid rgba(217,102,245,.28); }
-.sf-ast  { background:rgba(127,255,79,.14);  color:var(--ast);  border:1px solid rgba(127,255,79,.28); }
+    .config-row {
+      display: flex;
+      gap: 14px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
 
-.panel-metrics {
-  display:grid; grid-template-columns:1fr 1fr 1fr;
-  border-bottom:1px solid var(--line);
-}
-.metric {
-  padding:7px 10px; border-right:1px solid var(--line);
-  display:flex; flex-direction:column; gap:2px;
-}
-.metric:last-child { border-right:none; }
-.m-key { font-family:var(--mono); font-size:.5rem; color:var(--text3); text-transform:uppercase; letter-spacing:.09em; }
-.m-val { font-family:var(--mono); font-size:.82rem; font-weight:700; color:var(--ac); }
+    .config-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
 
-.prog-bar-wrap { padding:7px 10px; border-bottom:1px solid var(--line); }
-.prog-bar-label {
-  font-family:var(--mono); font-size:.5rem; color:var(--text3);
-  text-transform:uppercase; letter-spacing:.09em; margin-bottom:5px;
-  display:flex; justify-content:space-between;
-}
-.prog-bar-label span:last-child { color:var(--ac); font-weight:600; }
-.prog-bar-track { height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; }
-.prog-bar-fill  { height:100%; border-radius:2px; transition:width .4s ease; }
-.gbfs-panel .prog-bar-fill { background: linear-gradient(90deg, var(--gbfs), var(--dfs)); }
-.ast-panel  .prog-bar-fill { background: linear-gradient(90deg, var(--ast), var(--bfs)); }
+    .config-label {
+      font-family: var(--mono);
+      font-size: .55rem;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
 
-.panel-nav {
-  padding:7px 10px; display:flex; align-items:center; gap:6px;
-  border-bottom:1px solid var(--line);
-}
-.pnav-btn {
-  width:24px; height:24px; border-radius:5px; border:1px solid var(--line2);
-  background:var(--bg3); color:var(--text2); font-size:.85rem; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; transition:all .15s; font-weight:700;
-}
-.pnav-btn:hover:not(:disabled) { background:var(--ac); color:#06090f; border-color:var(--ac); }
-.pnav-btn:disabled { opacity:.18; cursor:not-allowed; }
-.pnav-count {
-  font-family:var(--mono); font-size:.68rem; font-weight:600;
-  background:var(--bg3); padding:3px 10px; border-radius:18px;
-  min-width:66px; text-align:center; border:1px solid var(--line);
-}
-.pnav-auto {
-  margin-left:auto; background:var(--bg3); border:1px solid var(--line); color:var(--text2);
-  font-family:var(--mono); font-size:.6rem; font-weight:700;
-  padding:3px 9px; border-radius:6px; cursor:pointer; transition:all .15s; letter-spacing:.06em;
-}
-.pnav-auto:hover { color:var(--ac); border-color:var(--ac); }
-.pnav-auto.playing { color:var(--dfs); border-color:rgba(255,112,67,.4); background:rgba(255,112,67,.07); }
+    .config-label .cfg-icon {
+      font-size: .7rem;
+    }
 
-.panel-moves {
-  flex:1; overflow-y:auto; max-height:138px; padding:6px 9px;
-  scrollbar-width:thin; scrollbar-color:var(--bg4) transparent;
-}
-.move-item {
-  display:flex; align-items:center; gap:5px; padding:3px 6px; border-radius:5px;
-  font-family:var(--mono); font-size:.62rem; color:var(--text2);
-  cursor:pointer; transition:all .12s; margin-bottom:1px;
-}
-.move-item:hover { background:var(--bg3); color:var(--text); }
-.move-item.active-move { background:var(--ag); color:var(--ac); border-left:2px solid var(--ac); padding-left:4px; }
-.move-idx { color:var(--text3); min-width:16px; font-size:.55rem; }
+    .config-input {
+      background: var(--bg3);
+      border: 1px solid var(--line2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .8rem;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 9px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      min-width: 0;
+    }
 
-.algo-desc {
-  padding:8px 12px; border-top:1px solid var(--line);
-  font-size:.62rem; line-height:1.65; color:var(--text2);
-  background: linear-gradient(to bottom, transparent, rgba(255,255,255,.012));
-}
-.algo-desc strong { color:var(--ac); font-family:var(--mono); font-weight:600; }
+    .config-input:focus {
+      border-color: var(--bfs);
+      box-shadow: 0 0 0 2px rgba(41, 196, 239, .12);
+    }
 
-.cmp-table-wrap {
-  background:var(--bg1); border:1px solid var(--line); border-radius:var(--r);
-  padding:14px 16px; margin-bottom:14px; overflow-x:auto;
-}
-.cmp-title {
-  font-family:var(--mono); font-size:.65rem; font-weight:700; color:var(--text2);
-  text-transform:uppercase; letter-spacing:.12em; margin-bottom:12px;
-  display:flex; align-items:center; gap:8px;
-}
-.cmp-title::before {
-  content:''; width:3px; height:12px; border-radius:2px;
-  background: linear-gradient(var(--bfs), var(--gbfs));
-}
-.cmp-table { width:100%; border-collapse:collapse; }
-.cmp-table th {
-  font-family:var(--mono); font-size:.55rem; font-weight:600; text-transform:uppercase;
-  letter-spacing:.1em; color:var(--text3); padding:6px 12px;
-  border-bottom:1px solid var(--line2); text-align:left;
-}
-.cmp-table td {
-  font-family:var(--mono); font-size:.68rem; padding:7px 12px;
-  border-bottom:1px solid rgba(255,255,255,.032);
-}
-.cmp-table tr:last-child td { border-bottom:none; }
-.cmp-table .algo-name { font-weight:700; }
-.bfs-row  .algo-name { color:var(--bfs); }
-.dfs-row  .algo-name { color:var(--dfs); }
-.gbfs-row .algo-name { color:var(--gbfs); }
-.ast-row  .algo-name { color:var(--ast); }
-.cmp-table tbody tr { transition:background .12s; }
-.cmp-table tbody tr:hover { background:var(--bg3); }
-.cx-best  { color:#7fff4f; font-weight:700; }
-.cx-worst { color:#ff7043; }
-.cx-mid   { color:var(--text2); }
-.cx-warn  { color:var(--gold); font-weight:600; }
-.cmp-note { margin-top:9px; font-size:.58rem; color:var(--text3); font-family:var(--mono); line-height:1.8; }
+    .config-input.input-start:focus {
+      border-color: var(--bfs);
+      box-shadow: 0 0 0 2px rgba(41, 196, 239, .12);
+    }
 
-.loading-ov {
-  position:fixed; inset:0; background:rgba(7,9,15,.9);
-  backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; z-index:9000;
-}
-.loading-box {
-  background:var(--bg1); border:1px solid var(--line2); border-radius:18px;
-  padding:32px 48px; text-align:center;
-}
-.loading-box h3 { font-family:var(--mono); font-size:1rem; margin-bottom:6px; font-weight:700; }
-.loading-box p  { color:var(--text2); font-size:.75rem; margin-bottom:18px; }
-.loading-algos  { display:flex; gap:14px; justify-content:center; margin-bottom:18px; }
-.l-algo { display:flex; flex-direction:column; align-items:center; gap:5px; font-family:var(--mono); font-size:.62rem; font-weight:700; }
-.l-algo-bar { width:44px; height:3px; border-radius:2px; animation:loadBar 1.2s ease-in-out infinite; }
-.l-bfs  .l-algo-bar { background:var(--bfs);  animation-delay:0s; }
-.l-dfs  .l-algo-bar { background:var(--dfs);  animation-delay:.25s; }
-.l-gbfs .l-algo-bar { background:var(--gbfs); animation-delay:.5s; }
-.l-ast  .l-algo-bar { background:var(--ast);  animation-delay:.75s; }
-@keyframes loadBar { 0%,100%{transform:scaleX(.28);opacity:.38} 50%{transform:scaleX(1);opacity:1} }
-.spinner {
-  width:30px; height:30px; border:2px solid var(--bg4);
-  border-top-color:var(--gbfs); border-radius:50%;
-  animation:spin .7s linear infinite; margin:0 auto;
-}
-@keyframes spin { to{ transform:rotate(360deg) } }
-</style>
+    .config-input.input-goal:focus {
+      border-color: var(--ast);
+      box-shadow: 0 0 0 2px rgba(127, 255, 79, .12);
+    }
+
+    .config-input.input-err {
+      border-color: #ef5350 !important;
+      box-shadow: 0 0 0 2px rgba(239, 83, 80, .12) !important;
+    }
+
+    select.config-input {
+      cursor: pointer;
+    }
+
+    select.config-input option {
+      background: #111720;
+    }
+
+    .blocks-select {
+      width: 80px;
+    }
+
+    .state-input {
+      width: 140px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    /* ── ALGO CHECKBOXES ── */
+    .algo-checks {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .algo-check-item {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .algo-check-item input[type=checkbox] {
+      display: none;
+    }
+
+    .algo-check-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-family: var(--mono);
+      font-size: .63rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      border: 1px solid;
+      transition: all .18s;
+      cursor: pointer;
+    }
+
+    .algo-check-item input:checked+.algo-check-pill {
+      opacity: 1;
+    }
+
+    .algo-check-item input:not(:checked)+.algo-check-pill {
+      opacity: .28;
+      filter: grayscale(.6);
+    }
+
+    .pill-bfs {
+      color: var(--bfs);
+      border-color: rgba(41, 196, 239, .35);
+      background: rgba(41, 196, 239, .08);
+    }
+
+    .pill-dfs {
+      color: var(--dfs);
+      border-color: rgba(255, 112, 67, .35);
+      background: rgba(255, 112, 67, .08);
+    }
+
+    .pill-gbfs {
+      color: var(--gbfs);
+      border-color: rgba(217, 102, 245, .35);
+      background: rgba(217, 102, 245, .08);
+    }
+
+    .pill-ast {
+      color: var(--ast);
+      border-color: rgba(127, 255, 79, .35);
+      background: rgba(127, 255, 79, .08);
+    }
+
+    .pill-check-icon {
+      font-size: .55rem;
+    }
+
+    /* ── PLAYBACK SPEED IN CONFIG ── */
+    .speed-config-wrap {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .speed-config-btn {
+      background: var(--bg3);
+      border: 1px solid var(--line);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: .62rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .speed-config-btn.active {
+      color: var(--bfs);
+      border-color: rgba(41, 196, 239, .4);
+      background: rgba(41, 196, 239, .07);
+    }
+
+    /* ── RUN BUTTON in config ── */
+    .cfg-run-btn {
+      background: linear-gradient(135deg, var(--bfs), var(--gbfs));
+      border: none;
+      color: #060910;
+      font-family: var(--mono);
+      font-size: .8rem;
+      font-weight: 800;
+      padding: 10px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      letter-spacing: .1em;
+      box-shadow: 0 2px 20px rgba(217, 102, 245, .35);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      align-self: flex-end;
+    }
+
+    .cfg-run-btn:hover {
+      opacity: .88;
+      transform: translateY(-1px);
+    }
+
+    .cfg-run-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ── VALIDATION TOOLTIP ── */
+    .cfg-hint {
+      font-family: var(--mono);
+      font-size: .55rem;
+      color: #ef5350;
+      margin-top: 3px;
+      min-height: 14px;
+    }
+
+    /* ── CTRL BAR (existing, keep) ── */
+    .ctrl-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 10px 16px;
+      margin-bottom: 14px;
+    }
+
+    .ctrl-label {
+      font-family: var(--mono);
+      font-size: .6rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      white-space: nowrap;
+    }
+
+    .lvl-select {
+      background: var(--bg3);
+      border: 1px solid var(--line2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .76rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 9px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color .2s;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .lvl-select:focus {
+      border-color: var(--bfs);
+    }
+
+    .lvl-select option {
+      background: #111720;
+    }
+
+    .speed-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .speed-btn {
+      background: var(--bg3);
+      border: 1px solid var(--line);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: .65rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .speed-btn.active {
+      color: var(--bfs);
+      border-color: rgba(41, 196, 239, .4);
+      background: rgba(41, 196, 239, .07);
+    }
+
+    .run-btn {
+      background: linear-gradient(135deg, var(--bfs), var(--gbfs));
+      border: none;
+      color: #060910;
+      font-family: var(--mono);
+      font-size: .78rem;
+      font-weight: 700;
+      padding: 8px 20px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      letter-spacing: .08em;
+      box-shadow: 0 2px 18px rgba(217, 102, 245, .3);
+      white-space: nowrap;
+    }
+
+    .run-btn:hover {
+      opacity: .88;
+      transform: translateY(-1px);
+    }
+
+    .sg-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
+    .sg-card {
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 11px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sg-card.start-card {
+      border-color: rgba(41, 196, 239, .2);
+    }
+
+    .sg-card.goal-card {
+      border-color: rgba(127, 255, 79, .2);
+    }
+
+    .sg-label {
+      font-family: var(--mono);
+      font-size: .6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      margin-bottom: 3px;
+    }
+
+    .sg-label.sl {
+      color: var(--bfs);
+    }
+
+    .sg-label.gl {
+      color: var(--ast);
+    }
+
+    .sg-state-val {
+      font-family: var(--mono);
+      font-size: .72rem;
+      color: var(--text2);
+      margin-top: 1px;
+      letter-spacing: .05em;
+    }
+
+    .sg-mini {
+      border-radius: 7px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .problem-info {
+      flex: 1;
+      min-width: 260px;
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 11px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pi-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pi-key {
+      font-family: var(--mono);
+      font-size: .53rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .pi-val {
+      font-family: var(--mono);
+      font-size: .82rem;
+      font-weight: 700;
+    }
+
+    .pi-val.gc {
+      color: var(--gold);
+    }
+
+    .pi-val.bfs-c {
+      color: var(--bfs);
+    }
+
+    .pi-val.dfs-c {
+      color: var(--dfs);
+    }
+
+    .pi-val.gbfs-c {
+      color: var(--gbfs);
+    }
+
+    .pi-val.ast-c {
+      color: var(--ast);
+    }
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: .58rem;
+      font-weight: 600;
+      color: var(--text3);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    .diverge-panel {
+      background: var(--bg1);
+      border: 1px solid var(--line2);
+      border-top: 2px solid var(--gold);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .diverge-title {
+      font-family: var(--mono);
+      font-size: .62rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .diverge-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .dv-col.dv-hidden {
+      display: none !important;
+    }
+
+    .diverge-grid[data-active="1"] {
+      grid-template-columns: 1fr;
+      max-width: 480px;
+    }
+
+    .diverge-grid[data-active="2"] {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .diverge-grid[data-active="3"] {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    @media(max-width:1100px) {
+
+      .diverge-grid[data-active="3"],
+      .diverge-grid[data-active="4"] {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media(max-width:600px) {
+      .diverge-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    .dv-col {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+    }
+
+    .dv-col.bfs-dv {
+      border-color: rgba(41, 196, 239, .18);
+    }
+
+    .dv-col.dfs-dv {
+      border-color: rgba(255, 112, 67, .18);
+    }
+
+    .dv-col.gbfs-dv {
+      border-color: rgba(217, 102, 245, .18);
+    }
+
+    .dv-col.ast-dv {
+      border-color: rgba(127, 255, 79, .18);
+    }
+
+    .dv-head {
+      font-family: var(--mono);
+      font-size: .63rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dv-head.bfs-h {
+      color: var(--bfs);
+    }
+
+    .dv-head.dfs-h {
+      color: var(--dfs);
+    }
+
+    .dv-head.gbfs-h {
+      color: var(--gbfs);
+    }
+
+    .dv-head.ast-h {
+      color: var(--ast);
+    }
+
+    .dv-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      margin-bottom: 9px;
+    }
+
+    .dv-num {
+      font-family: var(--mono);
+      font-weight: 700;
+      min-width: 14px;
+      font-size: .58rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .6rem;
+    }
+
+    .dv-num.bfs-n {
+      color: var(--bg);
+      background: var(--bfs);
+    }
+
+    .dv-num.dfs-n {
+      color: var(--bg);
+      background: var(--dfs);
+    }
+
+    .dv-num.gbfs-n {
+      color: var(--bg);
+      background: var(--gbfs);
+    }
+
+    .dv-num.ast-n {
+      color: var(--bg);
+      background: var(--ast);
+    }
+
+    .dv-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .dv-move {
+      font-family: var(--mono);
+      font-size: .68rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .dv-why {
+      font-size: .62rem;
+      color: var(--text2);
+      line-height: 1.55;
+    }
+
+    .sol-preview {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .sol-head {
+      font-family: var(--mono);
+      font-size: .54rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 5px;
+    }
+
+    .sol-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+
+    .sol-chip {
+      font-family: var(--mono);
+      font-size: .55rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .bfs-dv .sol-chip {
+      color: var(--bfs);
+      border-color: rgba(41, 196, 239, .22);
+      background: rgba(41, 196, 239, .06);
+    }
+
+    .dfs-dv .sol-chip {
+      color: var(--dfs);
+      border-color: rgba(255, 112, 67, .22);
+      background: rgba(255, 112, 67, .06);
+    }
+
+    .gbfs-dv .sol-chip {
+      color: var(--gbfs);
+      border-color: rgba(217, 102, 245, .22);
+      background: rgba(217, 102, 245, .06);
+    }
+
+    .ast-dv .sol-chip {
+      color: var(--ast);
+      border-color: rgba(127, 255, 79, .22);
+      background: rgba(127, 255, 79, .06);
+    }
+
+    .sol-note {
+      font-size: .58rem;
+      color: var(--text3);
+      margin-top: 5px;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .sync-bar {
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .sync-label {
+      font-family: var(--mono);
+      font-size: .6rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .sync-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line2);
+      background: var(--bg3);
+      color: var(--text);
+      font-size: .95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+      font-weight: 700;
+    }
+
+    .sync-btn:hover:not(:disabled) {
+      background: var(--bg4);
+      border-color: var(--line2);
+    }
+
+    .sync-btn:disabled {
+      opacity: .22;
+      cursor: not-allowed;
+    }
+
+    .sync-counter {
+      font-family: var(--mono);
+      font-size: .8rem;
+      font-weight: 700;
+      background: var(--bg3);
+      padding: 6px 18px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      min-width: 96px;
+      text-align: center;
+    }
+
+    .sync-auto-btn {
+      background: var(--bg3);
+      border: 1px solid var(--line);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: .67rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .15s;
+      letter-spacing: .06em;
+    }
+
+    .sync-auto-btn:hover {
+      color: var(--gbfs);
+      border-color: rgba(217, 102, 245, .35);
+    }
+
+    .sync-auto-btn.playing {
+      color: var(--dfs);
+      border-color: rgba(255, 112, 67, .4);
+      background: rgba(255, 112, 67, .07);
+    }
+
+    .fastest-tag {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: .62rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 18px;
+      background: rgba(127, 255, 79, .09);
+      border: 1px solid rgba(127, 255, 79, .28);
+      color: var(--ast);
+    }
+
+    .algos-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 11px;
+      margin-bottom: 14px;
+    }
+
+    @media(max-width:1200px) {
+      .algos-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media(max-width:680px) {
+      .algos-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .algo-panel {
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color .3s, box-shadow .3s;
+    }
+
+    .algo-panel.bfs-panel {
+      --ac: var(--bfs);
+      --ag: var(--bfs-dim);
+    }
+
+    .algo-panel.dfs-panel {
+      --ac: var(--dfs);
+      --ag: var(--dfs-dim);
+    }
+
+    .algo-panel.gbfs-panel {
+      --ac: var(--gbfs);
+      --ag: var(--gbfs-dim);
+    }
+
+    .algo-panel.ast-panel {
+      --ac: var(--ast);
+      --ag: var(--ast-dim);
+    }
+
+    .algo-panel.done-panel {
+      border-color: var(--ac);
+      box-shadow: 0 0 24px color-mix(in srgb, var(--ac) 14%, transparent);
+    }
+
+    .algo-panel.panel-hidden {
+      display: none !important;
+    }
+
+    /* Dynamic grid columns based on visible panels */
+    .algos-grid[data-active="1"] {
+      grid-template-columns: 1fr;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .algos-grid[data-active="2"] {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .algos-grid[data-active="3"] {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .algos-grid[data-active="4"] {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+
+    @media(max-width:1200px) {
+
+      .algos-grid[data-active="3"],
+      .algos-grid[data-active="4"] {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media(max-width:680px) {
+      .algos-grid {
+        grid-template-columns: 1fr !important;
+        max-width: 100% !important;
+      }
+    }
+
+    .panel-header {
+      padding: 11px 14px;
+      background: var(--ag);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--ac);
+      opacity: .4;
+    }
+
+    .ph-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .ph-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .72rem;
+      font-weight: 800;
+      font-family: var(--mono);
+      color: #06090f;
+      flex-shrink: 0;
+      letter-spacing: -.02em;
+    }
+
+    .bfs-panel .ph-icon {
+      background: var(--bfs);
+    }
+
+    .dfs-panel .ph-icon {
+      background: var(--dfs);
+    }
+
+    .gbfs-panel .ph-icon {
+      background: var(--gbfs);
+    }
+
+    .ast-panel .ph-icon {
+      background: var(--ast);
+    }
+
+    .ph-name {
+      font-family: var(--mono);
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--ac);
+      letter-spacing: .02em;
+    }
+
+    .ph-full {
+      font-size: .58rem;
+      color: var(--text2);
+      margin-top: 1px;
+    }
+
+    .ph-status {
+      font-family: var(--mono);
+      font-size: .57rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 18px;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      border: 1px solid var(--ac);
+      color: var(--ac);
+      background: var(--ag);
+      transition: all .3s;
+      white-space: nowrap;
+    }
+
+    .panel-canvas-wrap {
+      background: var(--bg2);
+      padding: 9px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: center;
+      min-height: 136px;
+      align-items: center;
+      position: relative;
+    }
+
+    .panel-canvas-wrap canvas {
+      display: block;
+      border-radius: 6px;
+      max-width: 100%;
+    }
+
+    .step-float {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: .54rem;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 9px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .sf-bfs {
+      background: rgba(41, 196, 239, .14);
+      color: var(--bfs);
+      border: 1px solid rgba(41, 196, 239, .28);
+    }
+
+    .sf-dfs {
+      background: rgba(255, 112, 67, .14);
+      color: var(--dfs);
+      border: 1px solid rgba(255, 112, 67, .28);
+    }
+
+    .sf-gbfs {
+      background: rgba(217, 102, 245, .14);
+      color: var(--gbfs);
+      border: 1px solid rgba(217, 102, 245, .28);
+    }
+
+    .sf-ast {
+      background: rgba(127, 255, 79, .14);
+      color: var(--ast);
+      border: 1px solid rgba(127, 255, 79, .28);
+    }
+
+    .panel-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .metric {
+      padding: 7px 10px;
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .metric:last-child {
+      border-right: none;
+    }
+
+    .m-key {
+      font-family: var(--mono);
+      font-size: .5rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+    }
+
+    .m-val {
+      font-family: var(--mono);
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--ac);
+    }
+
+    .prog-bar-wrap {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .prog-bar-label {
+      font-family: var(--mono);
+      font-size: .5rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .prog-bar-label span:last-child {
+      color: var(--ac);
+      font-weight: 600;
+    }
+
+    .prog-bar-track {
+      height: 4px;
+      background: var(--bg3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .prog-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .4s ease;
+    }
+
+    .gbfs-panel .prog-bar-fill {
+      background: linear-gradient(90deg, var(--gbfs), var(--dfs));
+    }
+
+    .ast-panel .prog-bar-fill {
+      background: linear-gradient(90deg, var(--ast), var(--bfs));
+    }
+
+    .panel-nav {
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .pnav-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      border: 1px solid var(--line2);
+      background: var(--bg3);
+      color: var(--text2);
+      font-size: .85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+      font-weight: 700;
+    }
+
+    .pnav-btn:hover:not(:disabled) {
+      background: var(--ac);
+      color: #06090f;
+      border-color: var(--ac);
+    }
+
+    .pnav-btn:disabled {
+      opacity: .18;
+      cursor: not-allowed;
+    }
+
+    .pnav-count {
+      font-family: var(--mono);
+      font-size: .68rem;
+      font-weight: 600;
+      background: var(--bg3);
+      padding: 3px 10px;
+      border-radius: 18px;
+      min-width: 66px;
+      text-align: center;
+      border: 1px solid var(--line);
+    }
+
+    .pnav-auto {
+      margin-left: auto;
+      background: var(--bg3);
+      border: 1px solid var(--line);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: .6rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .15s;
+      letter-spacing: .06em;
+    }
+
+    .pnav-auto:hover {
+      color: var(--ac);
+      border-color: var(--ac);
+    }
+
+    .pnav-auto.playing {
+      color: var(--dfs);
+      border-color: rgba(255, 112, 67, .4);
+      background: rgba(255, 112, 67, .07);
+    }
+
+    .panel-moves {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 138px;
+      padding: 6px 9px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--bg4) transparent;
+    }
+
+    .move-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 6px;
+      border-radius: 5px;
+      font-family: var(--mono);
+      font-size: .62rem;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all .12s;
+      margin-bottom: 1px;
+    }
+
+    .move-item:hover {
+      background: var(--bg3);
+      color: var(--text);
+    }
+
+    .move-item.active-move {
+      background: var(--ag);
+      color: var(--ac);
+      border-left: 2px solid var(--ac);
+      padding-left: 4px;
+    }
+
+    .move-idx {
+      color: var(--text3);
+      min-width: 16px;
+      font-size: .55rem;
+    }
+
+    .algo-desc {
+      padding: 8px 12px;
+      border-top: 1px solid var(--line);
+      font-size: .62rem;
+      line-height: 1.65;
+      color: var(--text2);
+      background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, .012));
+    }
+
+    .algo-desc strong {
+      color: var(--ac);
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+
+    .cmp-table-wrap {
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+    }
+
+    .cmp-title {
+      font-family: var(--mono);
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cmp-title::before {
+      content: '';
+      width: 3px;
+      height: 12px;
+      border-radius: 2px;
+      background: linear-gradient(var(--bfs), var(--gbfs));
+    }
+
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .cmp-table th {
+      font-family: var(--mono);
+      font-size: .55rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text3);
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--line2);
+      text-align: left;
+    }
+
+    .cmp-table td {
+      font-family: var(--mono);
+      font-size: .68rem;
+      padding: 7px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .032);
+    }
+
+    .cmp-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .cmp-table .algo-name {
+      font-weight: 700;
+    }
+
+    .bfs-row .algo-name {
+      color: var(--bfs);
+    }
+
+    .dfs-row .algo-name {
+      color: var(--dfs);
+    }
+
+    .gbfs-row .algo-name {
+      color: var(--gbfs);
+    }
+
+    .ast-row .algo-name {
+      color: var(--ast);
+    }
+
+    .cmp-table tbody tr {
+      transition: background .12s;
+    }
+
+    .cmp-table tbody tr:hover {
+      background: var(--bg3);
+    }
+
+    .cx-best {
+      color: #7fff4f;
+      font-weight: 700;
+    }
+
+    .cx-worst {
+      color: #ff7043;
+    }
+
+    .cx-mid {
+      color: var(--text2);
+    }
+
+    .cx-warn {
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .cmp-note {
+      margin-top: 9px;
+      font-size: .58rem;
+      color: var(--text3);
+      font-family: var(--mono);
+      line-height: 1.8;
+    }
+
+    .loading-ov {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 9, 15, .9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9000;
+    }
+
+    .loading-box {
+      background: var(--bg1);
+      border: 1px solid var(--line2);
+      border-radius: 18px;
+      padding: 32px 48px;
+      text-align: center;
+    }
+
+    .loading-box h3 {
+      font-family: var(--mono);
+      font-size: 1rem;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .loading-box p {
+      color: var(--text2);
+      font-size: .75rem;
+      margin-bottom: 18px;
+    }
+
+    .loading-algos {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .l-algo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: .62rem;
+      font-weight: 700;
+    }
+
+    .l-algo-bar {
+      width: 44px;
+      height: 3px;
+      border-radius: 2px;
+      animation: loadBar 1.2s ease-in-out infinite;
+    }
+
+    .l-bfs .l-algo-bar {
+      background: var(--bfs);
+      animation-delay: 0s;
+    }
+
+    .l-dfs .l-algo-bar {
+      background: var(--dfs);
+      animation-delay: .25s;
+    }
+
+    .l-gbfs .l-algo-bar {
+      background: var(--gbfs);
+      animation-delay: .5s;
+    }
+
+    .l-ast .l-algo-bar {
+      background: var(--ast);
+      animation-delay: .75s;
+    }
+
+    @keyframes loadBar {
+
+      0%,
+      100% {
+        transform: scaleX(.28);
+        opacity: .38
+      }
+
+      50% {
+        transform: scaleX(1);
+        opacity: 1
+      }
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 2px solid var(--bg4);
+      border-top-color: var(--gbfs);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="app">
+  <div class="app">
 
-  <!-- HEADER -->
-  <div class="hdr">
-    <div class="hdr-left">
-      <div class="logo-box">🧱</div>
-      <div>
-        <div class="hdr-title">BLOCK WORLD</div>
-        <div class="hdr-sub">BFS · DFS · Greedy Best-First · A* — Side-by-side divergence · 5 levels</div>
+    <!-- HEADER -->
+    <div class="hdr">
+      <div class="hdr-left">
+        <div class="logo-box">🧱</div>
+        <div>
+          <div class="hdr-title">BLOCK WORLD</div>
+          <div class="hdr-sub">BFS · DFS · Greedy Best-First · A* — Side-by-side divergence · 5 levels</div>
+        </div>
+      </div>
+      <div class="algo-badges">
+        <div class="algo-badge badge-bfs"><span class="badge-dot"></span>BFS</div>
+        <div class="algo-badge badge-dfs"><span class="badge-dot"></span>DFS</div>
+        <div class="algo-badge badge-gbfs"><span class="badge-dot"></span>GREEDY</div>
+        <div class="algo-badge badge-ast"><span class="badge-dot"></span>A*</div>
       </div>
     </div>
-    <div class="algo-badges">
-      <div class="algo-badge badge-bfs"><span class="badge-dot"></span>BFS</div>
-      <div class="algo-badge badge-dfs"><span class="badge-dot"></span>DFS</div>
-      <div class="algo-badge badge-gbfs"><span class="badge-dot"></span>GREEDY</div>
-      <div class="algo-badge badge-ast"><span class="badge-dot"></span>A*</div>
+
+    <!-- ══ CUSTOM CONFIG PANEL ══ -->
+    <div class="config-panel">
+      <div class="config-title">⚙ Custom Configuration</div>
+      <div class="config-row">
+
+        <!-- Blocks -->
+        <div class="config-field">
+          <span class="config-label"><span class="cfg-icon">📦</span> Blocks</span>
+          <select class="config-input blocks-select" id="cfgBlocks">
+            <option value="3">3 (A–C)</option>
+            <option value="4" selected>4 (A–D)</option>
+            <option value="5">5 (A–E)</option>
+            <option value="6">6 (A–F)</option>
+            <option value="7">7 (A–G)</option>
+          </select>
+        </div>
+
+        <!-- Start state -->
+        <div class="config-field">
+          <span class="config-label"><span class="cfg-icon">🏁</span> Start State</span>
+          <input class="config-input state-input input-start" id="cfgStart" type="text" value="ABCD" maxlength="20"
+            spellcheck="false" autocomplete="off" />
+          <div class="cfg-hint" id="hintStart"></div>
+        </div>
+
+        <!-- Goal state -->
+        <div class="config-field">
+          <span class="config-label"><span class="cfg-icon">🎯</span> Goal State</span>
+          <input class="config-input state-input input-goal" id="cfgGoal" type="text" value="AB|CD" maxlength="20"
+            spellcheck="false" autocomplete="off" />
+          <div class="cfg-hint" id="hintGoal"></div>
+        </div>
+
+        <!-- Algorithms -->
+        <div class="config-field">
+          <span class="config-label">Algorithms</span>
+          <div class="algo-checks">
+            <label class="algo-check-item">
+              <input type="checkbox" id="chkBFS" checked>
+              <span class="algo-check-pill pill-bfs"><span class="pill-check-icon">✓</span> BFS</span>
+            </label>
+            <label class="algo-check-item">
+              <input type="checkbox" id="chkDFS" checked>
+              <span class="algo-check-pill pill-dfs"><span class="pill-check-icon">✓</span> DFS</span>
+            </label>
+            <label class="algo-check-item">
+              <input type="checkbox" id="chkGBFS" checked>
+              <span class="algo-check-pill pill-gbfs"><span class="pill-check-icon">✓</span> GREEDY</span>
+            </label>
+            <label class="algo-check-item">
+              <input type="checkbox" id="chkAST" checked>
+              <span class="algo-check-pill pill-ast"><span class="pill-check-icon">✓</span> A*</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Playback -->
+        <div class="config-field">
+          <span class="config-label">⏵ Playback (ms)</span>
+          <div class="speed-config-wrap">
+            <button class="speed-config-btn" data-ms="1800">0.5×</button>
+            <button class="speed-config-btn active" data-ms="950">1×</button>
+            <button class="speed-config-btn" data-ms="480">2×</button>
+            <button class="speed-config-btn" data-ms="200">4×</button>
+          </div>
+        </div>
+
+        <!-- Run -->
+        <button class="cfg-run-btn" id="cfgRunBtn">▶ RUN</button>
+      </div>
     </div>
-  </div>
 
-  <!-- ══ CUSTOM CONFIG PANEL ══ -->
-  <div class="config-panel">
-    <div class="config-title">⚙ Custom Configuration</div>
-    <div class="config-row">
+    <!-- CONTROLS (preset levels) -->
+    <div class="ctrl-bar">
+      <span class="ctrl-label">Preset Level</span>
+      <select class="lvl-select" id="levelSelect">
+        <option value="0">LVL 01 · ~3 STEPS — 3 blocks · ABC → A|BC [Intro: easy divergence]</option>
+        <option value="1" selected>LVL 02 · ~6 STEPS — 4 blocks · ABCD → AB|CD [Small divergence]</option>
+        <option value="2">LVL 03 · ~10 STEPS — 5 blocks · ABCDE → AB|CDE [Visible DFS mistakes]</option>
+        <option value="3">LVL 04 · ~15 STEPS — 6 blocks · ABCDEF → BCD|AEF [Clear comparison]</option>
+        <option value="4">LVL 05 · ~22 STEPS — 7 blocks · ABCDEFG → ABC|DEFG [Dramatic explosion]</option>
+      </select>
+      <div class="speed-wrap">
+        <span class="ctrl-label">Speed</span>
+        <button class="speed-btn" data-ms="1800">0.5×</button>
+        <button class="speed-btn active" data-ms="950">1×</button>
+        <button class="speed-btn" data-ms="480">2×</button>
+        <button class="speed-btn" data-ms="200">4×</button>
+      </div>
+      <button class="run-btn" id="runBtn">▶ RUN ALL 4</button>
+    </div>
 
-      <!-- Blocks -->
-      <div class="config-field">
-        <span class="config-label"><span class="cfg-icon">📦</span> Blocks</span>
-        <select class="config-input blocks-select" id="cfgBlocks">
-          <option value="3">3 (A–C)</option>
-          <option value="4" selected>4 (A–D)</option>
-          <option value="5">5 (A–E)</option>
-          <option value="6">6 (A–F)</option>
-          <option value="7">7 (A–G)</option>
-        </select>
+    <!-- START / GOAL -->
+    <div class="sg-row">
+      <div class="sg-card start-card">
+        <div>
+          <div class="sg-label sl">▸ Initial State</div>
+          <div class="sg-state-val" id="startDesc"></div>
+        </div>
+        <div class="sg-mini"><canvas id="startMini" width="120" height="88"></canvas></div>
+      </div>
+      <div class="sg-card goal-card">
+        <div>
+          <div class="sg-label gl">◆ Goal State</div>
+          <div class="sg-state-val" id="goalDesc"></div>
+        </div>
+        <div class="sg-mini"><canvas id="goalMini" width="120" height="88"></canvas></div>
+      </div>
+      <div class="problem-info">
+        <div class="pi-item"><span class="pi-key">Target</span><span class="pi-val gc" id="piTarget">—</span></div>
+        <div class="pi-item"><span class="pi-key">BFS path</span><span class="pi-val bfs-c" id="piBFSS">—</span></div>
+        <div class="pi-item"><span class="pi-key">DFS path</span><span class="pi-val dfs-c" id="piDFSS">—</span></div>
+        <div class="pi-item"><span class="pi-key">Greedy path</span><span class="pi-val gbfs-c" id="piGBFSS">—</span>
+        </div>
+        <div class="pi-item"><span class="pi-key">A* path</span><span class="pi-val ast-c" id="piASTS">—</span></div>
+        <div class="pi-item"><span class="pi-key">BFS nodes</span><span class="pi-val bfs-c" id="piBFS">—</span></div>
+        <div class="pi-item"><span class="pi-key">DFS nodes</span><span class="pi-val dfs-c" id="piDFS">—</span></div>
+        <div class="pi-item"><span class="pi-key">Greedy nodes</span><span class="pi-val gbfs-c" id="piGBFS">—</span>
+        </div>
+        <div class="pi-item"><span class="pi-key">A* nodes</span><span class="pi-val ast-c" id="piAST">—</span></div>
+      </div>
+    </div>
+
+    <!-- DIVERGENCE PANEL -->
+    <div class="diverge-panel">
+      <div class="diverge-title">⚡ First 2 Steps Divergence — Why Each Algorithm Makes a Different Choice</div>
+      <div class="diverge-grid">
+        <div class="dv-col bfs-dv">
+          <div class="dv-head bfs-h">🔵 BFS — Steps 1 &amp; 2</div>
+          <div id="dvBFS"></div>
+          <div class="sol-preview">
+            <div class="sol-head">Solution path</div>
+            <div class="sol-chips" id="solBFS"></div>
+            <div class="sol-note" id="solBFSnote"></div>
+          </div>
+        </div>
+        <div class="dv-col dfs-dv">
+          <div class="dv-head dfs-h">🟠 DFS — Steps 1 &amp; 2</div>
+          <div id="dvDFS"></div>
+          <div class="sol-preview">
+            <div class="sol-head">Solution path</div>
+            <div class="sol-chips" id="solDFS"></div>
+            <div class="sol-note" id="solDFSnote"></div>
+          </div>
+        </div>
+        <div class="dv-col gbfs-dv">
+          <div class="dv-head gbfs-h">🟣 GREEDY — Steps 1 &amp; 2</div>
+          <div id="dvGBFS"></div>
+          <div class="sol-preview">
+            <div class="sol-head">Solution path</div>
+            <div class="sol-chips" id="solGBFS"></div>
+            <div class="sol-note" id="solGBFSnote"></div>
+          </div>
+        </div>
+        <div class="dv-col ast-dv">
+          <div class="dv-head ast-h">🟢 A* — Steps 1 &amp; 2</div>
+          <div id="dvAST"></div>
+          <div class="sol-preview">
+            <div class="sol-head">Solution path</div>
+            <div class="sol-chips" id="solAST"></div>
+            <div class="sol-note" id="solASTnote"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYNC BAR -->
+    <div class="sync-bar">
+      <span class="sync-label">Sync All</span>
+      <button class="sync-btn" id="syncPrev" disabled>‹</button>
+      <div class="sync-counter" id="syncCounter">0 / 0</div>
+      <button class="sync-btn" id="syncNext" disabled>›</button>
+      <button class="sync-auto-btn" id="syncAuto">▶ AUTO PLAY ALL</button>
+      <div class="fastest-tag" id="fastestTag" style="display:none">⚡ FEWEST NODES</div>
+    </div>
+
+    <!-- 4 ALGO PANELS -->
+    <div class="algos-grid" id="algosGrid">
+
+      <!-- BFS -->
+      <div class="algo-panel bfs-panel" id="panel-bfs">
+        <div class="panel-header">
+          <div class="ph-left">
+            <div class="ph-icon">BFS</div>
+            <div>
+              <div class="ph-name">BREADTH-FIRST</div>
+              <div class="ph-full">Uninformed · FIFO Queue · Level-order</div>
+            </div>
+          </div>
+          <div class="ph-status" id="status-bfs">READY</div>
+        </div>
+        <div class="panel-canvas-wrap">
+          <canvas id="canvas-bfs" width="340" height="140"></canvas>
+          <div class="step-float sf-bfs" id="sfloat-bfs">START</div>
+        </div>
+        <div class="panel-metrics">
+          <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-bfs">—</span></div>
+          <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-bfs">—</span></div>
+          <div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-bfs">—</span></div>
+        </div>
+        <div class="panel-nav">
+          <button class="pnav-btn" id="prev-bfs" disabled>‹</button>
+          <div class="pnav-count" id="count-bfs">0 / 0</div>
+          <button class="pnav-btn" id="next-bfs" disabled>›</button>
+          <button class="pnav-auto" id="auto-bfs">▶ Play</button>
+        </div>
+        <div class="panel-moves" id="moves-bfs"></div>
+        <div class="algo-desc"><strong>BFS</strong> expands level-by-level via <strong>FIFO queue</strong>. Always
+          <strong>optimal</strong>. Memory O(b^d) is the main cost — grows fast with depth.</div>
       </div>
 
-      <!-- Start state -->
-      <div class="config-field">
-        <span class="config-label"><span class="cfg-icon">🏁</span> Start State</span>
-        <input class="config-input state-input input-start" id="cfgStart" type="text" value="ABCD" maxlength="20" spellcheck="false" autocomplete="off" />
-        <div class="cfg-hint" id="hintStart"></div>
+      <!-- DFS -->
+      <div class="algo-panel dfs-panel" id="panel-dfs">
+        <div class="panel-header">
+          <div class="ph-left">
+            <div class="ph-icon">DFS</div>
+            <div>
+              <div class="ph-name">DEPTH-FIRST</div>
+              <div class="ph-full">Uninformed · LIFO Stack · Deep dive</div>
+            </div>
+          </div>
+          <div class="ph-status" id="status-dfs">READY</div>
+        </div>
+        <div class="panel-canvas-wrap">
+          <canvas id="canvas-dfs" width="340" height="140"></canvas>
+          <div class="step-float sf-dfs" id="sfloat-dfs">START</div>
+        </div>
+        <div class="panel-metrics">
+          <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-dfs">—</span></div>
+          <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-dfs">—</span></div>
+          <div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-dfs">—</span></div>
+        </div>
+        <div class="panel-nav">
+          <button class="pnav-btn" id="prev-dfs" disabled>‹</button>
+          <div class="pnav-count" id="count-dfs">0 / 0</div>
+          <button class="pnav-btn" id="next-dfs" disabled>›</button>
+          <button class="pnav-auto" id="auto-dfs">▶ Play</button>
+        </div>
+        <div class="panel-moves" id="moves-dfs"></div>
+        <div class="algo-desc"><strong>DFS</strong> dives deep via <strong>LIFO stack</strong>. Low memory O(bm) but
+          finds <strong>suboptimal paths</strong> — often wanders far before reaching goal.</div>
       </div>
 
-      <!-- Goal state -->
-      <div class="config-field">
-        <span class="config-label"><span class="cfg-icon">🎯</span> Goal State</span>
-        <input class="config-input state-input input-goal" id="cfgGoal" type="text" value="AB|CD" maxlength="20" spellcheck="false" autocomplete="off" />
-        <div class="cfg-hint" id="hintGoal"></div>
-      </div>
-
-      <!-- Algorithms -->
-      <div class="config-field">
-        <span class="config-label">Algorithms</span>
-        <div class="algo-checks">
-          <label class="algo-check-item">
-            <input type="checkbox" id="chkBFS" checked>
-            <span class="algo-check-pill pill-bfs"><span class="pill-check-icon">✓</span> BFS</span>
-          </label>
-          <label class="algo-check-item">
-            <input type="checkbox" id="chkDFS" checked>
-            <span class="algo-check-pill pill-dfs"><span class="pill-check-icon">✓</span> DFS</span>
-          </label>
-          <label class="algo-check-item">
-            <input type="checkbox" id="chkGBFS" checked>
-            <span class="algo-check-pill pill-gbfs"><span class="pill-check-icon">✓</span> GREEDY</span>
-          </label>
-          <label class="algo-check-item">
-            <input type="checkbox" id="chkAST" checked>
-            <span class="algo-check-pill pill-ast"><span class="pill-check-icon">✓</span> A*</span>
-          </label>
+      <!-- GREEDY BEST-FIRST -->
+      <div class="algo-panel gbfs-panel" id="panel-gbfs">
+        <div class="panel-header">
+          <div class="ph-left">
+            <div class="ph-icon">GBF</div>
+            <div>
+              <div class="ph-name">GREEDY BEST-FIRST</div>
+              <div class="ph-full">Informed · Priority Queue · f=h(n) only</div>
+            </div>
+          </div>
+          <div class="ph-status" id="status-gbfs">READY</div>
+        </div>
+        <div class="panel-canvas-wrap">
+          <canvas id="canvas-gbfs" width="340" height="140"></canvas>
+          <div class="step-float sf-gbfs" id="sfloat-gbfs">START</div>
+        </div>
+        <div class="panel-metrics">
+          <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-gbfs">—</span></div>
+          <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-gbfs">—</span></div>
+          <div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-gbfs">—</span></div>
+        </div>
+        <div class="prog-bar-wrap">
+          <div class="prog-bar-label"><span>h(n) — misplaced blocks remaining</span><span id="gbfsLabel">—</span></div>
+          <div class="prog-bar-track">
+            <div class="prog-bar-fill" id="gbfsFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="panel-nav">
+          <button class="pnav-btn" id="prev-gbfs" disabled>‹</button>
+          <div class="pnav-count" id="count-gbfs">0 / 0</div>
+          <button class="pnav-btn" id="next-gbfs" disabled>›</button>
+          <button class="pnav-auto" id="auto-gbfs">▶ Play</button>
+        </div>
+        <div class="panel-moves" id="moves-gbfs"></div>
+        <div class="algo-desc"><strong>Greedy</strong> uses only <strong>f=h(n)</strong> (misplaced blocks). Ignores
+          path cost g(n). Fast but <strong>not optimal</strong> — can be misled by the heuristic into longer paths.
         </div>
       </div>
 
-      <!-- Playback -->
-      <div class="config-field">
-        <span class="config-label">⏵ Playback (ms)</span>
-        <div class="speed-config-wrap">
-          <button class="speed-config-btn" data-ms="1800">0.5×</button>
-          <button class="speed-config-btn active" data-ms="950">1×</button>
-          <button class="speed-config-btn" data-ms="480">2×</button>
-          <button class="speed-config-btn" data-ms="200">4×</button>
+      <!-- A* -->
+      <div class="algo-panel ast-panel" id="panel-ast">
+        <div class="panel-header">
+          <div class="ph-left">
+            <div class="ph-icon">A*</div>
+            <div>
+              <div class="ph-name">A* SEARCH</div>
+              <div class="ph-full">Informed · Priority Queue · f=g+h</div>
+            </div>
+          </div>
+          <div class="ph-status" id="status-ast">READY</div>
         </div>
-      </div>
-
-      <!-- Run -->
-      <button class="cfg-run-btn" id="cfgRunBtn">▶ RUN</button>
-    </div>
-  </div>
-
-  <!-- CONTROLS (preset levels) -->
-  <div class="ctrl-bar">
-    <span class="ctrl-label">Preset Level</span>
-    <select class="lvl-select" id="levelSelect">
-      <option value="0">LVL 01 · ~3 STEPS  — 3 blocks · ABC → A|BC   [Intro: easy divergence]</option>
-      <option value="1" selected>LVL 02 · ~6 STEPS  — 4 blocks · ABCD → AB|CD  [Small divergence]</option>
-      <option value="2">LVL 03 · ~10 STEPS — 5 blocks · ABCDE → AB|CDE [Visible DFS mistakes]</option>
-      <option value="3">LVL 04 · ~15 STEPS — 6 blocks · ABCDEF → BCD|AEF [Clear comparison]</option>
-      <option value="4">LVL 05 · ~22 STEPS — 7 blocks · ABCDEFG → ABC|DEFG [Dramatic explosion]</option>
-    </select>
-    <div class="speed-wrap">
-      <span class="ctrl-label">Speed</span>
-      <button class="speed-btn" data-ms="1800">0.5×</button>
-      <button class="speed-btn active" data-ms="950">1×</button>
-      <button class="speed-btn" data-ms="480">2×</button>
-      <button class="speed-btn" data-ms="200">4×</button>
-    </div>
-    <button class="run-btn" id="runBtn">▶ RUN ALL 4</button>
-  </div>
-
-  <!-- START / GOAL -->
-  <div class="sg-row">
-    <div class="sg-card start-card">
-      <div>
-        <div class="sg-label sl">▸ Initial State</div>
-        <div class="sg-state-val" id="startDesc"></div>
-      </div>
-      <div class="sg-mini"><canvas id="startMini" width="120" height="88"></canvas></div>
-    </div>
-    <div class="sg-card goal-card">
-      <div>
-        <div class="sg-label gl">◆ Goal State</div>
-        <div class="sg-state-val" id="goalDesc"></div>
-      </div>
-      <div class="sg-mini"><canvas id="goalMini" width="120" height="88"></canvas></div>
-    </div>
-    <div class="problem-info">
-      <div class="pi-item"><span class="pi-key">Target</span><span class="pi-val gc" id="piTarget">—</span></div>
-      <div class="pi-item"><span class="pi-key">BFS path</span><span class="pi-val bfs-c" id="piBFSS">—</span></div>
-      <div class="pi-item"><span class="pi-key">DFS path</span><span class="pi-val dfs-c" id="piDFSS">—</span></div>
-      <div class="pi-item"><span class="pi-key">Greedy path</span><span class="pi-val gbfs-c" id="piGBFSS">—</span></div>
-      <div class="pi-item"><span class="pi-key">A* path</span><span class="pi-val ast-c" id="piASTS">—</span></div>
-      <div class="pi-item"><span class="pi-key">BFS nodes</span><span class="pi-val bfs-c" id="piBFS">—</span></div>
-      <div class="pi-item"><span class="pi-key">DFS nodes</span><span class="pi-val dfs-c" id="piDFS">—</span></div>
-      <div class="pi-item"><span class="pi-key">Greedy nodes</span><span class="pi-val gbfs-c" id="piGBFS">—</span></div>
-      <div class="pi-item"><span class="pi-key">A* nodes</span><span class="pi-val ast-c" id="piAST">—</span></div>
-    </div>
-  </div>
-
-  <!-- DIVERGENCE PANEL -->
-  <div class="diverge-panel">
-    <div class="diverge-title">⚡ First 2 Steps Divergence — Why Each Algorithm Makes a Different Choice</div>
-    <div class="diverge-grid">
-      <div class="dv-col bfs-dv">
-        <div class="dv-head bfs-h">🔵 BFS — Steps 1 &amp; 2</div>
-        <div id="dvBFS"></div>
-        <div class="sol-preview"><div class="sol-head">Solution path</div><div class="sol-chips" id="solBFS"></div><div class="sol-note" id="solBFSnote"></div></div>
-      </div>
-      <div class="dv-col dfs-dv">
-        <div class="dv-head dfs-h">🟠 DFS — Steps 1 &amp; 2</div>
-        <div id="dvDFS"></div>
-        <div class="sol-preview"><div class="sol-head">Solution path</div><div class="sol-chips" id="solDFS"></div><div class="sol-note" id="solDFSnote"></div></div>
-      </div>
-      <div class="dv-col gbfs-dv">
-        <div class="dv-head gbfs-h">🟣 GREEDY — Steps 1 &amp; 2</div>
-        <div id="dvGBFS"></div>
-        <div class="sol-preview"><div class="sol-head">Solution path</div><div class="sol-chips" id="solGBFS"></div><div class="sol-note" id="solGBFSnote"></div></div>
-      </div>
-      <div class="dv-col ast-dv">
-        <div class="dv-head ast-h">🟢 A* — Steps 1 &amp; 2</div>
-        <div id="dvAST"></div>
-        <div class="sol-preview"><div class="sol-head">Solution path</div><div class="sol-chips" id="solAST"></div><div class="sol-note" id="solASTnote"></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SYNC BAR -->
-  <div class="sync-bar">
-    <span class="sync-label">Sync All</span>
-    <button class="sync-btn" id="syncPrev" disabled>‹</button>
-    <div class="sync-counter" id="syncCounter">0 / 0</div>
-    <button class="sync-btn" id="syncNext" disabled>›</button>
-    <button class="sync-auto-btn" id="syncAuto">▶ AUTO PLAY ALL</button>
-    <div class="fastest-tag" id="fastestTag" style="display:none">⚡ FEWEST NODES</div>
-  </div>
-
-  <!-- 4 ALGO PANELS -->
-  <div class="algos-grid" id="algosGrid">
-
-    <!-- BFS -->
-    <div class="algo-panel bfs-panel" id="panel-bfs">
-      <div class="panel-header">
-        <div class="ph-left">
-          <div class="ph-icon">BFS</div>
-          <div><div class="ph-name">BREADTH-FIRST</div><div class="ph-full">Uninformed · FIFO Queue · Level-order</div></div>
+        <div class="panel-canvas-wrap">
+          <canvas id="canvas-ast" width="340" height="140"></canvas>
+          <div class="step-float sf-ast" id="sfloat-ast">START</div>
         </div>
-        <div class="ph-status" id="status-bfs">READY</div>
+        <div class="panel-metrics">
+          <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-ast">—</span></div>
+          <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-ast">—</span></div>
+          <div class="metric"><span class="m-key">h₀</span><span class="m-val" id="opt-ast">—</span></div>
+        </div>
+        <div class="prog-bar-wrap">
+          <div class="prog-bar-label"><span>f(n) = g(n) + h(n) progress</span><span id="fnLabel">—</span></div>
+          <div class="prog-bar-track">
+            <div class="prog-bar-fill" id="fnFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="panel-nav">
+          <button class="pnav-btn" id="prev-ast" disabled>‹</button>
+          <div class="pnav-count" id="count-ast">0 / 0</div>
+          <button class="pnav-btn" id="next-ast" disabled>›</button>
+          <button class="pnav-auto" id="auto-ast">▶ Play</button>
+        </div>
+        <div class="panel-moves" id="moves-ast"></div>
+        <div class="algo-desc"><strong>A*</strong> balances path cost and heuristic: <strong>f=g+h</strong>. Optimal and
+          complete. Beats Greedy by accounting for actual cost, beats BFS by using the heuristic.</div>
       </div>
-      <div class="panel-canvas-wrap">
-        <canvas id="canvas-bfs" width="340" height="140"></canvas>
-        <div class="step-float sf-bfs" id="sfloat-bfs">START</div>
-      </div>
-      <div class="panel-metrics">
-        <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-bfs">—</span></div>
-        <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-bfs">—</span></div>
-        <div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-bfs">—</span></div>
-      </div>
-      <div class="panel-nav">
-        <button class="pnav-btn" id="prev-bfs" disabled>‹</button>
-        <div class="pnav-count" id="count-bfs">0 / 0</div>
-        <button class="pnav-btn" id="next-bfs" disabled>›</button>
-        <button class="pnav-auto" id="auto-bfs">▶ Play</button>
-      </div>
-      <div class="panel-moves" id="moves-bfs"></div>
-      <div class="algo-desc"><strong>BFS</strong> expands level-by-level via <strong>FIFO queue</strong>. Always <strong>optimal</strong>. Memory O(b^d) is the main cost — grows fast with depth.</div>
+
     </div>
 
-    <!-- DFS -->
-    <div class="algo-panel dfs-panel" id="panel-dfs">
-      <div class="panel-header">
-        <div class="ph-left">
-          <div class="ph-icon">DFS</div>
-          <div><div class="ph-name">DEPTH-FIRST</div><div class="ph-full">Uninformed · LIFO Stack · Deep dive</div></div>
-        </div>
-        <div class="ph-status" id="status-dfs">READY</div>
+    <!-- COMPARISON TABLE -->
+    <div class="cmp-table-wrap">
+      <div class="cmp-title">Algorithm Comparison Reference</div>
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th>Algorithm</th>
+            <th>Function</th>
+            <th>Data Structure</th>
+            <th>Time</th>
+            <th>Space</th>
+            <th>Optimal?</th>
+            <th>Complete?</th>
+            <th>Uses Heuristic?</th>
+            <th>Key Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="bfs-row">
+            <td class="algo-name">BFS</td>
+            <td class="cx-mid">f = depth</td>
+            <td class="cx-mid">FIFO Queue</td>
+            <td class="cx-worst" id="cmp-time-bfs">O(b^d)</td>
+            <td class="cx-worst" id="cmp-space-bfs">O(b^d)</td>
+            <td class="cx-best">✓ YES</td>
+            <td class="cx-best">✓ YES</td>
+            <td class="cx-mid">✗ No</td>
+            <td class="cx-mid">Optimal but memory-hungry</td>
+          </tr>
+          <tr class="dfs-row">
+            <td class="algo-name">DFS</td>
+            <td class="cx-mid">f = −depth</td>
+            <td class="cx-mid">LIFO Stack</td>
+            <td class="cx-worst" id="cmp-time-dfs">O(b^m)</td>
+            <td class="cx-best" id="cmp-space-dfs">O(bm)</td>
+            <td class="cx-worst">✗ NO</td>
+            <td class="cx-mid">With limit</td>
+            <td class="cx-mid">✗ No</td>
+            <td class="cx-mid">Memory-efficient but wanders</td>
+          </tr>
+          <tr class="gbfs-row">
+            <td class="algo-name">GREEDY</td>
+            <td class="cx-warn">f = h(n)</td>
+            <td class="cx-mid">Priority Queue</td>
+            <td class="cx-warn" id="cmp-time-gbfs">O(b^m)*</td>
+            <td class="cx-warn" id="cmp-space-gbfs">O(b^m)</td>
+            <td class="cx-worst">✗ NO</td>
+            <td class="cx-mid">With limit</td>
+            <td class="cx-best">✓ Yes (h only)</td>
+            <td class="cx-warn">Fast but ignores cost — can miss optimal</td>
+          </tr>
+          <tr class="ast-row">
+            <td class="algo-name">A*</td>
+            <td class="cx-best">f = g(n)+h(n)</td>
+            <td class="cx-mid">Priority Queue</td>
+            <td class="cx-best" id="cmp-time-ast">O(b^d)†</td>
+            <td class="cx-mid" id="cmp-space-ast">O(b^d)</td>
+            <td class="cx-best">✓ YES</td>
+            <td class="cx-best">✓ YES</td>
+            <td class="cx-best">✓ Yes (g+h)</td>
+            <td class="cx-best">Best of BFS + Greedy</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="cmp-note">
+        * Greedy worst-case can degrade to O(b^m) if heuristic is misleading &nbsp;|&nbsp;
+        † A* with admissible heuristic &nbsp;|&nbsp; b=branching factor · d=optimal depth · m=max depth
       </div>
-      <div class="panel-canvas-wrap">
-        <canvas id="canvas-dfs" width="340" height="140"></canvas>
-        <div class="step-float sf-dfs" id="sfloat-dfs">START</div>
-      </div>
-      <div class="panel-metrics">
-        <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-dfs">—</span></div>
-        <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-dfs">—</span></div>
-        <div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-dfs">—</span></div>
-      </div>
-      <div class="panel-nav">
-        <button class="pnav-btn" id="prev-dfs" disabled>‹</button>
-        <div class="pnav-count" id="count-dfs">0 / 0</div>
-        <button class="pnav-btn" id="next-dfs" disabled>›</button>
-        <button class="pnav-auto" id="auto-dfs">▶ Play</button>
-      </div>
-      <div class="panel-moves" id="moves-dfs"></div>
-      <div class="algo-desc"><strong>DFS</strong> dives deep via <strong>LIFO stack</strong>. Low memory O(bm) but finds <strong>suboptimal paths</strong> — often wanders far before reaching goal.</div>
-    </div>
-
-    <!-- GREEDY BEST-FIRST -->
-    <div class="algo-panel gbfs-panel" id="panel-gbfs">
-      <div class="panel-header">
-        <div class="ph-left">
-          <div class="ph-icon">GBF</div>
-          <div><div class="ph-name">GREEDY BEST-FIRST</div><div class="ph-full">Informed · Priority Queue · f=h(n) only</div></div>
-        </div>
-        <div class="ph-status" id="status-gbfs">READY</div>
-      </div>
-      <div class="panel-canvas-wrap">
-        <canvas id="canvas-gbfs" width="340" height="140"></canvas>
-        <div class="step-float sf-gbfs" id="sfloat-gbfs">START</div>
-      </div>
-      <div class="panel-metrics">
-        <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-gbfs">—</span></div>
-        <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-gbfs">—</span></div>
-        <div class="metric"><span class="m-key">Optimal?</span><span class="m-val" id="opt-gbfs">—</span></div>
-      </div>
-      <div class="prog-bar-wrap">
-        <div class="prog-bar-label"><span>h(n) — misplaced blocks remaining</span><span id="gbfsLabel">—</span></div>
-        <div class="prog-bar-track"><div class="prog-bar-fill" id="gbfsFill" style="width:0%"></div></div>
-      </div>
-      <div class="panel-nav">
-        <button class="pnav-btn" id="prev-gbfs" disabled>‹</button>
-        <div class="pnav-count" id="count-gbfs">0 / 0</div>
-        <button class="pnav-btn" id="next-gbfs" disabled>›</button>
-        <button class="pnav-auto" id="auto-gbfs">▶ Play</button>
-      </div>
-      <div class="panel-moves" id="moves-gbfs"></div>
-      <div class="algo-desc"><strong>Greedy</strong> uses only <strong>f=h(n)</strong> (misplaced blocks). Ignores path cost g(n). Fast but <strong>not optimal</strong> — can be misled by the heuristic into longer paths.</div>
-    </div>
-
-    <!-- A* -->
-    <div class="algo-panel ast-panel" id="panel-ast">
-      <div class="panel-header">
-        <div class="ph-left">
-          <div class="ph-icon">A*</div>
-          <div><div class="ph-name">A* SEARCH</div><div class="ph-full">Informed · Priority Queue · f=g+h</div></div>
-        </div>
-        <div class="ph-status" id="status-ast">READY</div>
-      </div>
-      <div class="panel-canvas-wrap">
-        <canvas id="canvas-ast" width="340" height="140"></canvas>
-        <div class="step-float sf-ast" id="sfloat-ast">START</div>
-      </div>
-      <div class="panel-metrics">
-        <div class="metric"><span class="m-key">Nodes</span><span class="m-val" id="nodes-ast">—</span></div>
-        <div class="metric"><span class="m-key">Path</span><span class="m-val" id="path-ast">—</span></div>
-        <div class="metric"><span class="m-key">h₀</span><span class="m-val" id="opt-ast">—</span></div>
-      </div>
-      <div class="prog-bar-wrap">
-        <div class="prog-bar-label"><span>f(n) = g(n) + h(n) progress</span><span id="fnLabel">—</span></div>
-        <div class="prog-bar-track"><div class="prog-bar-fill" id="fnFill" style="width:0%"></div></div>
-      </div>
-      <div class="panel-nav">
-        <button class="pnav-btn" id="prev-ast" disabled>‹</button>
-        <div class="pnav-count" id="count-ast">0 / 0</div>
-        <button class="pnav-btn" id="next-ast" disabled>›</button>
-        <button class="pnav-auto" id="auto-ast">▶ Play</button>
-      </div>
-      <div class="panel-moves" id="moves-ast"></div>
-      <div class="algo-desc"><strong>A*</strong> balances path cost and heuristic: <strong>f=g+h</strong>. Optimal and complete. Beats Greedy by accounting for actual cost, beats BFS by using the heuristic.</div>
     </div>
 
   </div>
+  <script>
+    (function () {
+      'use strict';
 
-  <!-- COMPARISON TABLE -->
-  <div class="cmp-table-wrap">
-    <div class="cmp-title">Algorithm Comparison Reference</div>
-    <table class="cmp-table">
-      <thead>
-        <tr>
-          <th>Algorithm</th><th>Function</th><th>Data Structure</th>
-          <th>Time</th><th>Space</th><th>Optimal?</th><th>Complete?</th>
-          <th>Uses Heuristic?</th><th>Key Trade-off</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="bfs-row">
-          <td class="algo-name">BFS</td>
-          <td class="cx-mid">f = depth</td>
-          <td class="cx-mid">FIFO Queue</td>
-          <td class="cx-worst">O(b^d)</td><td class="cx-worst">O(b^d)</td>
-          <td class="cx-best">✓ YES</td><td class="cx-best">✓ YES</td>
-          <td class="cx-mid">✗ No</td>
-          <td class="cx-mid">Optimal but memory-hungry</td>
-        </tr>
-        <tr class="dfs-row">
-          <td class="algo-name">DFS</td>
-          <td class="cx-mid">f = −depth</td>
-          <td class="cx-mid">LIFO Stack</td>
-          <td class="cx-worst">O(b^m)</td><td class="cx-best">O(bm)</td>
-          <td class="cx-worst">✗ NO</td><td class="cx-mid">With limit</td>
-          <td class="cx-mid">✗ No</td>
-          <td class="cx-mid">Memory-efficient but wanders</td>
-        </tr>
-        <tr class="gbfs-row">
-          <td class="algo-name">GREEDY</td>
-          <td class="cx-warn">f = h(n)</td>
-          <td class="cx-mid">Priority Queue</td>
-          <td class="cx-warn">O(b^m)*</td><td class="cx-warn">O(b^m)</td>
-          <td class="cx-worst">✗ NO</td><td class="cx-mid">With limit</td>
-          <td class="cx-best">✓ Yes (h only)</td>
-          <td class="cx-warn">Fast but ignores cost — can miss optimal</td>
-        </tr>
-        <tr class="ast-row">
-          <td class="algo-name">A*</td>
-          <td class="cx-best">f = g(n)+h(n)</td>
-          <td class="cx-mid">Priority Queue</td>
-          <td class="cx-best">O(b^d)†</td><td class="cx-mid">O(b^d)</td>
-          <td class="cx-best">✓ YES</td><td class="cx-best">✓ YES</td>
-          <td class="cx-best">✓ Yes (g+h)</td>
-          <td class="cx-best">Best of BFS + Greedy</td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="cmp-note">
-      * Greedy worst-case can degrade to O(b^m) if heuristic is misleading &nbsp;|&nbsp;
-      † A* with admissible heuristic &nbsp;|&nbsp; b=branching factor · d=optimal depth · m=max depth
-    </div>
-  </div>
+      const BC = {
+        A: ['#ef5350', '#ef9a9a', '#b71c1c'], B: ['#29b6f6', '#81d4fa', '#01579b'],
+        C: ['#ffca28', '#fff176', '#f57f17'], D: ['#66bb6a', '#a5d6a7', '#1b5e20'],
+        E: ['#ab47bc', '#ce93d8', '#4a148c'], F: ['#ff7043', '#ffab91', '#bf360c'],
+        G: ['#ec407a', '#f48fb1', '#880e4f'],
+      };
 
-</div>
-<script>
-(function(){'use strict';
+      const LEVELS = [
+        {
+          name: '3-STEP', start: 'ABC', goal: 'A|BC', targetSteps: 3, blocks: 3,
+          divergeNote: [
+            {
+              id: 'bfs', steps: ['C → table', 'B → table'],
+              whys: ['Only C can move. BFS enqueues this as depth-1 node.', 'BFS at depth-2: expands all neighbors of {A,B,C-on-table} — picks B→table first (alphabetical FIFO).']
+            },
+            {
+              id: 'dfs', steps: ['C → table', 'C → onto B'],
+              whys: ['Same forced first move.', 'DFS LIFO: C→onto B pushed last → popped first. Immediately re-stacks C, wasting a move.']
+            },
+            {
+              id: 'gbfs', steps: ['C → table', 'B → table'],
+              whys: ['h(ABC)=2. C→table gives h=1 (only B misplaced now). Best h-drop — same as A*.', 'h after C→table: B→table gives h=0 direction. Greedy picks this too — same as A* here (short problem).']
+            },
+            {
+              id: 'ast', steps: ['C → table', 'B → table'],
+              whys: ['h=2. C→table: g=1, h=1, f=2. Only valid move.', 'g=2,h=0: B→table is the f=2 optimal choice. A* and Greedy agree on this small problem.']
+            }
+          ],
+          solMoves: {
+            bfs: ['C → table', 'B → table', 'C → onto B'],
+            dfs: ['C → table', 'C → onto B', 'C → table', 'B → table', 'C → onto B'],
+            gbfs: ['C → table', 'B → table', 'C → onto B'],
+            ast: ['C → table', 'B → table', 'C → onto B'],
+          },
+          solNotes: {
+            bfs: 'Optimal — 3 steps, ~7 nodes.',
+            dfs: 'Suboptimal — 5 steps, wastes 2 moves re-stacking C.',
+            gbfs: '3 steps — agrees with A* (problem too small to diverge).',
+            ast: 'Optimal — 3 steps, ~4 nodes.'
+          }
+        },
+        {
+          name: '6-STEP', start: 'ABCD', goal: 'AB|CD', targetSteps: 6, blocks: 4,
+          divergeNote: [
+            {
+              id: 'bfs', steps: ['D → table', 'C → table'],
+              whys: ['Top block D must move. BFS enqueues D→table (only option).', 'Depth-2: BFS expands all states. C→table comes before D→onto C in FIFO canonical ordering.']
+            },
+            {
+              id: 'dfs', steps: ['D → table', 'D → onto C'],
+              whys: ['Forced first move.', 'DFS: D→onto C is pushed last → popped first via LIFO. Immediately re-stacks D and dives deep into a suboptimal branch.']
+            },
+            {
+              id: 'gbfs', steps: ['D → table', 'C → onto D'],
+              whys: ['h=4. D→table: h=3 (C exposed). Greedy picks the move that immediately lowers h most.', 'h(C→onto D)=2. Greedy boldly starts building CD stack — skips BFS\'s cautious layer-by-layer dismantling.']
+            },
+            {
+              id: 'ast', steps: ['D → table', 'C → onto D'],
+              whys: ['Same: f=g+h. D→table: g=1,h=3,f=4. Greedy and A* agree here.', 'g=2,h=2,f=4. A* and Greedy pick the same step-2 — they diverge later when g(n) starts to matter.']
+            }
+          ],
+          solMoves: {
+            bfs: ['D → table', 'C → table', 'B → table', 'B → onto A', 'C → onto D', 'done ~6 steps'],
+            dfs: ['D → table', 'D → onto C', 'C → table', 'D → onto C', 'B → table', '…~14 steps'],
+            gbfs: ['D → table', 'C → onto D', 'B → table', 'B → onto A', 'done ~5-6 steps'],
+            ast: ['D → table', 'C → onto D', 'B → table', 'B → onto A', 'done ~6 steps'],
+          },
+          solNotes: {
+            bfs: 'Optimal — 6 steps, ~120 nodes explored.',
+            dfs: 'Suboptimal — ~14 steps. LIFO causes wasteful re-stacking.',
+            gbfs: '~6 steps — usually optimal here, ~18 nodes. May diverge on harder cases.',
+            ast: 'Optimal — 6 steps, ~24 nodes. Better than BFS.'
+          }
+        },
+        {
+          name: '10-STEP', start: 'ABCDE', goal: 'AB|CDE', targetSteps: 10, blocks: 5,
+          divergeNote: [
+            {
+              id: 'bfs', steps: ['E → table', 'D → table'],
+              whys: ['Only E can move. BFS enqueues it.', 'Depth-2: BFS dismantles tower sequentially — D→table appears early in the FIFO queue.']
+            },
+            {
+              id: 'dfs', steps: ['E → table', 'E → onto D'],
+              whys: ['Forced first move.', 'DFS LIFO: E→onto D is the last-pushed successor → popped first. Immediately re-stacks E onto D and dives deep.']
+            },
+            {
+              id: 'gbfs', steps: ['E → table', 'D → onto E'],
+              whys: ['h=4. E→table: h=3. Greedy picks it (only move available anyway).', 'Greedy: h(D→onto E)=2 vs h(D→table)=3. Greedy immediately starts building the CDE sub-tower bottom-up — more aggressive than BFS.']
+            },
+            {
+              id: 'ast', steps: ['E → table', 'D → onto E'],
+              whys: ['Same as Greedy for step 1 — only move available.', 'f(D→onto E)=1+2=3 vs f(D→table)=1+3=4. A* also picks D→onto E — agrees with Greedy here, but will diverge later when back-cost g matters more.']
+            }
+          ],
+          solMoves: {
+            bfs: ['E → table', 'D → table', 'C → table', 'B → table', 'C → onto D', '…~10 steps'],
+            dfs: ['E → table', 'E → onto D', 'D → table', 'E → onto D', '…~27 steps'],
+            gbfs: ['E → table', 'D → onto E', 'C → onto D', 'B → table', 'B → onto A', '…~10 steps'],
+            ast: ['E → table', 'D → onto E', 'C → onto D', 'B → table', 'B → onto A', '…~10 steps'],
+          },
+          solNotes: {
+            bfs: 'Optimal ~10 steps. Large frontier ~630 nodes.',
+            dfs: '~27 steps. Re-stacks repeatedly. Only ~50 nodes in memory.',
+            gbfs: '~10 steps, ~60-80 nodes. Can be suboptimal on harder variants.',
+            ast: '~10 steps, ~80 nodes. Optimal and efficient.'
+          }
+        },
+        {
+          name: '15-STEP', start: 'ABCDEF', goal: 'BCD|AEF', targetSteps: 15, blocks: 6,
+          divergeNote: [
+            {
+              id: 'bfs', steps: ['F → table', 'E → table OR F → onto E'],
+              whys: ['Only F (top) can move. BFS enqueues F→table.', 'Depth-2: BFS fans out to ALL successors — queues F→onto E, E→table, etc. before choosing any.']
+            },
+            {
+              id: 'dfs', steps: ['F → table', 'F → onto E'],
+              whys: ['Same forced first move.', 'DFS LIFO: F→onto E is last-pushed → popped first. Immediately re-stacks F, creating a detour that wastes multiple moves.']
+            },
+            {
+              id: 'gbfs', steps: ['F → table', 'E → table'],
+              whys: ['h=8. F→table: h=7. Greedy picks the move lowering h most.', 'h(E→table)=6 — exposing D for future stacking. Greedy correctly dismantles, but ignores the rising cost g, which can cause suboptimal detours later.']
+            },
+            {
+              id: 'ast', steps: ['F → table', 'E → table'],
+              whys: ['h=8. F→table: g=1,h=7,f=8. Greedy and A* agree so far.', 'g=2,h=6,f=8. E→table: same f=8 as Greedy\'s choice. They diverge at step 3+ when g(n) starts distinguishing paths differently.']
+            }
+          ],
+          solMoves: {
+            bfs: ['F → table', 'E → table', 'D → table', 'C → table', 'B → table', '…~15 steps optimal'],
+            dfs: ['F → table', 'F → onto E', 'E → table', 'F → onto E', '…many detours ~30+ steps'],
+            gbfs: ['F → table', 'E → table', 'D → table', 'C → onto D', '…~15-18 steps (may suboptimal)'],
+            ast: ['F → table', 'E → table', 'D → table', '…targeted assembly ~15 steps'],
+          },
+          solNotes: {
+            bfs: 'Optimal ~15 steps. Frontier becomes very large.',
+            dfs: 'Highly suboptimal ~30+ steps. Wastes moves re-stacking.',
+            gbfs: '~15-18 steps. Fast but may take detours A* avoids.',
+            ast: 'Optimal ~15 steps, far fewer nodes than BFS.'
+          }
+        },
+        {
+          name: '22-STEP', start: 'ABCDEFG', goal: 'ABC|DEFG', targetSteps: 22, blocks: 7,
+          divergeNote: [
+            {
+              id: 'bfs', steps: ['G → table', 'F → table'],
+              whys: ['Only G can move. BFS enqueues G→table.', 'Level-2: BFS dismantles tower layer by layer — frontier explodes to 18,000+ nodes exploring every branch.']
+            },
+            {
+              id: 'dfs', steps: ['G → table', 'G → onto F'],
+              whys: ['Forced first move.', 'DFS LIFO: G→onto F pushed last → popped first. Stacks same block again immediately — explores 90+ step suboptimal path.']
+            },
+            {
+              id: 'gbfs', steps: ['G → table', 'F → onto G'],
+              whys: ['h=10. G→table: h=9 (G must anchor DEFG tower). Greedy picks this.', 'h(F→onto G)=8 — starts building DEFG tower bottom-up. Greedy is very fast here (~420 nodes) but may overshoot optimal path length.']
+            },
+            {
+              id: 'ast', steps: ['G → table', 'F → onto G'],
+              whys: ['Same as Greedy for step 1 — forced.', 'f(F→onto G)=2+8=10. A* also picks F→onto G — same as Greedy. But A* will check back-cost carefully at later steps, ensuring optimality that Greedy cannot guarantee.']
+            }
+          ],
+          solMoves: {
+            bfs: ['G → table', 'F → table', 'E → table', 'D → table', 'C → table', 'B → table', '…~22 steps'],
+            dfs: ['G → table', 'G → onto F', 'F → table', 'G → onto F', '…90+ steps'],
+            gbfs: ['G → table', 'F → onto G', 'E → onto F', 'D → onto E', 'C → table', '…~22-26 steps'],
+            ast: ['G → table', 'F → onto G', 'E → onto F', 'D → onto E', 'C → table', '…~22 steps optimal'],
+          },
+          solNotes: {
+            bfs: '✔ Optimal — ✗ 18,000+ nodes. Impractical for large problems.',
+            dfs: '✔ Low memory — ✗ 90+ steps. Terrible quality.',
+            gbfs: '~22-26 steps, ~420 nodes. Fast but not always optimal.',
+            ast: '✔ Optimal ~22 steps, ~420 nodes. Best overall trade-off.'
+          }
+        }
+      ];
 
-const BC={
-  A:['#ef5350','#ef9a9a','#b71c1c'],B:['#29b6f6','#81d4fa','#01579b'],
-  C:['#ffca28','#fff176','#f57f17'],D:['#66bb6a','#a5d6a7','#1b5e20'],
-  E:['#ab47bc','#ce93d8','#4a148c'],F:['#ff7043','#ffab91','#bf360c'],
-  G:['#ec407a','#f48fb1','#880e4f'],
-};
+      const ALGO_IDS = ['bfs', 'dfs', 'gbfs', 'ast'];
 
-const LEVELS=[
-  {
-    name:'3-STEP',start:'ABC',goal:'A|BC',targetSteps:3,blocks:3,
-    divergeNote:[
-      {id:'bfs', steps:['C → table','B → table'],
-       whys:['Only C can move. BFS enqueues this as depth-1 node.','BFS at depth-2: expands all neighbors of {A,B,C-on-table} — picks B→table first (alphabetical FIFO).']},
-      {id:'dfs', steps:['C → table','C → onto B'],
-       whys:['Same forced first move.','DFS LIFO: C→onto B pushed last → popped first. Immediately re-stacks C, wasting a move.']},
-      {id:'gbfs',steps:['C → table','B → table'],
-       whys:['h(ABC)=2. C→table gives h=1 (only B misplaced now). Best h-drop — same as A*.','h after C→table: B→table gives h=0 direction. Greedy picks this too — same as A* here (short problem).']},
-      {id:'ast', steps:['C → table','B → table'],
-       whys:['h=2. C→table: g=1, h=1, f=2. Only valid move.','g=2,h=0: B→table is the f=2 optimal choice. A* and Greedy agree on this small problem.']}
-    ],
-    solMoves:{
-      bfs: ['C → table','B → table','C → onto B'],
-      dfs: ['C → table','C → onto B','C → table','B → table','C → onto B'],
-      gbfs:['C → table','B → table','C → onto B'],
-      ast: ['C → table','B → table','C → onto B'],
-    },
-    solNotes:{
-      bfs: 'Optimal — 3 steps, ~7 nodes.',
-      dfs: 'Suboptimal — 5 steps, wastes 2 moves re-stacking C.',
-      gbfs:'3 steps — agrees with A* (problem too small to diverge).',
-      ast: 'Optimal — 3 steps, ~4 nodes.'
-    }
-  },
-  {
-    name:'6-STEP',start:'ABCD',goal:'AB|CD',targetSteps:6,blocks:4,
-    divergeNote:[
-      {id:'bfs', steps:['D → table','C → table'],
-       whys:['Top block D must move. BFS enqueues D→table (only option).','Depth-2: BFS expands all states. C→table comes before D→onto C in FIFO canonical ordering.']},
-      {id:'dfs', steps:['D → table','D → onto C'],
-       whys:['Forced first move.','DFS: D→onto C is pushed last → popped first via LIFO. Immediately re-stacks D and dives deep into a suboptimal branch.']},
-      {id:'gbfs',steps:['D → table','C → onto D'],
-       whys:['h=4. D→table: h=3 (C exposed). Greedy picks the move that immediately lowers h most.','h(C→onto D)=2. Greedy boldly starts building CD stack — skips BFS\'s cautious layer-by-layer dismantling.']},
-      {id:'ast', steps:['D → table','C → onto D'],
-       whys:['Same: f=g+h. D→table: g=1,h=3,f=4. Greedy and A* agree here.','g=2,h=2,f=4. A* and Greedy pick the same step-2 — they diverge later when g(n) starts to matter.']}
-    ],
-    solMoves:{
-      bfs: ['D → table','C → table','B → table','B → onto A','C → onto D','done ~6 steps'],
-      dfs: ['D → table','D → onto C','C → table','D → onto C','B → table','…~14 steps'],
-      gbfs:['D → table','C → onto D','B → table','B → onto A','done ~5-6 steps'],
-      ast: ['D → table','C → onto D','B → table','B → onto A','done ~6 steps'],
-    },
-    solNotes:{
-      bfs: 'Optimal — 6 steps, ~120 nodes explored.',
-      dfs: 'Suboptimal — ~14 steps. LIFO causes wasteful re-stacking.',
-      gbfs:'~6 steps — usually optimal here, ~18 nodes. May diverge on harder cases.',
-      ast: 'Optimal — 6 steps, ~24 nodes. Better than BFS.'
-    }
-  },
-  {
-    name:'10-STEP',start:'ABCDE',goal:'AB|CDE',targetSteps:10,blocks:5,
-    divergeNote:[
-      {id:'bfs', steps:['E → table','D → table'],
-       whys:['Only E can move. BFS enqueues it.','Depth-2: BFS dismantles tower sequentially — D→table appears early in the FIFO queue.']},
-      {id:'dfs', steps:['E → table','E → onto D'],
-       whys:['Forced first move.','DFS LIFO: E→onto D is the last-pushed successor → popped first. Immediately re-stacks E onto D and dives deep.']},
-      {id:'gbfs',steps:['E → table','D → onto E'],
-       whys:['h=4. E→table: h=3. Greedy picks it (only move available anyway).','Greedy: h(D→onto E)=2 vs h(D→table)=3. Greedy immediately starts building the CDE sub-tower bottom-up — more aggressive than BFS.']},
-      {id:'ast', steps:['E → table','D → onto E'],
-       whys:['Same as Greedy for step 1 — only move available.','f(D→onto E)=1+2=3 vs f(D→table)=1+3=4. A* also picks D→onto E — agrees with Greedy here, but will diverge later when back-cost g matters more.']}
-    ],
-    solMoves:{
-      bfs: ['E → table','D → table','C → table','B → table','C → onto D','…~10 steps'],
-      dfs: ['E → table','E → onto D','D → table','E → onto D','…~27 steps'],
-      gbfs:['E → table','D → onto E','C → onto D','B → table','B → onto A','…~10 steps'],
-      ast: ['E → table','D → onto E','C → onto D','B → table','B → onto A','…~10 steps'],
-    },
-    solNotes:{
-      bfs: 'Optimal ~10 steps. Large frontier ~630 nodes.',
-      dfs: '~27 steps. Re-stacks repeatedly. Only ~50 nodes in memory.',
-      gbfs:'~10 steps, ~60-80 nodes. Can be suboptimal on harder variants.',
-      ast: '~10 steps, ~80 nodes. Optimal and efficient.'
-    }
-  },
-  {
-    name:'15-STEP',start:'ABCDEF',goal:'BCD|AEF',targetSteps:15,blocks:6,
-    divergeNote:[
-      {id:'bfs', steps:['F → table','E → table OR F → onto E'],
-       whys:['Only F (top) can move. BFS enqueues F→table.','Depth-2: BFS fans out to ALL successors — queues F→onto E, E→table, etc. before choosing any.']},
-      {id:'dfs', steps:['F → table','F → onto E'],
-       whys:['Same forced first move.','DFS LIFO: F→onto E is last-pushed → popped first. Immediately re-stacks F, creating a detour that wastes multiple moves.']},
-      {id:'gbfs',steps:['F → table','E → table'],
-       whys:['h=8. F→table: h=7. Greedy picks the move lowering h most.','h(E→table)=6 — exposing D for future stacking. Greedy correctly dismantles, but ignores the rising cost g, which can cause suboptimal detours later.']},
-      {id:'ast', steps:['F → table','E → table'],
-       whys:['h=8. F→table: g=1,h=7,f=8. Greedy and A* agree so far.','g=2,h=6,f=8. E→table: same f=8 as Greedy\'s choice. They diverge at step 3+ when g(n) starts distinguishing paths differently.']}
-    ],
-    solMoves:{
-      bfs: ['F → table','E → table','D → table','C → table','B → table','…~15 steps optimal'],
-      dfs: ['F → table','F → onto E','E → table','F → onto E','…many detours ~30+ steps'],
-      gbfs:['F → table','E → table','D → table','C → onto D','…~15-18 steps (may suboptimal)'],
-      ast: ['F → table','E → table','D → table','…targeted assembly ~15 steps'],
-    },
-    solNotes:{
-      bfs: 'Optimal ~15 steps. Frontier becomes very large.',
-      dfs: 'Highly suboptimal ~30+ steps. Wastes moves re-stacking.',
-      gbfs:'~15-18 steps. Fast but may take detours A* avoids.',
-      ast: 'Optimal ~15 steps, far fewer nodes than BFS.'
-    }
-  },
-  {
-    name:'22-STEP',start:'ABCDEFG',goal:'ABC|DEFG',targetSteps:22,blocks:7,
-    divergeNote:[
-      {id:'bfs', steps:['G → table','F → table'],
-       whys:['Only G can move. BFS enqueues G→table.','Level-2: BFS dismantles tower layer by layer — frontier explodes to 18,000+ nodes exploring every branch.']},
-      {id:'dfs', steps:['G → table','G → onto F'],
-       whys:['Forced first move.','DFS LIFO: G→onto F pushed last → popped first. Stacks same block again immediately — explores 90+ step suboptimal path.']},
-      {id:'gbfs',steps:['G → table','F → onto G'],
-       whys:['h=10. G→table: h=9 (G must anchor DEFG tower). Greedy picks this.','h(F→onto G)=8 — starts building DEFG tower bottom-up. Greedy is very fast here (~420 nodes) but may overshoot optimal path length.']},
-      {id:'ast', steps:['G → table','F → onto G'],
-       whys:['Same as Greedy for step 1 — forced.','f(F→onto G)=2+8=10. A* also picks F→onto G — same as Greedy. But A* will check back-cost carefully at later steps, ensuring optimality that Greedy cannot guarantee.']}
-    ],
-    solMoves:{
-      bfs: ['G → table','F → table','E → table','D → table','C → table','B → table','…~22 steps'],
-      dfs: ['G → table','G → onto F','F → table','G → onto F','…90+ steps'],
-      gbfs:['G → table','F → onto G','E → onto F','D → onto E','C → table','…~22-26 steps'],
-      ast: ['G → table','F → onto G','E → onto F','D → onto E','C → table','…~22 steps optimal'],
-    },
-    solNotes:{
-      bfs: '✔ Optimal — ✗ 18,000+ nodes. Impractical for large problems.',
-      dfs: '✔ Low memory — ✗ 90+ steps. Terrible quality.',
-      gbfs:'~22-26 steps, ~420 nodes. Fast but not always optimal.',
-      ast: '✔ Optimal ~22 steps, ~420 nodes. Best overall trade-off.'
-    }
-  }
-];
+      function parseState(s) { return s.split('|').filter(x => x.length > 0); }
+      function canonical(stacks) { return stacks.filter(s => s.length > 0).sort().join('|'); }
 
-const ALGO_IDS=['bfs','dfs','gbfs','ast'];
+      function getNextStates(st) {
+        const stacks = parseState(st), seen = new Map();
+        for (let i = 0; i < stacks.length; i++) {
+          const s = stacks[i]; if (!s.length) continue;
+          const top = s[s.length - 1], below = s.slice(0, -1);
+          {
+            const ns = stacks.map((x, k) => k === i ? below : x).filter(x => x.length > 0); ns.push(top);
+            const c = canonical(ns); if (c !== st && !seen.has(c)) seen.set(c, `${top} → table`);
+          }
+          for (let j = 0; j < stacks.length; j++) {
+            if (i === j || !stacks[j].length) continue;
+            const tgt = stacks[j];
+            const ns = stacks.map((x, k) => k === i ? below : k === j ? tgt + top : x).filter(x => x.length > 0);
+            const c = canonical(ns); if (c !== st && !seen.has(c)) seen.set(c, `${top} → onto ${tgt[tgt.length - 1]}`);
+          }
+        }
+        return Array.from(seen.entries()).map(([s, d]) => ({ state: s, desc: d }));
+      }
 
-function parseState(s){return s.split('|').filter(x=>x.length>0);}
-function canonical(stacks){return stacks.filter(s=>s.length>0).sort().join('|');}
+      function heuristic(s, goal) {
+        const gs = parseState(goal), gi = {};
+        gs.forEach(gst => { for (let p = 0; p < gst.length; p++)gi[gst[p]] = { stackStr: gst, pos: p }; });
+        let h = 0;
+        parseState(s).forEach(ss => {
+          for (let p = 0; p < ss.length; p++) {
+            const b = ss[p], info = gi[b];
+            if (!info || info.pos !== p) { h++; continue; }
+            let ok = true; for (let k = 0; k <= p; k++)if (ss[k] !== info.stackStr[k]) { ok = false; break; }
+            if (!ok) h++;
+          }
+        });
+        return h;
+      }
 
-function getNextStates(st){
-  const stacks=parseState(st),seen=new Map();
-  for(let i=0;i<stacks.length;i++){
-    const s=stacks[i];if(!s.length)continue;
-    const top=s[s.length-1],below=s.slice(0,-1);
-    {const ns=stacks.map((x,k)=>k===i?below:x).filter(x=>x.length>0);ns.push(top);
-     const c=canonical(ns);if(c!==st&&!seen.has(c))seen.set(c,`${top} → table`);}
-    for(let j=0;j<stacks.length;j++){
-      if(i===j||!stacks[j].length)continue;
-      const tgt=stacks[j];
-      const ns=stacks.map((x,k)=>k===i?below:k===j?tgt+top:x).filter(x=>x.length>0);
-      const c=canonical(ns);if(c!==st&&!seen.has(c))seen.set(c,`${top} → onto ${tgt[tgt.length-1]}`);
-    }
-  }
-  return Array.from(seen.entries()).map(([s,d])=>({state:s,desc:d}));
-}
+      function reconstructPath(goal, parent, moveDesc) {
+        const states = [], moves = []; let c = goal;
+        while (c !== null) { states.unshift(c); c = parent[c]; }
+        for (let i = 1; i < states.length; i++)moves.push(moveDesc[states[i]]);
+        return { states, moves };
+      }
 
-function heuristic(s,goal){
-  const gs=parseState(goal),gi={};
-  gs.forEach(gst=>{for(let p=0;p<gst.length;p++)gi[gst[p]]={stackStr:gst,pos:p};});
-  let h=0;
-  parseState(s).forEach(ss=>{
-    for(let p=0;p<ss.length;p++){
-      const b=ss[p],info=gi[b];
-      if(!info||info.pos!==p){h++;continue;}
-      let ok=true;for(let k=0;k<=p;k++)if(ss[k]!==info.stackStr[k]){ok=false;break;}
-      if(!ok)h++;
-    }
-  });
-  return h;
-}
+      function findBFS(startStr, goalStr) {
+        const sc = canonical(parseState(startStr)), gc = canonical(parseState(goalStr));
+        if (sc === gc) return { states: [sc], moves: [], nodesExplored: 1 };
+        const parent = { [sc]: null }, moveDesc = {}, queue = [sc], visited = new Set([sc]);
+        let n = 0;
+        while (queue.length) {
+          const cur = queue.shift(); n++;
+          for (const { state: ns, desc } of getNextStates(cur)) {
+            if (visited.has(ns)) continue;
+            visited.add(ns); parent[ns] = cur; moveDesc[ns] = desc;
+            if (ns === gc) { const p = reconstructPath(gc, parent, moveDesc); return { ...p, nodesExplored: n }; }
+            queue.push(ns);
+          }
+        }
+        return null;
+      }
 
-function reconstructPath(goal,parent,moveDesc){
-  const states=[],moves=[];let c=goal;
-  while(c!==null){states.unshift(c);c=parent[c];}
-  for(let i=1;i<states.length;i++)moves.push(moveDesc[states[i]]);
-  return{states,moves};
-}
+      function findDFS(startStr, goalStr) {
+        const sc = canonical(parseState(startStr)), gc = canonical(parseState(goalStr));
+        if (sc === gc) return { states: [sc], moves: [], nodesExplored: 1 };
+        const MAX = 55, parent = { [sc]: null }, moveDesc = {}, depthMap = { [sc]: 0 };
+        const stack = [sc], visited = new Set([sc]); let n = 0;
+        while (stack.length) {
+          const cur = stack.pop(); n++;
+          if (cur === gc) { const p = reconstructPath(gc, parent, moveDesc); return { ...p, nodesExplored: n }; }
+          const d = depthMap[cur] || 0; if (d >= MAX) continue;
+          for (const { state: ns, desc } of getNextStates(cur)) {
+            if (!visited.has(ns)) { visited.add(ns); parent[ns] = cur; moveDesc[ns] = desc; depthMap[ns] = d + 1; stack.push(ns); }
+          }
+        }
+        return null;
+      }
 
-function findBFS(startStr,goalStr){
-  const sc=canonical(parseState(startStr)),gc=canonical(parseState(goalStr));
-  if(sc===gc)return{states:[sc],moves:[],nodesExplored:1};
-  const parent={[sc]:null},moveDesc={},queue=[sc],visited=new Set([sc]);
-  let n=0;
-  while(queue.length){
-    const cur=queue.shift();n++;
-    for(const{state:ns,desc}of getNextStates(cur)){
-      if(visited.has(ns))continue;
-      visited.add(ns);parent[ns]=cur;moveDesc[ns]=desc;
-      if(ns===gc){const p=reconstructPath(gc,parent,moveDesc);return{...p,nodesExplored:n};}
-      queue.push(ns);
-    }
-  }
-  return null;
-}
+      class MinHeap {
+        constructor() { this.d = []; }
+        push(x) { this.d.push(x); this._up(this.d.length - 1); }
+        pop() { const t = this.d[0], l = this.d.pop(); if (this.d.length) { this.d[0] = l; this._dn(0); } return t; }
+        get size() { return this.d.length; }
+        _up(i) { while (i > 0) { const p = (i - 1) >> 1; if (this.d[p].f <= this.d[i].f) break;[this.d[p], this.d[i]] = [this.d[i], this.d[p]]; i = p; } }
+        _dn(i) { const n = this.d.length; while (1) { let s = i, l = 2 * i + 1, r = 2 * i + 2; if (l < n && this.d[l].f < this.d[s].f) s = l; if (r < n && this.d[r].f < this.d[s].f) s = r; if (s === i) break;[this.d[s], this.d[i]] = [this.d[i], this.d[s]]; i = s; } }
+      }
 
-function findDFS(startStr,goalStr){
-  const sc=canonical(parseState(startStr)),gc=canonical(parseState(goalStr));
-  if(sc===gc)return{states:[sc],moves:[],nodesExplored:1};
-  const MAX=55,parent={[sc]:null},moveDesc={},depthMap={[sc]:0};
-  const stack=[sc],visited=new Set([sc]);let n=0;
-  while(stack.length){
-    const cur=stack.pop();n++;
-    if(cur===gc){const p=reconstructPath(gc,parent,moveDesc);return{...p,nodesExplored:n};}
-    const d=depthMap[cur]||0;if(d>=MAX)continue;
-    for(const{state:ns,desc}of getNextStates(cur)){
-      if(!visited.has(ns)){visited.add(ns);parent[ns]=cur;moveDesc[ns]=desc;depthMap[ns]=d+1;stack.push(ns);}
-    }
-  }
-  return null;
-}
+      function findGBFS(startStr, goalStr) {
+        const sc = canonical(parseState(startStr)), gc = canonical(parseState(goalStr));
+        if (sc === gc) return { states: [sc], moves: [], nodesExplored: 1, hVal: 0 };
+        const parent = { [sc]: null }, moveDesc = {}, closed = new Set();
+        const h0 = heuristic(sc, gc);
+        const heap = new MinHeap(); heap.push({ state: sc, f: h0 });
+        let n = 0;
+        while (heap.size) {
+          const { state } = heap.pop();
+          if (closed.has(state)) continue; closed.add(state); n++;
+          if (state === gc) { const p = reconstructPath(gc, parent, moveDesc); return { ...p, nodesExplored: n, hVal: h0 }; }
+          for (const { state: ns, desc } of getNextStates(state)) {
+            if (closed.has(ns)) continue;
+            if (!(ns in parent)) { parent[ns] = state; moveDesc[ns] = desc; }
+            heap.push({ state: ns, f: heuristic(ns, gc) });
+          }
+        }
+        return null;
+      }
 
-class MinHeap{
-  constructor(){this.d=[];}
-  push(x){this.d.push(x);this._up(this.d.length-1);}
-  pop(){const t=this.d[0],l=this.d.pop();if(this.d.length){this.d[0]=l;this._dn(0);}return t;}
-  get size(){return this.d.length;}
-  _up(i){while(i>0){const p=(i-1)>>1;if(this.d[p].f<=this.d[i].f)break;[this.d[p],this.d[i]]=[this.d[i],this.d[p]];i=p;}}
-  _dn(i){const n=this.d.length;while(1){let s=i,l=2*i+1,r=2*i+2;if(l<n&&this.d[l].f<this.d[s].f)s=l;if(r<n&&this.d[r].f<this.d[s].f)s=r;if(s===i)break;[this.d[s],this.d[i]]=[this.d[i],this.d[s]];i=s;}}
-}
+      function findAStar(startStr, goalStr) {
+        const sc = canonical(parseState(startStr)), gc = canonical(parseState(goalStr));
+        if (sc === gc) return { states: [sc], moves: [], nodesExplored: 1, hVal: 0 };
+        const parent = { [sc]: null }, moveDesc = {}, gScore = { [sc]: 0 }, closed = new Set();
+        const h0 = heuristic(sc, gc);
+        const heap = new MinHeap(); heap.push({ state: sc, g: 0, f: h0 });
+        let n = 0;
+        while (heap.size) {
+          const { state, g } = heap.pop();
+          if (closed.has(state)) continue; closed.add(state); n++;
+          if (state === gc) { const p = reconstructPath(gc, parent, moveDesc); return { ...p, nodesExplored: n, hVal: h0 }; }
+          for (const { state: ns, desc } of getNextStates(state)) {
+            if (closed.has(ns)) continue; const tg = g + 1;
+            if (tg < (gScore[ns] ?? Infinity)) { gScore[ns] = tg; parent[ns] = state; moveDesc[ns] = desc; heap.push({ state: ns, g: tg, f: tg + heuristic(ns, gc) }); }
+          }
+        }
+        return null;
+      }
 
-function findGBFS(startStr,goalStr){
-  const sc=canonical(parseState(startStr)),gc=canonical(parseState(goalStr));
-  if(sc===gc)return{states:[sc],moves:[],nodesExplored:1,hVal:0};
-  const parent={[sc]:null},moveDesc={},closed=new Set();
-  const h0=heuristic(sc,gc);
-  const heap=new MinHeap();heap.push({state:sc,f:h0});
-  let n=0;
-  while(heap.size){
-    const{state}=heap.pop();
-    if(closed.has(state))continue;closed.add(state);n++;
-    if(state===gc){const p=reconstructPath(gc,parent,moveDesc);return{...p,nodesExplored:n,hVal:h0};}
-    for(const{state:ns,desc}of getNextStates(state)){
-      if(closed.has(ns))continue;
-      if(!(ns in parent)){parent[ns]=state;moveDesc[ns]=desc;}
-      heap.push({state:ns,f:heuristic(ns,gc)});
-    }
-  }
-  return null;
-}
+      // ── CANVAS ──
+      if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+          if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2;
+          this.moveTo(x + r, y); this.lineTo(x + w - r, y); this.quadraticCurveTo(x + w, y, x + w, y + r);
+          this.lineTo(x + w, y + h - r); this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+          this.lineTo(x + r, y + h); this.quadraticCurveTo(x, y + h, x, y + h - r);
+          this.lineTo(x, y + r); this.quadraticCurveTo(x, y, x + r, y); return this;
+        };
+      }
 
-function findAStar(startStr,goalStr){
-  const sc=canonical(parseState(startStr)),gc=canonical(parseState(goalStr));
-  if(sc===gc)return{states:[sc],moves:[],nodesExplored:1,hVal:0};
-  const parent={[sc]:null},moveDesc={},gScore={[sc]:0},closed=new Set();
-  const h0=heuristic(sc,gc);
-  const heap=new MinHeap();heap.push({state:sc,g:0,f:h0});
-  let n=0;
-  while(heap.size){
-    const{state,g}=heap.pop();
-    if(closed.has(state))continue;closed.add(state);n++;
-    if(state===gc){const p=reconstructPath(gc,parent,moveDesc);return{...p,nodesExplored:n,hVal:h0};}
-    for(const{state:ns,desc}of getNextStates(state)){
-      if(closed.has(ns))continue;const tg=g+1;
-      if(tg<(gScore[ns]??Infinity)){gScore[ns]=tg;parent[ns]=state;moveDesc[ns]=desc;heap.push({state:ns,g:tg,f:tg+heuristic(ns,gc)});}
-    }
-  }
-  return null;
-}
+      function drawBlock(ctx, x, y, bw, bh, letter, glowColor, alpha = 1) {
+        const clr = BC[letter] || ['#888', '#aaa', '#555'];
+        const [mid, light, dark] = clr, r = Math.min(7, bh * .26), depth = Math.min(4, bh * .18);
+        ctx.save(); ctx.globalAlpha = alpha;
+        ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+        ctx.fillStyle = dark; ctx.beginPath(); ctx.roundRect(x + depth, y + depth, bw, bh, r); ctx.fill();
+        ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'; ctx.shadowOffsetY = 0;
+        const g = ctx.createLinearGradient(x, y, x, y + bh);
+        g.addColorStop(0, light); g.addColorStop(.55, mid); g.addColorStop(1, dark);
+        ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x, y, bw, bh, r); ctx.fill();
+        const gl = ctx.createLinearGradient(x, y, x, y + bh * .5);
+        gl.addColorStop(0, 'rgba(255,255,255,.28)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.roundRect(x + 2, y + 2, bw - 4, bh * .5, r); ctx.fill();
+        if (glowColor) { ctx.strokeStyle = glowColor; ctx.lineWidth = 2; ctx.shadowColor = glowColor; ctx.shadowBlur = 11; ctx.beginPath(); ctx.roundRect(x, y, bw, bh, r); ctx.stroke(); ctx.shadowBlur = 0; }
+        const fs = Math.max(8, Math.floor(bh * .44));
+        ctx.font = `700 ${fs}px 'IBM Plex Mono',monospace`;
+        ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 3;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(letter, x + bw / 2, y + bh / 2 + 1);
+        ctx.shadowBlur = 0; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.restore();
+      }
 
-// ── CANVAS ──
-if(!CanvasRenderingContext2D.prototype.roundRect){
-  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
-    if(w<2*r)r=w/2;if(h<2*r)r=h/2;
-    this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);
-    this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-    this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);
-    this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);return this;
-  };
-}
+      function drawStateOnCanvas(canvas, stateStr, glowColor) {
+        const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#111720'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(255,255,255,.018)';
+        for (let gx = 10; gx < W; gx += 16)for (let gy = 10; gy < H; gy += 16) { ctx.beginPath(); ctx.arc(gx, gy, 1, 0, Math.PI * 2); ctx.fill(); }
+        const tableY = H - 13;
+        const tg = ctx.createLinearGradient(0, tableY, 0, tableY + 10);
+        tg.addColorStop(0, '#253550'); tg.addColorStop(1, '#111720');
+        ctx.fillStyle = tg; ctx.fillRect(0, tableY, W, 10); ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(0, tableY, W, 1.5);
+        const stacks = parseState(stateStr), n = stacks.length, maxH = Math.max(...stacks.map(s => s.length));
+        const bw = Math.min(40, Math.floor(W * .82 / n) - 7, 48), bh = Math.min(26, Math.floor((tableY - 10) / Math.max(maxH, 1)) - 2, 32);
+        const totalW = n * bw + (n - 1) * 9, sx = (W - totalW) / 2;
+        stacks.forEach((stack, si) => {
+          const cx = sx + si * (bw + 9);
+          for (let li = 0; li < stack.length; li++)drawBlock(ctx, cx, tableY - (li + 1) * (bh + 2), bw, bh, stack[li], glowColor);
+        });
+      }
 
-function drawBlock(ctx,x,y,bw,bh,letter,glowColor,alpha=1){
-  const clr=BC[letter]||['#888','#aaa','#555'];
-  const[mid,light,dark]=clr,r=Math.min(7,bh*.26),depth=Math.min(4,bh*.18);
-  ctx.save();ctx.globalAlpha=alpha;
-  ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=8;ctx.shadowOffsetY=3;
-  ctx.fillStyle=dark;ctx.beginPath();ctx.roundRect(x+depth,y+depth,bw,bh,r);ctx.fill();
-  ctx.shadowBlur=0;ctx.shadowColor='transparent';ctx.shadowOffsetY=0;
-  const g=ctx.createLinearGradient(x,y,x,y+bh);
-  g.addColorStop(0,light);g.addColorStop(.55,mid);g.addColorStop(1,dark);
-  ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,y,bw,bh,r);ctx.fill();
-  const gl=ctx.createLinearGradient(x,y,x,y+bh*.5);
-  gl.addColorStop(0,'rgba(255,255,255,.28)');gl.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=gl;ctx.beginPath();ctx.roundRect(x+2,y+2,bw-4,bh*.5,r);ctx.fill();
-  if(glowColor){ctx.strokeStyle=glowColor;ctx.lineWidth=2;ctx.shadowColor=glowColor;ctx.shadowBlur=11;ctx.beginPath();ctx.roundRect(x,y,bw,bh,r);ctx.stroke();ctx.shadowBlur=0;}
-  const fs=Math.max(8,Math.floor(bh*.44));
-  ctx.font=`700 ${fs}px 'IBM Plex Mono',monospace`;
-  ctx.fillStyle='rgba(255,255,255,.88)';ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=3;
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(letter,x+bw/2,y+bh/2+1);
-  ctx.shadowBlur=0;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.restore();
-}
+      function getPositions(stateStr, W, H) {
+        const stacks = parseState(stateStr), n = stacks.length, maxH = Math.max(...stacks.map(s => s.length));
+        const tableY = H - 15, bw = Math.min(46, Math.floor(W * .84 / n) - 9, 52);
+        const bh = Math.min(26, Math.floor((tableY - 11) / Math.max(maxH, 1)) - 2, 32);
+        const totalW = n * bw + (n - 1) * 11, sx = (W - totalW) / 2, pos = {};
+        stacks.forEach((stack, si) => {
+          const cx = sx + si * (bw + 11);
+          for (let li = 0; li < stack.length; li++)pos[stack[li]] = { x: cx, y: tableY - (li + 1) * (bh + 2), bw, bh, tableY };
+        });
+        return { pos, bw, bh, tableY };
+      }
 
-function drawStateOnCanvas(canvas,stateStr,glowColor){
-  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#111720';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(255,255,255,.018)';
-  for(let gx=10;gx<W;gx+=16)for(let gy=10;gy<H;gy+=16){ctx.beginPath();ctx.arc(gx,gy,1,0,Math.PI*2);ctx.fill();}
-  const tableY=H-13;
-  const tg=ctx.createLinearGradient(0,tableY,0,tableY+10);
-  tg.addColorStop(0,'#253550');tg.addColorStop(1,'#111720');
-  ctx.fillStyle=tg;ctx.fillRect(0,tableY,W,10);ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(0,tableY,W,1.5);
-  const stacks=parseState(stateStr),n=stacks.length,maxH=Math.max(...stacks.map(s=>s.length));
-  const bw=Math.min(40,Math.floor(W*.82/n)-7,48),bh=Math.min(26,Math.floor((tableY-10)/Math.max(maxH,1))-2,32);
-  const totalW=n*bw+(n-1)*9,sx=(W-totalW)/2;
-  stacks.forEach((stack,si)=>{
-    const cx=sx+si*(bw+9);
-    for(let li=0;li<stack.length;li++)drawBlock(ctx,cx,tableY-(li+1)*(bh+2),bw,bh,stack[li],glowColor);
-  });
-}
+      const animStates = {};
+      ALGO_IDS.forEach(id => { animStates[id] = { blocks: {}, bw: 0, bh: 0, tableY: 0, af: null, particles: [] }; });
 
-function getPositions(stateStr,W,H){
-  const stacks=parseState(stateStr),n=stacks.length,maxH=Math.max(...stacks.map(s=>s.length));
-  const tableY=H-15,bw=Math.min(46,Math.floor(W*.84/n)-9,52);
-  const bh=Math.min(26,Math.floor((tableY-11)/Math.max(maxH,1))-2,32);
-  const totalW=n*bw+(n-1)*11,sx=(W-totalW)/2,pos={};
-  stacks.forEach((stack,si)=>{
-    const cx=sx+si*(bw+11);
-    for(let li=0;li<stack.length;li++)pos[stack[li]]={x:cx,y:tableY-(li+1)*(bh+2),bw,bh,tableY};
-  });
-  return{pos,bw,bh,tableY};
-}
+      function initAnim(id, stateStr) {
+        const cv = document.getElementById('canvas-' + id);
+        const { pos, bw, bh, tableY } = getPositions(stateStr, cv.width, cv.height);
+        const as = animStates[id]; as.bw = bw; as.bh = bh; as.tableY = tableY; as.blocks = {}; as.particles = [];
+        for (const [l, p] of Object.entries(pos)) as.blocks[l] = { x: p.x, y: p.y, tx: p.x, ty: p.y, vx: 0, vy: 0 };
+        renderFrame(id, false, false, null);
+      }
 
-const animStates={};
-ALGO_IDS.forEach(id=>{animStates[id]={blocks:{},bw:0,bh:0,tableY:0,af:null,particles:[]};});
+      function animTo(id, stateStr, isStart, isGoal, onDone) {
+        const cv = document.getElementById('canvas-' + id); if (!cv) return;
+        const { pos, bw, bh, tableY } = getPositions(stateStr, cv.width, cv.height);
+        const as = animStates[id]; as.bw = bw; as.bh = bh; as.tableY = tableY;
+        for (const [l, p] of Object.entries(pos)) {
+          if (!as.blocks[l]) as.blocks[l] = { x: p.x, y: p.y, tx: p.x, ty: p.y, vx: 0, vy: 0 };
+          else { as.blocks[l].tx = p.x; as.blocks[l].ty = p.y; }
+        }
+        if (as.af) cancelAnimationFrame(as.af);
+        if (isGoal) spawnParticles(as, cv.width, cv.height);
+        const cm = { bfs: '#29c4ef', dfs: '#ff7043', gbfs: '#d966f5', ast: '#7fff4f' };
+        const gc = isGoal ? cm[id] : isStart ? cm[id] : null;
+        const SPRING = .14, DAMP = .70, THRESH = .4; let sf = 0;
+        function tick() {
+          renderFrame(id, isStart, isGoal, gc);
+          let total = 0;
+          for (const b of Object.values(as.blocks)) {
+            const dx = b.tx - b.x, dy = b.ty - b.y;
+            b.vx += dx * SPRING; b.vy += dy * SPRING; b.vx *= DAMP; b.vy *= DAMP; b.x += b.vx; b.y += b.vy;
+            total += Math.abs(dx) + Math.abs(dy) + Math.abs(b.vx) + Math.abs(b.vy);
+          }
+          if (total < THRESH) { sf++; if (sf > 5) { if (onDone) onDone(); return; } } else sf = 0;
+          as.af = requestAnimationFrame(tick);
+        }
+        as.af = requestAnimationFrame(tick);
+      }
 
-function initAnim(id,stateStr){
-  const cv=document.getElementById('canvas-'+id);
-  const{pos,bw,bh,tableY}=getPositions(stateStr,cv.width,cv.height);
-  const as=animStates[id];as.bw=bw;as.bh=bh;as.tableY=tableY;as.blocks={};as.particles=[];
-  for(const[l,p]of Object.entries(pos))as.blocks[l]={x:p.x,y:p.y,tx:p.x,ty:p.y,vx:0,vy:0};
-  renderFrame(id,false,false,null);
-}
+      function renderFrame(id, isStart, isGoal, glowColor) {
+        const cv = document.getElementById('canvas-' + id); if (!cv) return;
+        const ctx = cv.getContext('2d'), W = cv.width, H = cv.height, as = animStates[id];
+        ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#111720'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(255,255,255,.014)';
+        for (let gx = 10; gx < W; gx += 18)for (let gy = 10; gy < H; gy += 18) { ctx.beginPath(); ctx.arc(gx, gy, 1, 0, Math.PI * 2); ctx.fill(); }
+        const tg = ctx.createLinearGradient(0, as.tableY, 0, as.tableY + 12);
+        tg.addColorStop(0, '#253550'); tg.addColorStop(1, '#111720');
+        ctx.fillStyle = tg; ctx.fillRect(0, as.tableY, W, 12); ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(0, as.tableY, W, 2);
+        if (as.particles && as.particles.length) {
+          as.particles = as.particles.filter(p => {
+            p.x += p.vx; p.y += p.vy; p.vy += .13; p.life--; p.vx *= .99; if (p.life <= 0) return false;
+            ctx.save(); ctx.globalAlpha = p.life / p.maxLife * .75; ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 4;
+            ctx.beginPath(); ctx.roundRect(p.x, p.y, p.s, p.s, 1); ctx.fill(); ctx.restore(); return true;
+          });
+        }
+        const entries = Object.entries(as.blocks); entries.sort((a, b) => a[1].y - b[1].y);
+        for (const [l, b] of entries) drawBlock(ctx, b.x, b.y, as.bw, as.bh, l, null);
+        if (glowColor) {
+          for (const [l, b] of entries) {
+            ctx.save(); ctx.strokeStyle = glowColor; ctx.lineWidth = 2; ctx.shadowColor = glowColor; ctx.shadowBlur = 12; ctx.globalAlpha = .55;
+            ctx.beginPath(); ctx.roundRect(b.x, b.y, as.bw, as.bh, Math.min(7, as.bh * .25)); ctx.stroke(); ctx.restore();
+          }
+        }
+      }
 
-function animTo(id,stateStr,isStart,isGoal,onDone){
-  const cv=document.getElementById('canvas-'+id);if(!cv)return;
-  const{pos,bw,bh,tableY}=getPositions(stateStr,cv.width,cv.height);
-  const as=animStates[id];as.bw=bw;as.bh=bh;as.tableY=tableY;
-  for(const[l,p]of Object.entries(pos)){
-    if(!as.blocks[l])as.blocks[l]={x:p.x,y:p.y,tx:p.x,ty:p.y,vx:0,vy:0};
-    else{as.blocks[l].tx=p.x;as.blocks[l].ty=p.y;}
-  }
-  if(as.af)cancelAnimationFrame(as.af);
-  if(isGoal)spawnParticles(as,cv.width,cv.height);
-  const cm={bfs:'#29c4ef',dfs:'#ff7043',gbfs:'#d966f5',ast:'#7fff4f'};
-  const gc=isGoal?cm[id]:isStart?cm[id]:null;
-  const SPRING=.14,DAMP=.70,THRESH=.4;let sf=0;
-  function tick(){
-    renderFrame(id,isStart,isGoal,gc);
-    let total=0;
-    for(const b of Object.values(as.blocks)){
-      const dx=b.tx-b.x,dy=b.ty-b.y;
-      b.vx+=dx*SPRING;b.vy+=dy*SPRING;b.vx*=DAMP;b.vy*=DAMP;b.x+=b.vx;b.y+=b.vy;
-      total+=Math.abs(dx)+Math.abs(dy)+Math.abs(b.vx)+Math.abs(b.vy);
-    }
-    if(total<THRESH){sf++;if(sf>5){if(onDone)onDone();return;}}else sf=0;
-    as.af=requestAnimationFrame(tick);
-  }
-  as.af=requestAnimationFrame(tick);
-}
+      const CONFETTI = ['#ffc94d', '#29c4ef', '#7fff4f', '#ff7043', '#d966f5', '#ef5350'];
+      function spawnParticles(as, W, H) {
+        as.particles = [];
+        for (let i = 0; i < 60; i++)as.particles.push({ x: Math.random() * W, y: Math.random() * H * .4, vx: (Math.random() - .5) * 3, vy: Math.random() * -4.5 - 1, s: Math.random() * 5 + 2.5, color: CONFETTI[Math.floor(Math.random() * CONFETTI.length)], life: 60 + Math.random() * 40, maxLife: 100 });
+      }
 
-function renderFrame(id,isStart,isGoal,glowColor){
-  const cv=document.getElementById('canvas-'+id);if(!cv)return;
-  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,as=animStates[id];
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#111720';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(255,255,255,.014)';
-  for(let gx=10;gx<W;gx+=18)for(let gy=10;gy<H;gy+=18){ctx.beginPath();ctx.arc(gx,gy,1,0,Math.PI*2);ctx.fill();}
-  const tg=ctx.createLinearGradient(0,as.tableY,0,as.tableY+12);
-  tg.addColorStop(0,'#253550');tg.addColorStop(1,'#111720');
-  ctx.fillStyle=tg;ctx.fillRect(0,as.tableY,W,12);ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(0,as.tableY,W,2);
-  if(as.particles&&as.particles.length){
-    as.particles=as.particles.filter(p=>{
-      p.x+=p.vx;p.y+=p.vy;p.vy+=.13;p.life--;p.vx*=.99;if(p.life<=0)return false;
-      ctx.save();ctx.globalAlpha=p.life/p.maxLife*.75;ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=4;
-      ctx.beginPath();ctx.roundRect(p.x,p.y,p.s,p.s,1);ctx.fill();ctx.restore();return true;
-    });
-  }
-  const entries=Object.entries(as.blocks);entries.sort((a,b)=>a[1].y-b[1].y);
-  for(const[l,b]of entries)drawBlock(ctx,b.x,b.y,as.bw,as.bh,l,null);
-  if(glowColor){
-    for(const[l,b]of entries){
-      ctx.save();ctx.strokeStyle=glowColor;ctx.lineWidth=2;ctx.shadowColor=glowColor;ctx.shadowBlur=12;ctx.globalAlpha=.55;
-      ctx.beginPath();ctx.roundRect(b.x,b.y,as.bw,as.bh,Math.min(7,as.bh*.25));ctx.stroke();ctx.restore();
-    }
-  }
-}
+      // ── UI STATE ──
+      let curLevel = 1, stepMs = 950, syncStep = 0, syncMax = 0, syncTimer = null;
+      const plans = { bfs: null, dfs: null, gbfs: null, ast: null };
+      const panelSteps = { bfs: 0, dfs: 0, gbfs: 0, ast: 0 };
+      const panelTimers = { bfs: null, dfs: null, gbfs: null, ast: null };
+      const CM = { bfs: '#29c4ef', dfs: '#ff7043', gbfs: '#d966f5', ast: '#7fff4f' };
 
-const CONFETTI=['#ffc94d','#29c4ef','#7fff4f','#ff7043','#d966f5','#ef5350'];
-function spawnParticles(as,W,H){
-  as.particles=[];
-  for(let i=0;i<60;i++)as.particles.push({x:Math.random()*W,y:Math.random()*H*.4,vx:(Math.random()-.5)*3,vy:Math.random()*-4.5-1,s:Math.random()*5+2.5,color:CONFETTI[Math.floor(Math.random()*CONFETTI.length)],life:60+Math.random()*40,maxLife:100});
-}
+      function setStatus(id, text, color) {
+        const el = document.getElementById('status-' + id); if (!el) return;
+        el.textContent = text;
+        if (color) { el.style.color = color; el.style.borderColor = color + '55'; el.style.background = color + '14'; }
+        else { el.style.color = ''; el.style.borderColor = ''; el.style.background = ''; }
+      }
+      function updateStepFloat(id, step, total) {
+        const el = document.getElementById('sfloat-' + id); if (!el) return;
+        if (step === 0) el.textContent = 'START';
+        else if (step === total) el.textContent = 'GOAL ✓';
+        else el.textContent = `STEP ${step}/${total}`;
+      }
+      function updateGBFSBar(step, total, hVal) {
+        if (total === 0) return;
+        const h = Math.max(0, hVal - step);
+        const pct = Math.round(((hVal - h) / Math.max(hVal, 1)) * 100);
+        document.getElementById('gbfsFill').style.width = pct + '%';
+        document.getElementById('gbfsLabel').textContent = `h≈${h}`;
+      }
+      function updateAStarBar(step, total, hVal) {
+        if (total === 0) return;
+        const pct = Math.round((step / total) * 100);
+        document.getElementById('fnFill').style.width = pct + '%';
+        const g = step, h = Math.max(0, hVal - step);
+        document.getElementById('fnLabel').textContent = `g=${g} h≈${h} f≈${g + h}`;
+      }
 
-// ── UI STATE ──
-let curLevel=1,stepMs=950,syncStep=0,syncMax=0,syncTimer=null;
-const plans={bfs:null,dfs:null,gbfs:null,ast:null};
-const panelSteps={bfs:0,dfs:0,gbfs:0,ast:0};
-const panelTimers={bfs:null,dfs:null,gbfs:null,ast:null};
-const CM={bfs:'#29c4ef',dfs:'#ff7043',gbfs:'#d966f5',ast:'#7fff4f'};
+      function renderMoves(id) {
+        const el = document.getElementById('moves-' + id), plan = plans[id]; if (!plan) { el.innerHTML = ''; return; }
+        const step = panelSteps[id]; el.innerHTML = '';
+        plan.moves.forEach((m, i) => {
+          const div = document.createElement('div');
+          div.className = 'move-item' + (i + 1 === step ? ' active-move' : '');
+          div.innerHTML = `<span class="move-idx">${String(i + 1).padStart(2, '0')}</span><span style="color:var(--text3);margin:0 3px">›</span><span>${m}</span>`;
+          div.addEventListener('click', () => goTo(id, i + 1));
+          el.appendChild(div);
+        });
+        const act = el.querySelector('.active-move'); if (act) act.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      function updatePanelNav(id) {
+        const plan = plans[id]; if (!plan) return;
+        const s = panelSteps[id], max = plan.states.length - 1;
+        document.getElementById('count-' + id).textContent = `${s} / ${max}`;
+        document.getElementById('prev-' + id).disabled = s === 0;
+        document.getElementById('next-' + id).disabled = s >= max;
+      }
+      function goTo(id, idx) {
+        const plan = plans[id]; if (!plan) return;
+        idx = Math.max(0, Math.min(idx, plan.states.length - 1));
+        panelSteps[id] = idx;
+        const isS = idx === 0, isG = idx === plan.states.length - 1;
+        animTo(id, plan.states[idx], isS, isG, null);
+        setStatus(id, isG ? 'SOLVED ✓' : isS ? 'START' : 'STEP ' + idx, isG ? CM[id] : isS ? CM[id] : null);
+        updatePanelNav(id); renderMoves(id);
+        updateStepFloat(id, idx, plan.states.length - 1);
+        if (id === 'gbfs' && plan.hVal !== undefined) updateGBFSBar(idx, plan.states.length - 1, plan.hVal);
+        if (id === 'ast' && plan.hVal !== undefined) updateAStarBar(idx, plan.states.length - 1, plan.hVal);
+        document.getElementById('panel-' + id).classList.toggle('done-panel', isG);
+      }
+      function startAuto(id) {
+        if (panelTimers[id]) return;
+        const btn = document.getElementById('auto-' + id); btn.textContent = '⏸ Pause'; btn.classList.add('playing');
+        function tick() {
+          const plan = plans[id]; if (!plan || panelSteps[id] >= plan.states.length - 1) { stopAuto(id); return; }
+          goTo(id, panelSteps[id] + 1); panelTimers[id] = setTimeout(tick, stepMs);
+        }
+        panelTimers[id] = setTimeout(tick, 300);
+      }
+      function stopAuto(id) {
+        if (panelTimers[id]) { clearTimeout(panelTimers[id]); panelTimers[id] = null; }
+        const btn = document.getElementById('auto-' + id); if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('playing'); }
+      }
+      function syncGoTo(idx) {
+        idx = Math.max(0, Math.min(idx, syncMax)); syncStep = idx;
+        ALGO_IDS.forEach(id => { const p = plans[id]; if (p) goTo(id, Math.min(idx, p.states.length - 1)); });
+        document.getElementById('syncCounter').textContent = `${idx} / ${syncMax}`;
+        document.getElementById('syncPrev').disabled = idx === 0;
+        document.getElementById('syncNext').disabled = idx >= syncMax;
+      }
+      function stopAllSync() {
+        if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+        const btn = document.getElementById('syncAuto'); btn.textContent = '▶ AUTO PLAY ALL'; btn.classList.remove('playing');
+      }
+      document.getElementById('syncPrev').addEventListener('click', () => { stopAllSync(); syncGoTo(syncStep - 1); });
+      document.getElementById('syncNext').addEventListener('click', () => { stopAllSync(); syncGoTo(syncStep + 1); });
+      document.getElementById('syncAuto').addEventListener('click', () => {
+        const btn = document.getElementById('syncAuto');
+        if (syncTimer) { stopAllSync(); return; }
+        btn.textContent = '⏸ PAUSE ALL'; btn.classList.add('playing');
+        syncTimer = setInterval(() => { if (syncStep >= syncMax) { stopAllSync(); return; } syncGoTo(syncStep + 1); }, stepMs);
+      });
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.addEventListener('click', () => { document.querySelectorAll('.speed-btn,.speed-config-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); stepMs = parseInt(btn.dataset.ms); });
+      });
+      ALGO_IDS.forEach(id => {
+        document.getElementById('prev-' + id).addEventListener('click', () => { stopAuto(id); goTo(id, panelSteps[id] - 1); });
+        document.getElementById('next-' + id).addEventListener('click', () => { stopAuto(id); goTo(id, panelSteps[id] + 1); });
+        document.getElementById('auto-' + id).addEventListener('click', () => { if (panelTimers[id]) stopAuto(id); else startAuto(id); });
+      });
 
-function setStatus(id,text,color){
-  const el=document.getElementById('status-'+id);if(!el)return;
-  el.textContent=text;
-  if(color){el.style.color=color;el.style.borderColor=color+'55';el.style.background=color+'14';}
-  else{el.style.color='';el.style.borderColor='';el.style.background='';}
-}
-function updateStepFloat(id,step,total){
-  const el=document.getElementById('sfloat-'+id);if(!el)return;
-  if(step===0)el.textContent='START';
-  else if(step===total)el.textContent='GOAL ✓';
-  else el.textContent=`STEP ${step}/${total}`;
-}
-function updateGBFSBar(step,total,hVal){
-  if(total===0)return;
-  const h=Math.max(0,hVal-step);
-  const pct=Math.round(((hVal-h)/Math.max(hVal,1))*100);
-  document.getElementById('gbfsFill').style.width=pct+'%';
-  document.getElementById('gbfsLabel').textContent=`h≈${h}`;
-}
-function updateAStarBar(step,total,hVal){
-  if(total===0)return;
-  const pct=Math.round((step/total)*100);
-  document.getElementById('fnFill').style.width=pct+'%';
-  const g=step,h=Math.max(0,hVal-step);
-  document.getElementById('fnLabel').textContent=`g=${g} h≈${h} f≈${g+h}`;
-}
+      // ── DIVERGENCE RENDER ──
+      const DV_EL = { bfs: 'dvBFS', dfs: 'dvDFS', gbfs: 'dvGBFS', ast: 'dvAST' };
+      const NUM_CLS = { bfs: 'bfs-n', dfs: 'dfs-n', gbfs: 'gbfs-n', ast: 'ast-n' };
+      const CHIP_EL = { bfs: 'solBFS', dfs: 'solDFS', gbfs: 'solGBFS', ast: 'solAST' };
+      const NOTE_EL = { bfs: 'solBFSnote', dfs: 'solDFSnote', gbfs: 'solGBFSnote', ast: 'solASTnote' };
 
-function renderMoves(id){
-  const el=document.getElementById('moves-'+id),plan=plans[id];if(!plan){el.innerHTML='';return;}
-  const step=panelSteps[id];el.innerHTML='';
-  plan.moves.forEach((m,i)=>{
-    const div=document.createElement('div');
-    div.className='move-item'+(i+1===step?' active-move':'');
-    div.innerHTML=`<span class="move-idx">${String(i+1).padStart(2,'0')}</span><span style="color:var(--text3);margin:0 3px">›</span><span>${m}</span>`;
-    div.addEventListener('click',()=>goTo(id,i+1));
-    el.appendChild(div);
-  });
-  const act=el.querySelector('.active-move');if(act)act.scrollIntoView({block:'nearest',behavior:'smooth'});
-}
-function updatePanelNav(id){
-  const plan=plans[id];if(!plan)return;
-  const s=panelSteps[id],max=plan.states.length-1;
-  document.getElementById('count-'+id).textContent=`${s} / ${max}`;
-  document.getElementById('prev-'+id).disabled=s===0;
-  document.getElementById('next-'+id).disabled=s>=max;
-}
-function goTo(id,idx){
-  const plan=plans[id];if(!plan)return;
-  idx=Math.max(0,Math.min(idx,plan.states.length-1));
-  panelSteps[id]=idx;
-  const isS=idx===0,isG=idx===plan.states.length-1;
-  animTo(id,plan.states[idx],isS,isG,null);
-  setStatus(id,isG?'SOLVED ✓':isS?'START':'STEP '+idx,isG?CM[id]:isS?CM[id]:null);
-  updatePanelNav(id);renderMoves(id);
-  updateStepFloat(id,idx,plan.states.length-1);
-  if(id==='gbfs'&&plan.hVal!==undefined)updateGBFSBar(idx,plan.states.length-1,plan.hVal);
-  if(id==='ast' &&plan.hVal!==undefined)updateAStarBar(idx,plan.states.length-1,plan.hVal);
-  document.getElementById('panel-'+id).classList.toggle('done-panel',isG);
-}
-function startAuto(id){
-  if(panelTimers[id])return;
-  const btn=document.getElementById('auto-'+id);btn.textContent='⏸ Pause';btn.classList.add('playing');
-  function tick(){
-    const plan=plans[id];if(!plan||panelSteps[id]>=plan.states.length-1){stopAuto(id);return;}
-    goTo(id,panelSteps[id]+1);panelTimers[id]=setTimeout(tick,stepMs);
-  }
-  panelTimers[id]=setTimeout(tick,300);
-}
-function stopAuto(id){
-  if(panelTimers[id]){clearTimeout(panelTimers[id]);panelTimers[id]=null;}
-  const btn=document.getElementById('auto-'+id);if(btn){btn.textContent='▶ Play';btn.classList.remove('playing');}
-}
-function syncGoTo(idx){
-  idx=Math.max(0,Math.min(idx,syncMax));syncStep=idx;
-  ALGO_IDS.forEach(id=>{const p=plans[id];if(p)goTo(id,Math.min(idx,p.states.length-1));});
-  document.getElementById('syncCounter').textContent=`${idx} / ${syncMax}`;
-  document.getElementById('syncPrev').disabled=idx===0;
-  document.getElementById('syncNext').disabled=idx>=syncMax;
-}
-function stopAllSync(){
-  if(syncTimer){clearInterval(syncTimer);syncTimer=null;}
-  const btn=document.getElementById('syncAuto');btn.textContent='▶ AUTO PLAY ALL';btn.classList.remove('playing');
-}
-document.getElementById('syncPrev').addEventListener('click',()=>{stopAllSync();syncGoTo(syncStep-1);});
-document.getElementById('syncNext').addEventListener('click',()=>{stopAllSync();syncGoTo(syncStep+1);});
-document.getElementById('syncAuto').addEventListener('click',()=>{
-  const btn=document.getElementById('syncAuto');
-  if(syncTimer){stopAllSync();return;}
-  btn.textContent='⏸ PAUSE ALL';btn.classList.add('playing');
-  syncTimer=setInterval(()=>{if(syncStep>=syncMax){stopAllSync();return;}syncGoTo(syncStep+1);},stepMs);
-});
-document.querySelectorAll('.speed-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{document.querySelectorAll('.speed-btn,.speed-config-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');stepMs=parseInt(btn.dataset.ms);});
-});
-ALGO_IDS.forEach(id=>{
-  document.getElementById('prev-'+id).addEventListener('click',()=>{stopAuto(id);goTo(id,panelSteps[id]-1);});
-  document.getElementById('next-'+id).addEventListener('click',()=>{stopAuto(id);goTo(id,panelSteps[id]+1);});
-  document.getElementById('auto-'+id).addEventListener('click',()=>{if(panelTimers[id])stopAuto(id);else startAuto(id);});
-});
-
-// ── DIVERGENCE RENDER ──
-const DV_EL={bfs:'dvBFS',dfs:'dvDFS',gbfs:'dvGBFS',ast:'dvAST'};
-const NUM_CLS={bfs:'bfs-n',dfs:'dfs-n',gbfs:'gbfs-n',ast:'ast-n'};
-const CHIP_EL={bfs:'solBFS',dfs:'solDFS',gbfs:'solGBFS',ast:'solAST'};
-const NOTE_EL={bfs:'solBFSnote',dfs:'solDFSnote',gbfs:'solGBFSnote',ast:'solASTnote'};
-
-function renderDivergence(lv){
-  lv.divergeNote.forEach(note=>{
-    const el=document.getElementById(DV_EL[note.id]);
-    el.innerHTML=note.steps.map((s,k)=>`
+      function renderDivergence(lv) {
+        lv.divergeNote.forEach(note => {
+          const el = document.getElementById(DV_EL[note.id]);
+          el.innerHTML = note.steps.map((s, k) => `
       <div class="dv-step">
-        <span class="dv-num ${NUM_CLS[note.id]}">${k+1}</span>
+        <span class="dv-num ${NUM_CLS[note.id]}">${k + 1}</span>
         <div class="dv-inner">
           <div class="dv-move">${s}</div>
           <div class="dv-why">${note.whys[k]}</div>
         </div>
       </div>`).join('');
-  });
-  ALGO_IDS.forEach(id=>{
-    document.getElementById(CHIP_EL[id]).innerHTML=lv.solMoves[id].map(m=>`<span class="sol-chip">${m}</span>`).join('');
-    document.getElementById(NOTE_EL[id]).textContent=lv.solNotes[id];
-  });
-}
+        });
+        ALGO_IDS.forEach(id => {
+          document.getElementById(CHIP_EL[id]).innerHTML = lv.solMoves[id].map(m => `<span class="sol-chip">${m}</span>`).join('');
+          document.getElementById(NOTE_EL[id]).textContent = lv.solNotes[id];
+        });
+      }
 
-function renderCustomDivergence(startStr, goalStr, resultPlans){
-  // For custom runs, show actual computed first moves
-  ALGO_IDS.forEach(id=>{
-    const plan = resultPlans[id];
-    const el = document.getElementById(DV_EL[id]);
-    if(!plan || plan.moves.length===0){
-      el.innerHTML=`<div class="dv-step"><span class="dv-num ${NUM_CLS[id]}">!</span><div class="dv-inner"><div class="dv-move">Already at goal</div><div class="dv-why">Start state equals goal state — no moves needed.</div></div></div>`;
-      document.getElementById(CHIP_EL[id]).innerHTML='<span class="sol-chip">—</span>';
-      document.getElementById(NOTE_EL[id]).textContent='No moves needed.';
-      return;
-    }
-    const moves = plan.moves.slice(0,2);
-    const nameMap={bfs:'BFS (FIFO queue)',dfs:'DFS (LIFO stack)',gbfs:'Greedy (min h)',ast:'A* (min g+h)'};
-    el.innerHTML=moves.map((m,k)=>`
+      function renderCustomDivergence(startStr, goalStr, resultPlans) {
+        // For custom runs, show actual computed first moves
+        ALGO_IDS.forEach(id => {
+          const plan = resultPlans[id];
+          const el = document.getElementById(DV_EL[id]);
+          if (!plan || plan.moves.length === 0) {
+            el.innerHTML = `<div class="dv-step"><span class="dv-num ${NUM_CLS[id]}">!</span><div class="dv-inner"><div class="dv-move">Already at goal</div><div class="dv-why">Start state equals goal state — no moves needed.</div></div></div>`;
+            document.getElementById(CHIP_EL[id]).innerHTML = '<span class="sol-chip">—</span>';
+            document.getElementById(NOTE_EL[id]).textContent = 'No moves needed.';
+            return;
+          }
+          const moves = plan.moves.slice(0, 2);
+          const nameMap = { bfs: 'BFS (FIFO queue)', dfs: 'DFS (LIFO stack)', gbfs: 'Greedy (min h)', ast: 'A* (min g+h)' };
+          el.innerHTML = moves.map((m, k) => `
       <div class="dv-step">
-        <span class="dv-num ${NUM_CLS[id]}">${k+1}</span>
+        <span class="dv-num ${NUM_CLS[id]}">${k + 1}</span>
         <div class="dv-inner">
           <div class="dv-move">${m}</div>
-          <div class="dv-why">Step ${k+1} of ${nameMap[id]}. Path length: ${plan.moves.length}, nodes: ${plan.nodesExplored}.</div>
+          <div class="dv-why">Step ${k + 1} of ${nameMap[id]}. Path length: ${plan.moves.length}, nodes: ${plan.nodesExplored}.</div>
         </div>
       </div>`).join('');
-    document.getElementById(CHIP_EL[id]).innerHTML=plan.moves.map(m=>`<span class="sol-chip">${m}</span>`).join('');
-    const bfsLen = resultPlans.bfs ? resultPlans.bfs.moves.length : null;
-    const isOpt = bfsLen!==null && plan.moves.length <= bfsLen;
-    document.getElementById(NOTE_EL[id]).textContent=`${plan.moves.length} steps, ${plan.nodesExplored} nodes explored. ${isOpt?'✓ Optimal length.':'Path may be suboptimal.'}`;
-  });
-}
+          document.getElementById(CHIP_EL[id]).innerHTML = plan.moves.map(m => `<span class="sol-chip">${m}</span>`).join('');
+          const bfsLen = resultPlans.bfs ? resultPlans.bfs.moves.length : null;
+          const isOpt = bfsLen !== null && plan.moves.length <= bfsLen;
+          document.getElementById(NOTE_EL[id]).textContent = `${plan.moves.length} steps, ${plan.nodesExplored} nodes explored. ${isOpt ? '✓ Optimal length.' : 'Path may be suboptimal.'}`;
+        });
+      }
 
-function showLoading(){
-  let ov=document.getElementById('loadOv');
-  if(!ov){ov=document.createElement('div');ov.id='loadOv';ov.className='loading-ov';
-    ov.innerHTML=`<div class="loading-box"><h3>⚙ Running All 4 Algorithms</h3><p>BFS · DFS · Greedy Best-First · A* computing…</p><div class="loading-algos"><div class="l-algo l-bfs"><div class="l-algo-bar"></div><span style="color:#29c4ef">BFS</span></div><div class="l-algo l-dfs"><div class="l-algo-bar"></div><span style="color:#ff7043">DFS</span></div><div class="l-algo l-gbfs"><div class="l-algo-bar"></div><span style="color:#d966f5">GREEDY</span></div><div class="l-algo l-ast"><div class="l-algo-bar"></div><span style="color:#7fff4f">A*</span></div></div><div class="spinner"></div></div>`;
-    document.body.appendChild(ov);}
-  else ov.style.display='flex';
-}
-function hideLoading(){const o=document.getElementById('loadOv');if(o)o.style.display='none';}
+      function showLoading() {
+        let ov = document.getElementById('loadOv');
+        if (!ov) {
+          ov = document.createElement('div'); ov.id = 'loadOv'; ov.className = 'loading-ov';
+          ov.innerHTML = `<div class="loading-box"><h3>⚙ Running All 4 Algorithms</h3><p>BFS · DFS · Greedy Best-First · A* computing…</p><div class="loading-algos"><div class="l-algo l-bfs"><div class="l-algo-bar"></div><span style="color:#29c4ef">BFS</span></div><div class="l-algo l-dfs"><div class="l-algo-bar"></div><span style="color:#ff7043">DFS</span></div><div class="l-algo l-gbfs"><div class="l-algo-bar"></div><span style="color:#d966f5">GREEDY</span></div><div class="l-algo l-ast"><div class="l-algo-bar"></div><span style="color:#7fff4f">A*</span></div></div><div class="spinner"></div></div>`;
+          document.body.appendChild(ov);
+        }
+        else ov.style.display = 'flex';
+      }
+      function hideLoading() { const o = document.getElementById('loadOv'); if (o) o.style.display = 'none'; }
 
-// ── WHICH ALGOS TO RUN ──
-let activeAlgos = ['bfs','dfs','gbfs','ast'];
+      // ── WHICH ALGOS TO RUN ──
+      let activeAlgos = ['bfs', 'dfs', 'gbfs', 'ast'];
 
-function applyAlgoVisibility(){
-  const count = activeAlgos.length;
+      function applyAlgoVisibility() {
+        const count = activeAlgos.length;
 
-  // Show/hide algo panels and update grid column count
-  ALGO_IDS.forEach(id=>{
-    const panel = document.getElementById('panel-'+id);
-    if(activeAlgos.includes(id)) panel.classList.remove('panel-hidden');
-    else panel.classList.add('panel-hidden');
-  });
-  document.getElementById('algosGrid').setAttribute('data-active', count);
+        // Show/hide algo panels and update grid column count
+        ALGO_IDS.forEach(id => {
+          const panel = document.getElementById('panel-' + id);
+          if (activeAlgos.includes(id)) panel.classList.remove('panel-hidden');
+          else panel.classList.add('panel-hidden');
+        });
+        document.getElementById('algosGrid').setAttribute('data-active', count);
 
-  // Show/hide divergence columns
-  const dvMap = {bfs:'bfs-dv', dfs:'dfs-dv', gbfs:'gbfs-dv', ast:'ast-dv'};
-  ALGO_IDS.forEach(id=>{
-    const col = document.querySelector('.dv-col.'+dvMap[id]);
-    if(col){
-      if(activeAlgos.includes(id)) col.classList.remove('dv-hidden');
-      else col.classList.add('dv-hidden');
-    }
-  });
-  document.querySelector('.diverge-grid').setAttribute('data-active', count);
+        // Show/hide divergence columns
+        const dvMap = { bfs: 'bfs-dv', dfs: 'dfs-dv', gbfs: 'gbfs-dv', ast: 'ast-dv' };
+        ALGO_IDS.forEach(id => {
+          const col = document.querySelector('.dv-col.' + dvMap[id]);
+          if (col) {
+            if (activeAlgos.includes(id)) col.classList.remove('dv-hidden');
+            else col.classList.add('dv-hidden');
+          }
+        });
+        document.querySelector('.diverge-grid').setAttribute('data-active', count);
 
-  // Show/hide sync bar (only useful with 2+ algos)
-  document.querySelector('.sync-bar').style.display = count >= 2 ? '' : 'none';
-}
+        // Show/hide sync bar (only useful with 2+ algos)
+        document.querySelector('.sync-bar').style.display = count >= 2 ? '' : 'none';
+      }
 
-function runAlgos(startStr, goalStr, isCustom){
-  ALGO_IDS.forEach(id=>{stopAuto(id);plans[id]=null;panelSteps[id]=0;});
-  stopAllSync();
-  applyAlgoVisibility();
+      function updateComparisonTable(resultPlans) {
+        let d_val = '?';
+        if (resultPlans.bfs && resultPlans.bfs.moves) d_val = resultPlans.bfs.moves.length;
+        else if (resultPlans.ast && resultPlans.ast.moves) d_val = resultPlans.ast.moves.length;
 
-  document.getElementById('startDesc').textContent=startStr;
-  document.getElementById('goalDesc').textContent=goalStr;
-  document.getElementById('piTarget').textContent='custom';
-  drawStateOnCanvas(document.getElementById('startMini'),startStr,'rgba(41,196,239,.6)');
-  drawStateOnCanvas(document.getElementById('goalMini'),goalStr,'rgba(127,255,79,.6)');
+        ALGO_IDS.forEach(id => {
+          const tEl = document.getElementById('cmp-time-' + id);
+          const sEl = document.getElementById('cmp-space-' + id);
+          if (!tEl || !sEl) return;
+          const plan = resultPlans[id];
+          if (!plan || !activeAlgos.includes(id)) {
+            tEl.innerHTML = '<span style="opacity:0.3">—</span>';
+            sEl.innerHTML = '<span style="opacity:0.3">—</span>';
+            return;
+          }
+          const N_str = plan.nodesExplored.toLocaleString();
+          const m_str = plan.moves.length.toLocaleString();
+          if (id === 'bfs') {
+            tEl.innerHTML = `O(b<sup>d</sup>)<br><span style="font-size:0.55rem;color:var(--text2)">d=${d_val} ≈ ${N_str} ops</span>`;
+            sEl.innerHTML = `O(b<sup>d</sup>)<br><span style="font-size:0.55rem;color:var(--text2)">≈ ${N_str} states</span>`;
+          } else if (id === 'dfs') {
+            tEl.innerHTML = `O(b<sup>m</sup>)<br><span style="font-size:0.55rem;color:var(--text2)">m=${m_str} ≈ ${N_str} ops</span>`;
+            sEl.innerHTML = `O(bm)<br><span style="font-size:0.55rem;color:var(--text2)">≈ ${m_str} states</span>`;
+          } else if (id === 'gbfs') {
+            tEl.innerHTML = `O(b<sup>m</sup>)*<br><span style="font-size:0.55rem;color:var(--text2)">m=${m_str} ≈ ${N_str} ops</span>`;
+            sEl.innerHTML = `O(b<sup>m</sup>)<br><span style="font-size:0.55rem;color:var(--text2)">≈ ${N_str} states</span>`;
+          } else if (id === 'ast') {
+            tEl.innerHTML = `O(b<sup>d</sup>)†<br><span style="font-size:0.55rem;color:var(--text2)">d=${d_val} ≈ ${N_str} ops</span>`;
+            sEl.innerHTML = `O(b<sup>d</sup>)<br><span style="font-size:0.55rem;color:var(--text2)">≈ ${N_str} states</span>`;
+          }
+        });
+      }
 
-  ALGO_IDS.forEach(id=>{
-    if(!activeAlgos.includes(id)){
-      document.getElementById('panel-'+id).classList.remove('done-panel');
-      return;
-    }
-    setStatus(id,'COMPUTING…','#ffc94d');
-    ['nodes-','path-','opt-'].forEach(p=>{const e=document.getElementById(p+id);if(e)e.textContent='…';});
-    document.getElementById('count-'+id).textContent='0 / 0';
-    document.getElementById('prev-'+id).disabled=true;document.getElementById('next-'+id).disabled=true;
-    document.getElementById('moves-'+id).innerHTML='';
-    document.getElementById('sfloat-'+id).textContent='START';
-    document.getElementById('panel-'+id).classList.remove('done-panel');
-  });
-  ['piBFS','piDFS','piGBFS','piAST','piBFSS','piDFSS','piGBFSS','piASTS'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.textContent='…';
-  });
-  document.getElementById('gbfsFill').style.width='0%';document.getElementById('gbfsLabel').textContent='—';
-  document.getElementById('fnFill').style.width='0%';document.getElementById('fnLabel').textContent='—';
+      function runAlgos(startStr, goalStr, isCustom) {
+        ALGO_IDS.forEach(id => { stopAuto(id); plans[id] = null; panelSteps[id] = 0; });
+        stopAllSync();
+        applyAlgoVisibility();
 
-  showLoading();
-  setTimeout(()=>{
-    const resultPlans = {};
-    if(activeAlgos.includes('bfs'))  resultPlans.bfs  = findBFS(startStr,goalStr);
-    if(activeAlgos.includes('dfs'))  resultPlans.dfs  = findDFS(startStr,goalStr);
-    if(activeAlgos.includes('gbfs')) resultPlans.gbfs = findGBFS(startStr,goalStr);
-    if(activeAlgos.includes('ast'))  resultPlans.ast  = findAStar(startStr,goalStr);
-    hideLoading();
+        document.getElementById('startDesc').textContent = startStr;
+        document.getElementById('goalDesc').textContent = goalStr;
+        document.getElementById('piTarget').textContent = 'custom';
+        drawStateOnCanvas(document.getElementById('startMini'), startStr, 'rgba(41,196,239,.6)');
+        drawStateOnCanvas(document.getElementById('goalMini'), goalStr, 'rgba(127,255,79,.6)');
 
-    ALGO_IDS.forEach(id=>{
-      if(!activeAlgos.includes(id)) return;
-      const plan=resultPlans[id];plans[id]=plan;if(!plan)return;
-      document.getElementById('nodes-'+id).textContent=plan.nodesExplored;
-      document.getElementById('path-'+id).textContent=plan.moves.length;
-      const bfsP=resultPlans.bfs;
-      const optText=
-        id==='bfs' ?'✓ YES':
-        id==='ast' ?`h₀=${plan.hVal}`:
-        id==='gbfs'?`h₀=${plan.hVal}`:
-        (bfsP&&plan.moves.length===bfsP.moves.length?'✓ equal':'✗ longer');
-      document.getElementById('opt-'+id).textContent=optText;
-      initAnim(id,plan.states[0]);animTo(id,plan.states[0],true,false,null);
-      setStatus(id,'READY',CM[id]);
-      document.getElementById('prev-'+id).disabled=true;document.getElementById('next-'+id).disabled=false;
-      document.getElementById('count-'+id).textContent=`0 / ${plan.states.length-1}`;
-      const KEY=id.toUpperCase();
-      const ns=document.getElementById('pi'+KEY);if(ns)ns.textContent=plan.nodesExplored;
-      const ps=document.getElementById('pi'+KEY+'S');if(ps)ps.textContent=plan.moves.length;
-    });
-    if(resultPlans.gbfs)updateGBFSBar(0,resultPlans.gbfs.states.length-1,resultPlans.gbfs.hVal);
-    if(resultPlans.ast) updateAStarBar(0,resultPlans.ast.states.length-1,resultPlans.ast.hVal);
+        ALGO_IDS.forEach(id => {
+          if (!activeAlgos.includes(id)) {
+            document.getElementById('panel-' + id).classList.remove('done-panel');
+            return;
+          }
+          setStatus(id, 'COMPUTING…', '#ffc94d');
+          ['nodes-', 'path-', 'opt-'].forEach(p => { const e = document.getElementById(p + id); if (e) e.textContent = '…'; });
+          document.getElementById('count-' + id).textContent = '0 / 0';
+          document.getElementById('prev-' + id).disabled = true; document.getElementById('next-' + id).disabled = true;
+          document.getElementById('moves-' + id).innerHTML = '';
+          document.getElementById('sfloat-' + id).textContent = 'START';
+          document.getElementById('panel-' + id).classList.remove('done-panel');
+        });
+        ['piBFS', 'piDFS', 'piGBFS', 'piAST', 'piBFSS', 'piDFSS', 'piGBFSS', 'piASTS'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.textContent = '…';
+        });
+        document.getElementById('gbfsFill').style.width = '0%'; document.getElementById('gbfsLabel').textContent = '—';
+        document.getElementById('fnFill').style.width = '0%'; document.getElementById('fnLabel').textContent = '—';
 
-    if(isCustom){
-      renderCustomDivergence(startStr, goalStr, resultPlans);
-    }
+        showLoading();
+        setTimeout(() => {
+          const resultPlans = {};
+          if (activeAlgos.includes('bfs')) resultPlans.bfs = findBFS(startStr, goalStr);
+          if (activeAlgos.includes('dfs')) resultPlans.dfs = findDFS(startStr, goalStr);
+          if (activeAlgos.includes('gbfs')) resultPlans.gbfs = findGBFS(startStr, goalStr);
+          if (activeAlgos.includes('ast')) resultPlans.ast = findAStar(startStr, goalStr);
+          hideLoading();
 
-    syncMax=Math.max(0,...activeAlgos.map(id=>plans[id]?plans[id].states.length-1:0));
-    syncStep=0;
-    document.getElementById('syncCounter').textContent=`0 / ${syncMax}`;
-    document.getElementById('syncPrev').disabled=true;
-    document.getElementById('syncNext').disabled=syncMax===0;
+          ALGO_IDS.forEach(id => {
+            if (!activeAlgos.includes(id)) return;
+            const plan = resultPlans[id]; plans[id] = plan; if (!plan) return;
+            document.getElementById('nodes-' + id).textContent = plan.nodesExplored;
+            document.getElementById('path-' + id).textContent = plan.moves.length;
+            const bfsP = resultPlans.bfs;
+            const optText =
+              id === 'bfs' ? '✓ YES' :
+                id === 'ast' ? `h₀=${plan.hVal}` :
+                  id === 'gbfs' ? `h₀=${plan.hVal}` :
+                    (bfsP && plan.moves.length === bfsP.moves.length ? '✓ equal' : '✗ longer');
+            document.getElementById('opt-' + id).textContent = optText;
+            initAnim(id, plan.states[0]); animTo(id, plan.states[0], true, false, null);
+            setStatus(id, 'READY', CM[id]);
+            document.getElementById('prev-' + id).disabled = true; document.getElementById('next-' + id).disabled = false;
+            document.getElementById('count-' + id).textContent = `0 / ${plan.states.length - 1}`;
+            const KEY = id.toUpperCase();
+            const ns = document.getElementById('pi' + KEY); if (ns) ns.textContent = plan.nodesExplored;
+            const ps = document.getElementById('pi' + KEY + 'S'); if (ps) ps.textContent = plan.moves.length;
+          });
+          if (resultPlans.gbfs) updateGBFSBar(0, resultPlans.gbfs.states.length - 1, resultPlans.gbfs.hVal);
+          if (resultPlans.ast) updateAStarBar(0, resultPlans.ast.states.length - 1, resultPlans.ast.hVal);
 
-    const tag=document.getElementById('fastestTag');
-    const allPlansList=activeAlgos.map(id=>resultPlans[id]).filter(Boolean);
-    if(allPlansList.length>=2){
-      tag.style.display='flex';
-      const minN=Math.min(...allPlansList.map(p=>p.nodesExplored));
-      const winId=activeAlgos.find(id=>resultPlans[id]&&resultPlans[id].nodesExplored===minN);
-      const names={bfs:'BFS',dfs:'DFS',gbfs:'GREEDY',ast:'A*'};
-      tag.textContent=`⚡ ${names[winId]||'?'} FEWEST NODES`;
-      tag.style.color=CM[winId]||'#fff';
-      tag.style.borderColor=(CM[winId]||'#fff')+'44';
-      tag.style.background=(CM[winId]||'#fff')+'11';
-    }else tag.style.display='none';
-  },60);
-}
+          if (isCustom) {
+            renderCustomDivergence(startStr, goalStr, resultPlans);
+          }
 
-function loadLevel(idx){
-  curLevel=idx;
-  activeAlgos=['bfs','dfs','gbfs','ast'];
-  // Reset checkboxes to all-on
-  document.getElementById('chkBFS').checked=true;
-  document.getElementById('chkDFS').checked=true;
-  document.getElementById('chkGBFS').checked=true;
-  document.getElementById('chkAST').checked=true;
+          updateComparisonTable(resultPlans);
 
-  applyAlgoVisibility(); // reset grid & divergence columns before run
+          syncMax = Math.max(0, ...activeAlgos.map(id => plans[id] ? plans[id].states.length - 1 : 0));
+          syncStep = 0;
+          document.getElementById('syncCounter').textContent = `0 / ${syncMax}`;
+          document.getElementById('syncPrev').disabled = true;
+          document.getElementById('syncNext').disabled = syncMax === 0;
 
-  const lv=LEVELS[idx];
-  // Sync config panel inputs with level
-  document.getElementById('cfgStart').value=lv.start;
-  document.getElementById('cfgGoal').value=lv.goal;
-  document.getElementById('cfgBlocks').value=lv.blocks;
+          const tag = document.getElementById('fastestTag');
+          const allPlansList = activeAlgos.map(id => resultPlans[id]).filter(Boolean);
+          if (allPlansList.length >= 2) {
+            tag.style.display = 'flex';
+            const minN = Math.min(...allPlansList.map(p => p.nodesExplored));
+            const winId = activeAlgos.find(id => resultPlans[id] && resultPlans[id].nodesExplored === minN);
+            const names = { bfs: 'BFS', dfs: 'DFS', gbfs: 'GREEDY', ast: 'A*' };
+            tag.textContent = `⚡ ${names[winId] || '?'} FEWEST NODES`;
+            tag.style.color = CM[winId] || '#fff';
+            tag.style.borderColor = (CM[winId] || '#fff') + '44';
+            tag.style.background = (CM[winId] || '#fff') + '11';
+          } else tag.style.display = 'none';
+        }, 60);
+      }
 
-  runAlgos(lv.start, lv.goal, false);
-  renderDivergence(lv);
-}
+      function loadLevel(idx) {
+        curLevel = idx;
+        activeAlgos = ['bfs', 'dfs', 'gbfs', 'ast'];
+        // Reset checkboxes to all-on
+        document.getElementById('chkBFS').checked = true;
+        document.getElementById('chkDFS').checked = true;
+        document.getElementById('chkGBFS').checked = true;
+        document.getElementById('chkAST').checked = true;
 
-// ── CONFIG PANEL LOGIC ──
-const DEFAULT_STARTS=['ABC','ABCD','ABCDE','ABCDEF','ABCDEFG'];
-const DEFAULT_GOALS=['A|BC','AB|CD','AB|CDE','BCD|AEF','ABC|DEFG'];
+        applyAlgoVisibility(); // reset grid & divergence columns before run
 
-document.getElementById('cfgBlocks').addEventListener('change', function(){
-  const n = parseInt(this.value);
-  const idx = n - 3;
-  document.getElementById('cfgStart').value = DEFAULT_STARTS[idx] || 'ABCD';
-  document.getElementById('cfgGoal').value  = DEFAULT_GOALS[idx]  || 'AB|CD';
-  validateInputs();
-});
+        const lv = LEVELS[idx];
+        // Sync config panel inputs with level
+        document.getElementById('cfgStart').value = lv.start;
+        document.getElementById('cfgGoal').value = lv.goal;
+        document.getElementById('cfgBlocks').value = lv.blocks;
 
-function getAllBlockLetters(stateStr){
-  return stateStr.replace(/\|/g,'').toUpperCase().split('');
-}
+        runAlgos(lv.start, lv.goal, false);
+        renderDivergence(lv);
+      }
 
-function validateInputs(){
-  const startRaw = document.getElementById('cfgStart').value.trim().toUpperCase();
-  const goalRaw  = document.getElementById('cfgGoal').value.trim().toUpperCase();
-  const n = parseInt(document.getElementById('cfgBlocks').value);
-  const valid = 'ABCDEFG'.slice(0,n);
+      // ── CONFIG PANEL LOGIC ──
+      const DEFAULT_STARTS = ['ABC', 'ABCD', 'ABCDE', 'ABCDEF', 'ABCDEFG'];
+      const DEFAULT_GOALS = ['A|BC', 'AB|CD', 'AB|CDE', 'BCD|AEF', 'ABC|DEFG'];
 
-  let ok = true;
-  let hintS = '', hintG = '';
+      document.getElementById('cfgBlocks').addEventListener('change', function () {
+        const n = parseInt(this.value);
+        const idx = n - 3;
+        document.getElementById('cfgStart').value = DEFAULT_STARTS[idx] || 'ABCD';
+        document.getElementById('cfgGoal').value = DEFAULT_GOALS[idx] || 'AB|CD';
+        validateInputs();
+      });
 
-  // Validate start
-  const sLetters = getAllBlockLetters(startRaw);
-  const sUniq = [...new Set(sLetters)].sort().join('');
-  if(sLetters.length !== n){ hintS=`Need exactly ${n} blocks`; ok=false; }
-  else if(sUniq !== valid){ hintS=`Use only ${valid.split('').join(',')} each once`; ok=false; }
+      function getAllBlockLetters(stateStr) {
+        return stateStr.replace(/\|/g, '').toUpperCase().split('');
+      }
 
-  // Validate goal
-  const gLetters = getAllBlockLetters(goalRaw);
-  const gUniq = [...new Set(gLetters)].sort().join('');
-  if(gLetters.length !== n){ hintG=`Need exactly ${n} blocks`; ok=false; }
-  else if(gUniq !== valid){ hintG=`Use only ${valid.split('').join(',')} each once`; ok=false; }
+      function validateInputs() {
+        const startRaw = document.getElementById('cfgStart').value.trim().toUpperCase();
+        const goalRaw = document.getElementById('cfgGoal').value.trim().toUpperCase();
+        const n = parseInt(document.getElementById('cfgBlocks').value);
+        const valid = 'ABCDEFG'.slice(0, n);
 
-  document.getElementById('hintStart').textContent = hintS;
-  document.getElementById('hintGoal').textContent  = hintG;
-  document.getElementById('cfgStart').classList.toggle('config-input-err', !!hintS);
-  document.getElementById('cfgGoal').classList.toggle('config-input-err',  !!hintG);
+        let ok = true;
+        let hintS = '', hintG = '';
 
-  return ok ? {startRaw, goalRaw} : null;
-}
+        // Validate start
+        const sLetters = getAllBlockLetters(startRaw);
+        const sUniq = [...new Set(sLetters)].sort().join('');
+        if (sLetters.length !== n) { hintS = `Need exactly ${n} blocks`; ok = false; }
+        else if (sUniq !== valid) { hintS = `Use only ${valid.split('').join(',')} each once`; ok = false; }
 
-['cfgStart','cfgGoal'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', validateInputs);
-});
+        // Validate goal
+        const gLetters = getAllBlockLetters(goalRaw);
+        const gUniq = [...new Set(gLetters)].sort().join('');
+        if (gLetters.length !== n) { hintG = `Need exactly ${n} blocks`; ok = false; }
+        else if (gUniq !== valid) { hintG = `Use only ${valid.split('').join(',')} each once`; ok = false; }
 
-// Config run button
-document.getElementById('cfgRunBtn').addEventListener('click',()=>{
-  const v = validateInputs();
-  if(!v){ return; }
+        document.getElementById('hintStart').textContent = hintS;
+        document.getElementById('hintGoal').textContent = hintG;
+        document.getElementById('cfgStart').classList.toggle('config-input-err', !!hintS);
+        document.getElementById('cfgGoal').classList.toggle('config-input-err', !!hintG);
 
-  // Read checked algos
-  const checked = [];
-  if(document.getElementById('chkBFS').checked)  checked.push('bfs');
-  if(document.getElementById('chkDFS').checked)  checked.push('dfs');
-  if(document.getElementById('chkGBFS').checked) checked.push('gbfs');
-  if(document.getElementById('chkAST').checked)  checked.push('ast');
-  if(checked.length === 0){ alert('Select at least one algorithm.'); return; }
+        return ok ? { startRaw, goalRaw } : null;
+      }
 
-  activeAlgos = checked;
-  runAlgos(v.startRaw, v.goalRaw, true);
-});
+      ['cfgStart', 'cfgGoal'].forEach(id => {
+        document.getElementById(id).addEventListener('input', validateInputs);
+      });
 
-// Config speed buttons
-document.querySelectorAll('.speed-config-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.speed-config-btn,.speed-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active'); stepMs=parseInt(btn.dataset.ms);
-  });
-});
+      // Config run button
+      document.getElementById('cfgRunBtn').addEventListener('click', () => {
+        const v = validateInputs();
+        if (!v) { return; }
 
-// Checkbox: enforce at-least-one, update pill check icon
-const cbIds = ['chkBFS','chkDFS','chkGBFS','chkAST'];
-cbIds.forEach(cbId=>{
-  const cb = document.getElementById(cbId);
-  if(!cb) return;
-  cb.addEventListener('change',()=>{
-    const checked = cbIds.filter(x=>document.getElementById(x).checked);
-    if(checked.length === 0){ cb.checked = true; }
-  });
-});
+        // Read checked algos
+        const checked = [];
+        if (document.getElementById('chkBFS').checked) checked.push('bfs');
+        if (document.getElementById('chkDFS').checked) checked.push('dfs');
+        if (document.getElementById('chkGBFS').checked) checked.push('gbfs');
+        if (document.getElementById('chkAST').checked) checked.push('ast');
+        if (checked.length === 0) { alert('Select at least one algorithm.'); return; }
 
-document.getElementById('levelSelect').addEventListener('change',e=>loadLevel(parseInt(e.target.value)));
-document.getElementById('runBtn').addEventListener('click',()=>loadLevel(curLevel));
-loadLevel(1);
-})();
-</script>
+        activeAlgos = checked;
+        runAlgos(v.startRaw, v.goalRaw, true);
+      });
+
+      // Config speed buttons
+      document.querySelectorAll('.speed-config-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.speed-config-btn,.speed-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); stepMs = parseInt(btn.dataset.ms);
+        });
+      });
+
+      // Checkbox: enforce at-least-one, update pill check icon
+      const cbIds = ['chkBFS', 'chkDFS', 'chkGBFS', 'chkAST'];
+      cbIds.forEach(cbId => {
+        const cb = document.getElementById(cbId);
+        if (!cb) return;
+        cb.addEventListener('change', () => {
+          const checked = cbIds.filter(x => document.getElementById(x).checked);
+          if (checked.length === 0) { cb.checked = true; }
+        });
+      });
+
+      document.getElementById('levelSelect').addEventListener('change', e => loadLevel(parseInt(e.target.value)));
+      document.getElementById('runBtn').addEventListener('click', () => loadLevel(curLevel));
+      loadLevel(1);
+    })();
+  </script>
 </body>
+
 </html>
